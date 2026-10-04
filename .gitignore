@@ -1,0 +1,76 @@
+# Local-only and secret material. See docs/SECRETS-AND-LOCAL-FILES.md
+# and week1/README.md §0.3. Credentials live in ~/.config/openstack and
+# ~/.config/scc26-secrets, never in this repository.
+
+# --- Terraform ---
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
+crash.*.log
+terraform.tfvars
+*.auto.tfvars
+*.tfvars.json
+tfplan
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+# Keep the provider lock file and example variables in Git.
+!.terraform.lock.hcl
+!*.tfvars.example
+
+# --- OpenStack credentials ---
+clouds.yaml
+secure.yaml
+*openrc*.sh
+*-openrc
+app-credential*
+
+# --- Keys, certificates and secrets ---
+*.pem
+*.key
+*.crt.private
+id_rsa*
+id_ed25519*
+*.ppk
+wg*.conf
+*.wg
+secrets-private/
+*.secret.yaml
+*-secret.yaml
+!*-secret.example.yaml
+!*-sealed.yaml
+.vault_pass*
+vault-password*
+
+# --- Ansible ---
+infrastructure/ansible/inventories/private/
+*.retry
+.ansible/
+
+# --- Kubernetes ---
+kubeconfig
+*.kubeconfig
+admin.conf
+
+# --- Environment files ---
+.env
+.env.*
+!.env.example
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Paper build output ---
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
