@@ -1,0 +1,13 @@
+---
+# Timezone is presentation; chrony keeps the clock correct. Both matter for
+# Week-3 incident timelines (week1/README.md §18).
+common_timezone: Africa/Johannesburg
+
+common_packages:
+  - chrony
+  - curl
+  - jq
+  - rsync
+  - tar
+  - python3-libselinux
+  - policycoreutils-python-utils
