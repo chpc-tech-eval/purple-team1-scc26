@@ -101,4 +101,9 @@ resource "openstack_networking_floatingip_v2" "edge" {
 resource "openstack_networking_floatingip_associate_v2" "edge" {
   floating_ip = openstack_networking_floatingip_v2.edge.address
   port_id     = module.compute.port_ids["edge-01"]
+
+  # Neutron refuses the association until edge-01's subnet is attached to
+  # the router that has the external gateway (ExternalGatewayForFloatingIPNotFound).
+  # Nothing else orders these, so wait for the whole network module.
+  depends_on = [module.network]
 }

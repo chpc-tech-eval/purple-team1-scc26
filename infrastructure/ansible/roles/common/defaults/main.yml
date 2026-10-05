@@ -11,3 +11,8 @@ common_packages:
   - tar
   - python3-libselinux
   - policycoreutils-python-utils
+
+# Members' PUBLIC SSH keys for the bootstrap user, set in the private
+# inventory (group_vars/all.yml): [{name: <member>, key: "ssh-ed25519 ..."}].
+# Additive only: the Terraform keypair stays, so nobody is locked out.
+common_authorized_keys: []

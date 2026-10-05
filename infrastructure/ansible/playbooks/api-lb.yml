@@ -1,7 +1,9 @@
 ---
-# Stable Kubernetes API endpoint: HAProxy on :6443 (week1/README.md Part G).
-# Role lands in #14 (uses ansible.posix.seboolean haproxy_connect_any).
+# Stable Kubernetes API endpoint: HAProxy on :6443 (week1/README.md Part G, #14).
+# Run: ansible-playbook -i inventories/private/hosts.yml playbooks/api-lb.yml
 - name: Configure the API load balancer
   hosts: api_lb
   become: true
-  roles: []
+  roles:
+    - role: haproxy
+      tags: [haproxy]
