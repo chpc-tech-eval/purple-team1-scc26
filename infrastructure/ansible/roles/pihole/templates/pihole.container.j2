@@ -1,4 +1,4 @@
-# Managed by Ansible (roles/pihole). Contains the UI password: root-only (0600).
+# Managed by Ansible (roles/pihole). The UI password comes from a Podman secret.
 [Unit]
 Description=Pi-hole DNS
 After=network-online.target
@@ -10,7 +10,7 @@ ContainerName=pihole
 Network=host
 Volume={{ pihole_data_dir }}/etc-pihole:/etc/pihole:Z
 Environment=TZ={{ pihole_timezone }}
-Environment=FTLCONF_webserver_api_password={{ pihole_web_password }}
+Secret={{ pihole_secret_name }},type=env,target=FTLCONF_webserver_api_password
 Environment=FTLCONF_dns_listeningMode={{ pihole_listening_mode }}
 Environment=FTLCONF_dns_domain_name={{ pihole_local_domain }}
 Environment="FTLCONF_dns_upstreams={{ pihole_dns_upstreams | join(';') }}"
