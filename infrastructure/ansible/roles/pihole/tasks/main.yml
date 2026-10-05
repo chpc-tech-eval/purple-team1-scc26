@@ -23,28 +23,25 @@
     mode: "0700"
 
 # The UI password lives in a Podman secret, not in the unit or the container
-# env shown by `podman inspect` (captain review on #27, point 3). A salted
-# fingerprint label lets the role replace the secret only when it changes.
-- name: Read the current Pi-hole secret fingerprint
+# env shown by `podman inspect` (captain review on #27). The current value is
+# read back on the host and compared without logging, so no fingerprint of the
+# password is stored anywhere (captain follow-up on #35).
+- name: Read the current Pi-hole secret value (never logged)
   ansible.builtin.command:
     cmd: >-
-      podman secret inspect --format
-      '{% raw %}{{ index .Spec.Labels "scc26.fingerprint" }}{% endraw %}' {{ pihole_secret_name }}
+      podman secret inspect --showsecret --format
+      '{% raw %}{{ .SecretData }}{% endraw %}' {{ pihole_secret_name }}
   register: pihole_secret_current
   changed_when: false
   failed_when: false
+  no_log: true
 
-- name: Create or replace the Pi-hole password secret when it changed
-  vars:
-    pihole_secret_fingerprint: "{{ (inventory_hostname ~ ':' ~ pihole_web_password) | hash('sha256') }}"
+- name: Create or replace the Pi-hole password secret when it differs
   ansible.builtin.command:
-    cmd: >-
-      podman secret create --replace
-      --label scc26.fingerprint={{ pihole_secret_fingerprint }}
-      {{ pihole_secret_name }} -
+    cmd: podman secret create --replace {{ pihole_secret_name }} -
     stdin: "{{ pihole_web_password }}"
     stdin_add_newline: false
-  when: pihole_secret_current.rc != 0 or pihole_secret_current.stdout | trim != pihole_secret_fingerprint
+  when: pihole_secret_current.rc != 0 or pihole_secret_current.stdout != pihole_web_password
   changed_when: true
   notify: Restart Pi-hole
   no_log: true
