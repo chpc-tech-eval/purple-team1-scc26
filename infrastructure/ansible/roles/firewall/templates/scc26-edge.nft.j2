@@ -19,6 +19,7 @@ table inet scc26_edge {
         ct state established,related accept
         ct state invalid drop
         ip protocol icmp accept
+        meta l4proto ipv6-icmp accept comment "IPv6 neighbour discovery; without it IPv6 attempts stall"
 
         udp dport {{ firewall_wireguard_port }} accept
         tcp dport 22 ip saddr @ssh_src accept
