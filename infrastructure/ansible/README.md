@@ -10,6 +10,7 @@ playbooks/bootstrap.yml           all hosts: SELinux check, base packages, chron
 playbooks/edge.yml                edge-01: WireGuard, Pi-hole, nftables (#13)
 playbooks/api-lb.yml              api-lb-01: HAProxy :6443 (#14)
 roles/common/                     Week-1 host fundamentals used by bootstrap.yml
+roles/haproxy/                    api-lb-01 HAProxy :6443, backends from the control_plane group, SELinux boolean
 ```
 
 ## First-time setup
