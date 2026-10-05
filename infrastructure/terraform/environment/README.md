@@ -13,7 +13,7 @@ Terraform owns cloud infrastructure only. Host configuration (WireGuard, Pi-hole
 
 ## Status
 
-Waiting on the instructor (#16) for CIDRs, WireGuard/bootstrap sources, edge flavor, boot method and state location. Every one of those is a variable with **no default**, so `terraform plan` refuses to run until the real values are in the private `terraform.tfvars`.
+Decided: image `Rocky 9` with bootstrap user `rocky`, edge flavor `large`, state kept local on the applier's private workstation (#16, #22). Still being agreed: CIDRs (#21), WireGuard port and WireGuard/bootstrap SSH sources (#18), boot from image vs volume. Those are variables with **no default**, so `terraform plan` refuses to run until the real values are in the private `terraform.tfvars`.
 
 ## Usage
 

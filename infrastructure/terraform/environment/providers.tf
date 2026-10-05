@@ -8,8 +8,9 @@ terraform {
     }
   }
 
-  # State location is still an open question (#16 Q5). Until it is
-  # answered, state stays local and private (gitignored), never in Git.
+  # No backend block on purpose: state stays local, on the private
+  # workstation of whoever applies (instructor answer, #16). It is
+  # gitignored and never goes in Git or a shared backend.
 }
 
 provider "openstack" {

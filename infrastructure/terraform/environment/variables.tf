@@ -79,6 +79,18 @@ variable "node_fixed_ips" {
     ])
     error_message = "node_fixed_ips needs an entry for each of the five hosts."
   }
+
+  # edge-01 lives on the mgmt subnet, every other host on the k8s subnet.
+  validation {
+    condition = alltrue([
+      for host, ip in var.node_fixed_ips : try(
+        cidrhost("${ip}/${split("/", host == "edge-01" ? var.mgmt_cidr : var.k8s_cidr)[1]}", 0) ==
+        cidrhost(host == "edge-01" ? var.mgmt_cidr : var.k8s_cidr, 0),
+        false
+      )
+    ])
+    error_message = "Each node_fixed_ips address must sit inside its subnet: edge-01 in mgmt_cidr, the other hosts in k8s_cidr."
+  }
 }
 
 # --- Edge exposure (docs/network-design.md §4 rules 1-2) ---
