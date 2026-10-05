@@ -24,6 +24,16 @@ cp inventories/example/hosts.yml inventories/private/hosts.yml
 
 The real inventory and its `group_vars/` never go in Git.
 
+### Private inventory: member SSH keys (#12)
+
+Terraform installs one keypair for `rocky`. The bootstrap adds each member's **public** key (additive; the Terraform key stays). Members post public keys on #12; never a private key.
+
+```yaml
+# inventories/private/group_vars/all.yml  (gitignored)
+common_authorized_keys:
+  - {name: "<member>", key: "ssh-ed25519 AAAA... <comment>"}
+```
+
 ### Private inventory: reaching hosts behind the edge
 
 Until WireGuard works (#13), private hosts are reached through `edge-01`. Create this file **only in the private inventory**:

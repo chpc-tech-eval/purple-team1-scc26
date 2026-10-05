@@ -21,6 +21,17 @@
   community.general.timezone:
     name: "{{ common_timezone }}"
 
+- name: Add members' public SSH keys for the bootstrap user (additive)
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user }}"
+    key: "{{ item.key }}"
+    comment: "{{ item.name }}"
+    state: present
+    exclusive: false
+  loop: "{{ common_authorized_keys }}"
+  loop_control:
+    label: "{{ item.name }}"
+
 - name: Harden sshd (key-only, no root login)
   ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/10-scc26-hardening.conf
