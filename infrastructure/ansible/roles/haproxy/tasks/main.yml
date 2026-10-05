@@ -44,7 +44,7 @@
     permanent: true
     immediate: true
     state: enabled
-  when: haproxy_firewalld_state.status.ActiveState | default('inactive') == 'active'
+  when: (haproxy_firewalld_state.status | default({})).ActiveState | default('inactive') == 'active'
 
 - name: Enable and start HAProxy
   ansible.builtin.systemd_service:

@@ -21,7 +21,7 @@
 - name: Refuse to run alongside an active firewalld
   ansible.builtin.assert:
     that:
-      - firewall_firewalld_state.status.ActiveState | default('inactive') != 'active'
+      - (firewall_firewalld_state.status | default({})).ActiveState | default('inactive') != 'active'
     fail_msg: >-
       firewalld is running. Replacing it with nftables is a team decision; do
       not stop it from this role. Agree it on #13 first.
