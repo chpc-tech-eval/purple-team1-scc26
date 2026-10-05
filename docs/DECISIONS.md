@@ -12,7 +12,8 @@ Questions for the instructor are raised as **GitHub issues** (label `question`, 
 | 2026-10-05 | **edge-01 flavor = `large`** (8 vCPU / 16 GiB / 150 GB): no 4 vCPU / 10 GiB flavor exists, `medium` is 2 GiB short, and Wazuh Manager + Suricata land on edge in Week 3; still within quota (30 vCPU / 60 GiB total) | Captain decision; #8, #19 |
 | 2026-10-05 | Questions for the instructor go in **separate GitHub issues** (label `question`), never inside commits or docs | Instructor review on #6 |
 | 2026-10-05 | We **write our own** student Terraform and Ansible; the instructor provides examples, and `nyameko/infra-hpc-qc-k8s` is reference only | Instructor answer on #16 |
-| 2026-10-05 | Private network CIDRs are **the team's choice** (internal private networks); proposal under review in #21 | Instructor answer on #16 |
+| 2026-10-05 | Private network CIDRs **approved as proposed in #21** (RFC 1918, non-overlapping, clear of the Kubernetes service range); the pod network is set explicitly in kubeadm **and** Cilium in Week 2 | Instructor answer on #21 |
+| 2026-10-05 | Merged: network design (#18), Terraform modules + environment (#19), CI collections fix (#20), decision log (#22) | Approved by the instructor |
 | 2026-10-05 | External network is **"Public Internet"**; the project has exactly **one floating IP** (on edge-01) | #8 discovery, instructor answer on #16 |
 | 2026-10-05 | Image **Rocky 9**; bootstrap/cloud user **`rocky`** | #8 discovery, instructor answer on #16 |
 | 2026-10-05 | Terraform state **stays local, on the private workstation** of whoever applies; never in Git or a shared backend | Instructor answer on #16 |
