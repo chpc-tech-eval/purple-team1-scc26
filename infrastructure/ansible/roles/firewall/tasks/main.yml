@@ -1,0 +1,55 @@
+---
+- name: Require firewall inputs from the private inventory
+  ansible.builtin.assert:
+    that:
+      - firewall_ssh_cidrs is defined and firewall_ssh_cidrs | length > 0
+      - firewall_dns_cidrs is defined and firewall_dns_cidrs | length > 0
+      - firewall_vpn_cidr is defined
+      - firewall_private_cidrs is defined and firewall_private_cidrs | length > 0
+      - firewall_wireguard_port is defined
+      - "'0.0.0.0/0' not in firewall_ssh_cidrs"
+    fail_msg: Set the firewall_* variables in inventories/private (see roles/firewall/defaults/main.yml).
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Refuse to run alongside an active firewalld
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.services['firewalld.service'] is not defined
+        or ansible_facts.services['firewalld.service'].state != 'running'
+    fail_msg: >-
+      firewalld is running. Replacing it with nftables is a team decision; do
+      not stop it from this role. Agree it on #13 first.
+
+- name: Install nftables
+  ansible.builtin.dnf:
+    name: nftables
+    state: present
+
+- name: Deploy the edge ruleset (checked with nft -c before it lands)
+  ansible.builtin.template:
+    src: scc26-edge.nft.j2
+    dest: "{{ firewall_ruleset_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+    validate: /usr/sbin/nft -c -f %s
+  notify: Reload nftables
+
+- name: Load only our ruleset from the nftables service
+  ansible.builtin.copy:
+    dest: /etc/sysconfig/nftables.conf
+    content: |
+      # Managed by Ansible (infrastructure/ansible/roles/firewall)
+      include "{{ firewall_ruleset_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload nftables
+
+- name: Enable and start nftables
+  ansible.builtin.systemd_service:
+    name: nftables
+    enabled: true
+    state: started

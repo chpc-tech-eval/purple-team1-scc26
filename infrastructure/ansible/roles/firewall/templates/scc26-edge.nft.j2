@@ -1,0 +1,40 @@
+#!/usr/sbin/nft -f
+# Managed by Ansible (roles/firewall). Replaces only table inet scc26_edge;
+# other tables are left alone at runtime (handler runs nft -f on this file).
+# Forwarding is routed, never masqueraded (docs/network-design.md §3, option A),
+# so private hosts and Week-5 evidence see the real VPN client address.
+
+table inet scc26_edge
+delete table inet scc26_edge
+
+table inet scc26_edge {
+    set ssh_src     { type ipv4_addr; flags interval; elements = { {{ firewall_ssh_cidrs | join(', ') }} } }
+    set dns_src     { type ipv4_addr; flags interval; elements = { {{ firewall_dns_cidrs | join(', ') }} } }
+    set private_dst { type ipv4_addr; flags interval; elements = { {{ firewall_private_cidrs | join(', ') }} } }
+
+    chain input {
+        type filter hook input priority filter; policy drop;
+
+        iifname "lo" accept
+        ct state established,related accept
+        ct state invalid drop
+        ip protocol icmp accept
+
+        udp dport {{ firewall_wireguard_port }} accept
+        tcp dport 22 ip saddr @ssh_src accept
+        meta l4proto { tcp, udp } th dport 53 ip saddr @dns_src accept
+        tcp dport 80 ip saddr {{ firewall_vpn_cidr }} accept comment "Pi-hole UI over VPN only"
+    }
+
+    chain forward {
+        type filter hook forward priority filter; policy drop;
+
+        ct state established,related accept
+        ct state invalid drop
+        iifname "{{ firewall_wireguard_interface }}" ip saddr {{ firewall_vpn_cidr }} ip daddr @private_dst accept
+    }
+
+    chain output {
+        type filter hook output priority filter; policy accept;
+    }
+}

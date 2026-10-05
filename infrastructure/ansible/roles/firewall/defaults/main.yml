@@ -1,0 +1,11 @@
+---
+# nftables on edge-01 (docs/network-design.md §2-4). Values with no default
+# below MUST be set in the private inventory; the role asserts them.
+#
+# firewall_ssh_cidrs:      sources allowed to SSH to edge (bootstrap + VPN)
+# firewall_dns_cidrs:      sources allowed to query Pi-hole (mgmt, k8s, VPN)
+# firewall_vpn_cidr:       WireGuard client range (also allowed to the Pi-hole UI)
+# firewall_private_cidrs:  private networks VPN clients may reach (mgmt, k8s)
+# firewall_wireguard_port: WireGuard UDP port
+firewall_wireguard_interface: wg0
+firewall_ruleset_path: /etc/nftables/scc26-edge.nft
