@@ -12,17 +12,16 @@
 
 # A single systemctl query instead of service_facts, which took up to ~1100 s
 # on edge-01 (Olerato's finding B on #13).
-- name: Check whether firewalld is active
-  ansible.builtin.command:
-    cmd: systemctl is-active firewalld
+- name: Check whether firewalld is active (read-only, single unit)
+  ansible.builtin.systemd_service:
+    name: firewalld
   register: firewall_firewalld_state
-  changed_when: false
   failed_when: false
 
 - name: Refuse to run alongside an active firewalld
   ansible.builtin.assert:
     that:
-      - firewall_firewalld_state.stdout | trim != 'active'
+      - firewall_firewalld_state.status.ActiveState | default('inactive') != 'active'
     fail_msg: >-
       firewalld is running. Replacing it with nftables is a team decision; do
       not stop it from this role. Agree it on #13 first.

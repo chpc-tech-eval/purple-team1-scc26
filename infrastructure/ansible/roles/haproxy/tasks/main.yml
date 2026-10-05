@@ -31,11 +31,10 @@
     validate: /usr/sbin/haproxy -c -f %s
   notify: Reload HAProxy
 
-- name: Check whether firewalld is active
-  ansible.builtin.command:
-    cmd: systemctl is-active firewalld
+- name: Check whether firewalld is active (read-only, single unit)
+  ansible.builtin.systemd_service:
+    name: firewalld
   register: haproxy_firewalld_state
-  changed_when: false
   failed_when: false
 
 # Never disable firewalld; if it is running, open only the API port.
@@ -45,7 +44,7 @@
     permanent: true
     immediate: true
     state: enabled
-  when: haproxy_firewalld_state.stdout | trim == 'active'
+  when: haproxy_firewalld_state.status.ActiveState | default('inactive') == 'active'
 
 - name: Enable and start HAProxy
   ansible.builtin.systemd_service:
