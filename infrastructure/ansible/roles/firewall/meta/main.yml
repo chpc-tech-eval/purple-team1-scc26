@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: Rendani-Anele
+  description: nftables ruleset for edge-01, routed VPN without NAT
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

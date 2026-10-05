@@ -1,0 +1,9 @@
+---
+# WireGuard server on edge-01. The private key is generated ON the host and
+# loaded by PostUp; it is never read back into Ansible, printed or committed.
+#
+# Required in the private inventory (no defaults, asserted):
+# wireguard_port:            UDP listen port (team decision, #13)
+# wireguard_server_address:  server address with prefix inside the VPN range
+# wireguard_peers:           list of {name, public_key, allowed_ips}; PUBLIC keys only
+wireguard_interface: wg0

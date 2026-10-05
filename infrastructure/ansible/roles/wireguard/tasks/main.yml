@@ -1,0 +1,64 @@
+---
+- name: Require WireGuard inputs from the private inventory
+  ansible.builtin.assert:
+    that:
+      - wireguard_port is defined
+      - wireguard_server_address is defined
+      - wireguard_peers is defined
+    fail_msg: Set wireguard_port, wireguard_server_address and wireguard_peers in inventories/private.
+
+- name: Install WireGuard tools
+  ansible.builtin.dnf:
+    name: wireguard-tools
+    state: present
+
+- name: Enable IPv4 forwarding (routed VPN, no NAT)
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_file: /etc/sysctl.d/90-scc26-wireguard.conf
+    state: present
+    reload: true
+
+- name: Create /etc/wireguard
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Generate the server private key on the host (once)
+  ansible.builtin.shell:
+    cmd: umask 077 && wg genkey > /etc/wireguard/{{ wireguard_interface }}.key
+    creates: /etc/wireguard/{{ wireguard_interface }}.key
+  no_log: true
+
+- name: Derive the server public key
+  ansible.builtin.shell:
+    cmd: wg pubkey < /etc/wireguard/{{ wireguard_interface }}.key > /etc/wireguard/{{ wireguard_interface }}.pub
+    creates: /etc/wireguard/{{ wireguard_interface }}.pub
+
+- name: Deploy the interface configuration (no private key inside)
+  ansible.builtin.template:
+    src: wg.conf.j2
+    dest: /etc/wireguard/{{ wireguard_interface }}.conf
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload WireGuard
+
+- name: Enable and start wg-quick
+  ansible.builtin.systemd_service:
+    name: wg-quick@{{ wireguard_interface }}
+    enabled: true
+    state: started
+
+- name: Read the server PUBLIC key for client configs
+  ansible.builtin.slurp:
+    src: /etc/wireguard/{{ wireguard_interface }}.pub
+  register: wireguard_public_key_file
+
+- name: Show the server public key (safe to share; the private key stays on edge-01)
+  ansible.builtin.debug:
+    msg: "{{ wireguard_interface }} public key: {{ wireguard_public_key_file.content | b64decode | trim }}"

@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: Rendani-Anele
+  description: Pi-hole DNS on edge-01 as a pinned Podman Quadlet
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []
