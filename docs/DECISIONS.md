@@ -1,11 +1,22 @@
 # Team decision log — 3NCRYP+3D
 
-Short record of decisions and open questions. Newest first. No credentials, IPs or private topology here.
+Record of **decisions and instructor answers** only. Newest first. No credentials, IPs or private topology here.
+
+Questions for the instructor are raised as **GitHub issues** (label `question`, mention `@nyameko`), not written into this file. Once answered, the outcome is recorded below with a link to the issue.
 
 ## Decided
 
 | Date | Decision | Why / source |
 | --- | --- | --- |
+| 2026-10-05 | Questions for the instructor go in **separate GitHub issues** (label `question`), never inside commits or docs | Instructor review on #6 |
+| 2026-10-05 | We **write our own** student Terraform and Ansible; the instructor provides examples, and `nyameko/infra-hpc-qc-k8s` is reference only | Instructor answer on #16 |
+| 2026-10-05 | Private network CIDRs are **the team's choice** (internal private networks); proposal under review in #21 | Instructor answer on #16 |
+| 2026-10-05 | External network is **"Public Internet"**; the project has exactly **one floating IP** (on edge-01) | #8 discovery, instructor answer on #16 |
+| 2026-10-05 | Image **Rocky 9**; bootstrap/cloud user **`rocky`** | #8 discovery, instructor answer on #16 |
+| 2026-10-05 | Terraform state **stays local, on the private workstation** of whoever applies; never in Git or a shared backend | Instructor answer on #16 |
+| 2026-10-05 | Captain's repo role raised to `admin`; other members are `maintainer` | Instructor answer on #16 |
+| 2026-10-05 | Week-6 paper uses the repo's IEEE scaffold (`paper/`); depending on quality it may be submitted to internal journals | Instructor answer on #16 |
+| 2026-10-05 | Every PR into `dev`/`main` runs credential-free CI: gitleaks, yamllint, Terraform fmt/validate, Ansible syntax-check/lint | #17 |
 | 2026-10-04 | Team workstations run inside **WSL2 Ubuntu** on Windows laptops | Ansible's control node does not run natively on Windows; keeps every member on the same toolchain |
 | 2026-10-04 | Workstation toolset: Git, SSH, OpenStack CLI, Terraform, Ansible, kubeseal. **No** kubectl/Helm/Argo CLI on workstations | `docs/COMMAND-LOCATIONS.md`, `week1/README.md` §0.2 |
 | 2026-10-04 | Credentials live only in `~/.config/openstack` and `~/.config/scc26-secrets` (mode 700); the repo `.gitignore` blocks state, tfvars, `clouds.yaml`, keys, kubeconfigs and private inventories | `week1/README.md` §0.3, `docs/SECRETS-AND-LOCAL-FILES.md` |
@@ -13,6 +24,15 @@ Short record of decisions and open questions. Newest first. No credentials, IPs 
 | 2026-10-04 | Sebowa team account is the **PurpleTeamB** account; this GitHub repo (`purple-team1-scc26`) is ours | Confirmed by team captain |
 | 2026-10-04 | Week 1 follows `main`/`dev` (merged `feature/student-weeks-1-7`), not the superseded `feature/student-weeks-1-4` | Branch history (PR #4, #5) |
 | 2026-10-04 | Week 1 edge scope is WireGuard, Pi-hole/DNS and nftables; Wazuh Manager and Suricata are added in Week 3 | `week1/README.md` §20, `week3/README.md` |
+
+## Pending team decisions
+
+Design choices the team owns (not instructor questions). Tracked in the linked issues/PRs:
+
+- Edge-01 flavor: `large` (8 vCPU / 16 GiB) vs `medium` (4 / 8 GiB); see #8 and #19.
+- Boot from image vs boot-from-volume; see #19.
+- WireGuard port and allowed source ranges; bootstrap SSH source ranges; see #18.
+- Internal DNS domain for Pi-hole; see #13.
 
 ## Roles
 
@@ -24,16 +44,3 @@ Short record of decisions and open questions. Newest first. No credentials, IPs 
 | Siyabonga | `Swaetc` | Front-end & agents: Astro, ACP/Hermes, Week-5 specialisation |
 
 Roles rotate after major milestones; everyone should be able to explain the whole stack.
-
-## Open questions for the instructor
-
-1. Will a student Terraform/Ansible starter be added to this repo, or do we write our own from the `infra-hpc-qc-k8s` reference?
-2. Assigned CIDRs for the management network, Kubernetes network, WireGuard client subnet and pod network?
-3. External/provider network name, and is exactly one floating IP allocated?
-4. Which Rocky Linux image and bootstrap user? Which flavors match the POC sizes, and which volume types exist?
-5. Where should Terraform state live (local/private vs remote backend), and what is the backup policy for the Week-6 rebuild?
-6. Which source IPs may reach edge SSH/WireGuard during bootstrap? Preferred WireGuard port?
-7. Internal DNS domain for Pi-hole: our choice or assigned?
-8. Are Terraform ≥1.9 / OpenStack provider 3.4.0 / Kubernetes v1.36.4 / containerd 2.3.4 / Cilium 1.20.1 the frozen student baseline?
-9. Week-6 paper: the email says a 2-page article, the repo says a 3–5 page IEEE paper. Which is assessed?
-10. Please enable branch protection/rulesets on `main` and `dev` (captain role is `maintain` and cannot set them).
