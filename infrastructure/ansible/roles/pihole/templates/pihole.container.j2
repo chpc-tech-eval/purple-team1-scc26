@@ -1,0 +1,23 @@
+# Managed by Ansible (roles/pihole). Contains the UI password: root-only (0600).
+[Unit]
+Description=Pi-hole DNS
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image={{ pihole_image }}
+ContainerName=pihole
+Network=host
+Volume={{ pihole_data_dir }}/etc-pihole:/etc/pihole:Z
+Environment=TZ={{ pihole_timezone }}
+Environment=FTLCONF_webserver_api_password={{ pihole_web_password }}
+Environment=FTLCONF_dns_listeningMode={{ pihole_listening_mode }}
+Environment=FTLCONF_dns_domain_name={{ pihole_local_domain }}
+Environment="FTLCONF_dns_upstreams={{ pihole_dns_upstreams | join(';') }}"
+Environment="FTLCONF_dns_hosts={{ pihole_dns_hosts | join(';') }}"
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

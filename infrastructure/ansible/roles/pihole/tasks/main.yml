@@ -1,0 +1,44 @@
+---
+- name: Require Pi-hole inputs from the private inventory
+  ansible.builtin.assert:
+    that:
+      - pihole_local_domain is defined
+      - pihole_dns_upstreams is defined and pihole_dns_upstreams | length > 0
+      - pihole_dns_hosts is defined
+      - pihole_web_password is defined and pihole_web_password | length >= 12
+    fail_msg: Set the pihole_* variables in inventories/private (password via Ansible Vault).
+  no_log: true
+
+- name: Install Podman
+  ansible.builtin.dnf:
+    name: podman
+    state: present
+
+- name: Create the Pi-hole data directory
+  ansible.builtin.file:
+    path: "{{ pihole_data_dir }}/etc-pihole"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install the Pi-hole Quadlet
+  ansible.builtin.template:
+    src: pihole.container.j2
+    dest: /etc/containers/systemd/pihole.container
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart Pi-hole
+  no_log: true
+
+- name: Generate the Quadlet service
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+# Quadlet units are generated, so they cannot be "enabled"; [Install] in the
+# .container file starts it at boot.
+- name: Start Pi-hole
+  ansible.builtin.systemd_service:
+    name: pihole.service
+    state: started
