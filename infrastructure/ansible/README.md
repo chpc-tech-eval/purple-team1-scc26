@@ -18,11 +18,23 @@ roles/common/                     Week-1 host fundamentals used by bootstrap.yml
 # RUN ON: WORKSTATION (WSL), from infrastructure/ansible
 ansible-galaxy collection install -r requirements.yml -p ~/.ansible/collections
 mkdir -p inventories/private
-cp -r inventories/example/. inventories/private/
+cp inventories/example/hosts.yml inventories/private/hosts.yml
 # edit inventories/private/hosts.yml with addresses from `terraform output`
 ```
 
-The real inventory never goes in Git. Private hosts are reached through `edge-01` with `ProxyJump` (`group_vars/private_nodes.yml`) until WireGuard works.
+The real inventory and its `group_vars/` never go in Git.
+
+### Private inventory: reaching hosts behind the edge
+
+Until WireGuard works (#13), private hosts are reached through `edge-01`. Create this file **only in the private inventory**:
+
+```yaml
+# inventories/private/group_vars/private_nodes.yml  (gitignored)
+ansible_ssh_common_args: >-
+  -o ProxyJump={{ hostvars['edge-01'].ansible_user }}@{{ hostvars['edge-01'].ansible_host }}
+```
+
+Check it resolved with `ansible-inventory -i inventories/private/hosts.yml --host k8s-cp-01`. Once WireGuard routes the private networks, delete the file.
 
 > If the repo sits under `/mnt/c/...` in WSL, Ansible ignores `./ansible.cfg` because the directory is world-writable. Run `export ANSIBLE_CONFIG=$PWD/ansible.cfg` first, or clone into your WSL home.
 

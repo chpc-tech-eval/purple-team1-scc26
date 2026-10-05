@@ -1,6 +1,0 @@
----
-# Bootstrap access path: workstation -> edge-01 (floating IP) -> private host.
-# Once WireGuard works (#13) the workstation routes to the private networks
-# directly and this ProxyJump can be dropped from the private inventory.
-ansible_ssh_common_args: >-
-  -o ProxyJump={{ hostvars['edge-01'].ansible_user }}@{{ hostvars['edge-01'].ansible_host }}
