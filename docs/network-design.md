@@ -2,7 +2,9 @@
 
 Owner: Olerato (`Ole06`) · Reviewer: Phathutshedzo (`saxs-14`) · Issue #9
 
-**Status: agreed design (merged in #18).** The instructor answered #16 and approved the team's private CIDRs in #21. Per the instructor's rule on #23, real addresses (CIDRs, fixed IPs, floating IP, SSH sources) are **never** written on GitHub: they live only in the private `terraform.tfvars` and the team's private Discord channel. Terraform state stays local on the private workstation of whoever applies, and the Rocky 9 bootstrap user is `rocky`. edge-01 uses flavor `large` (team decision, #22). The WireGuard port and the WireGuard/bootstrap SSH source ranges are still team decisions. Every value not yet agreed is a Terraform variable with **no default**; nothing below invents a value. Real values live only in the private `terraform.tfvars`.
+**Status: agreed design (merged in #18).** The instructor answered #16 and approved the team's private CIDRs in #21. Per the instructor's rule on #23, real addresses (CIDRs, fixed IPs, floating IP, SSH sources) are **never** written on GitHub: they live only in the private `terraform.tfvars` and the team's private Discord channel. Terraform state stays local on the private workstation of whoever applies, and the Rocky 9 bootstrap user is `rocky`. edge-01 uses flavor `large` (team decision, #22); WireGuard is UDP 51820 from anywhere (`docs/DECISIONS.md`). Every environment value is a Terraform variable with **no default**; nothing below invents a value.
+
+**Built and verified (Week 1):** applied in #11 (5 hosts, 1 floating IP, 17 rules, no drift); edge services in #13; two members proved private SSH over WireGuard, after which rule 1 (bootstrap SSH) was **removed** through Terraform (`0 to add, 0 to change, 1 to destroy`); HAProxy in #14.
 
 Sources: `week1/README.md` §4–5 and §22, issue #8 (Sebowa discovery), and the reference design in `nyameko/infra-hpc-qc-k8s` @ `c493703` (`docs/tutorials/02-networking-and-security.md`, `terraform/modules/{network,security}`), reduced to the five-node POC.
 
@@ -71,7 +73,7 @@ Rules of thumb:
 - The Kubernetes API is reached through `api-lb-01`, never directly from the VPN to `k8s-cp-01` (reference repo removed that rule deliberately).
 - Security groups (OpenStack, before the VM) and nftables (inside edge) are separate layers. This doc owns the security groups; the nftables rules on edge are Rendani's Ansible work and should mirror the edge column below.
 
-## 3. VPN return path (needs a decision)
+## 3. VPN return path (decided: option A)
 
 A workstation packet arrives on `edge-01` over WireGuard and leaves edge towards the k8s network with source address in `vpn_cidr`. Two ways to make that work:
 
@@ -80,7 +82,7 @@ A workstation packet arrives on `edge-01` over WireGuard and leaves edge towards
 | **A. Routed (recommended)** | router static route `vpn_cidr → edge` **and** `allowed_address_pairs = [vpn_cidr]` on the edge port; edge forwards without NAT | private hosts see the real VPN client IP, so security-group rules can say "from `vpn_cidr`" and Wazuh/Suricata evidence shows which member did what |
 | B. NAT on edge | edge masquerades VPN traffic to its own mgmt IP | no route or address pair needed, but every VPN action looks like it came from edge; `vpn_cidr` rules on private hosts would never match |
 
-Option A keeps attribution, which the Week-5 forensics work depends on. Without the `allowed_address_pairs` entry Neutron's port security drops the forwarded packets as spoofed; the reference template has the static route but not the address pair, so this is a deliberate addition to verify at apply time. Rendani's edge playbook must enable IP forwarding and **not** masquerade traffic destined for the private networks. Decision owner: Olerato + Rendani, reviewed by the captain.
+Option A keeps attribution, which the Week-5 forensics work depends on. Without the `allowed_address_pairs` entry Neutron's port security drops the forwarded packets as spoofed; the reference template has the static route but not the address pair, so this is a deliberate addition to verify at apply time. Rendani's edge role enables IP forwarding and does **not** masquerade traffic to the private networks. **Verified on #13:** with the tunnel up, every private host sees the member's own VPN address as the SSH source, for both members tested.
 
 ## 4. Security-group matrix
 
@@ -90,7 +92,7 @@ All rules are IPv4 ingress. OpenStack adds an allow-all egress rule to every new
 
 | # | Target group | Port / proto | Source | Purpose | Lifecycle |
 | --- | --- | --- | --- | --- | --- |
-| 1 | edge | 22/tcp | `bootstrap_ssh_cidrs` | bootstrap/recovery SSH | **temporary**: removed by Terraform only after WireGuard private access is proven for at least two members (#13) |
+| 1 | edge | 22/tcp | `bootstrap_ssh_cidrs` | bootstrap/recovery SSH | **removed** (#13): `bootstrap_ssh_cidrs = []` after two members proved WireGuard access; edge nftables dropped it too |
 | 2 | edge | `wireguard_port`/udp | `wireguard_allowed_cidrs` | WireGuard | permanent |
 | 3 | edge | 22/tcp | `vpn_cidr` | admin SSH over VPN | permanent |
 | 4 | edge | 53/udp + 53/tcp | `mgmt_cidr`, `k8s_cidr`, `vpn_cidr` | Pi-hole DNS | permanent |
@@ -132,9 +134,9 @@ Not carried over from the reference (outside the five-node POC): Slurm, NFS, Her
 | `k8s_cidr`, `k8s_gateway_ip`, `k8s_pool_start`, `k8s_pool_end` | Kubernetes subnet | team choice; proposal in #21 |
 | `vpn_cidr` | WireGuard client subnet | team choice; proposal in #21 |
 | `node_fixed_ips` | map of the five fixed IPs | chosen inside the CIDRs, outside the DHCP pools |
-| `wireguard_port` | edge WireGuard UDP port | team decision pending (reference uses 51820) |
-| `wireguard_allowed_cidrs` | who may reach WireGuard | team decision pending |
-| `bootstrap_ssh_cidrs` | who may reach temporary SSH | team decision pending; Terraform rejects `0.0.0.0/0` |
+| `wireguard_port` | edge WireGuard UDP port | decided: 51820 |
+| `wireguard_allowed_cidrs` | who may reach WireGuard | decided: anywhere (WireGuard drops unauthenticated packets) |
+| `bootstrap_ssh_cidrs` | who may reach temporary SSH | `[]` since step 3 (#13); Terraform rejects `0.0.0.0/0` |
 | `dns_nameservers` | resolvers handed out by Neutron DHCP | see open item 3 |
 | `external_network_name` | provider network | `Public Internet` (issue #8) |
 
@@ -143,10 +145,10 @@ Must not overlap each other **or** the Kubernetes pod/service CIDRs Rendani choo
 ## 6. Open items
 
 1. ~~CIDRs~~ **Settled** in #21 (values private). The Week-2 pod network must not overlap mgmt, k8s or VPN.
-2. **WireGuard port and allowed sources; bootstrap SSH sources:** team decision, tracked on this PR.
-3. **DNS during bootstrap:** Pi-hole on edge does not exist until Ansible runs, so pointing `dns_nameservers` at edge from day one breaks package installs. Proposal: start with `dns_nameservers = []` so Neutron's DHCP hands out its default resolver (verify after apply with `cat /etc/resolv.conf` on a host), then switch the subnets to the edge IP through Terraform once Pi-hole is validated.
-4. **VPN return path:** confirm option A (routed + `allowed_address_pairs`) with Rendani's edge playbook.
-5. **Internal DNS domain** for Pi-hole: team decision, tracked in #13.
+2. ~~WireGuard port and sources; bootstrap SSH sources~~ **Decided** (`docs/DECISIONS.md`): UDP 51820 from anywhere; bootstrap SSH from a single applier /32, now removed (#13).
+3. **DNS during bootstrap:** Pi-hole on edge does not exist until Ansible runs, so pointing `dns_nameservers` at edge from day one breaks package installs. Proposal: start with `dns_nameservers = []` so Neutron's DHCP hands out its default resolver (verify after apply with `cat /etc/resolv.conf` on a host), then switch the subnets to the edge IP through Terraform once Pi-hole is validated. **Verified:** `dns_nameservers = []` worked for bootstrap; Pi-hole on edge-01 now answers `pt1.internal` names and forwards to **edge-01's own** Neutron resolver (a resolver seen from the k8s subnet only serves that subnet), end to end from k8s-cp-01 (#13). Pointing the subnets at Pi-hole is still to do (a Terraform change).
+4. ~~VPN return path~~ **Settled**: option A, confirmed by Rendani's edge role and verified end to end on #13.
+5. ~~Internal DNS domain~~ **Decided**: `pt1.internal` (#13).
 
 ## 7. How this will be verified (issue #11)
 
