@@ -1,0 +1,125 @@
+# Pull-request checks for the student platform repository.
+# Credential-free: no OpenStack, Sebowa or cluster access is used here.
+# Jobs for Terraform/Ansible skip cleanly until those directories exist.
+name: ci
+
+on:
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TERRAFORM_VERSION: "1.16.5"
+  ANSIBLE_CORE_VERSION: "2.21.4"
+  ANSIBLE_LINT_VERSION: "26.9.0"
+  YAMLLINT_VERSION: "1.38.0"
+  GITLEAKS_VERSION: "8.30.1"
+
+jobs:
+  secret-scan:
+    name: secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks (checksum verified)
+        run: |
+          cd "$RUNNER_TEMP"
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSLO "$base/$tarball"
+          curl -fsSLO "$base/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " $tarball\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
+          tar xzf "$tarball" gitleaks
+          sudo install -m 755 gitleaks /usr/local/bin/gitleaks
+      - name: Scan full git history
+        run: gitleaks git --redact --no-banner --verbose .
+
+  yaml:
+    name: yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: pip install "yamllint==${YAMLLINT_VERSION}"
+      - run: yamllint --format github .
+
+  terraform:
+    name: terraform fmt + validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: detect
+        run: |
+          if [ -n "$(find infrastructure/terraform -name '*.tf' 2>/dev/null | head -1)" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No Terraform code yet; skipping." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - if: steps.detect.outputs.present == 'true'
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - if: steps.detect.outputs.present == 'true'
+        name: terraform fmt -check
+        run: terraform fmt -check -recursive -diff infrastructure/terraform
+      - if: steps.detect.outputs.present == 'true'
+        name: terraform validate (every root module, no backend)
+        run: |
+          status=0
+          # Root modules = directories holding .tf files outside modules/.
+          for dir in $(find infrastructure/terraform -name '*.tf' -not -path '*/modules/*' -not -path '*/.terraform/*' -exec dirname {} \; | sort -u); do
+            echo "::group::validate $dir"
+            terraform -chdir="$dir" init -backend=false -input=false -no-color || status=1
+            terraform -chdir="$dir" validate -no-color || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
+  ansible:
+    name: ansible-lint + syntax-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: detect
+        run: |
+          if [ -n "$(find infrastructure/ansible -name '*.yml' -o -name '*.yaml' 2>/dev/null | head -1)" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No Ansible code yet; skipping." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - if: steps.detect.outputs.present == 'true'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - if: steps.detect.outputs.present == 'true'
+        run: pip install "ansible-core==${ANSIBLE_CORE_VERSION}" "ansible-lint==${ANSIBLE_LINT_VERSION}"
+      - if: steps.detect.outputs.present == 'true'
+        name: syntax-check playbooks against the example inventory
+        working-directory: infrastructure/ansible
+        run: |
+          inv=inventories/example/hosts.yml
+          [ -f "$inv" ] || { echo "::error::missing $inv (commit an example inventory; the real one stays private)"; exit 1; }
+          status=0
+          for pb in playbooks/*.yml; do
+            [ -e "$pb" ] || continue
+            ansible-playbook -i "$inv" "$pb" --syntax-check || status=1
+          done
+          exit $status
+      - if: steps.detect.outputs.present == 'true'
+        name: ansible-lint
+        working-directory: infrastructure/ansible
+        run: ansible-lint
