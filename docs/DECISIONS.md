@@ -8,6 +8,8 @@ Questions for the instructor are raised as **GitHub issues** (label `question`, 
 
 | Date | Decision | Why / source |
 | --- | --- | --- |
+| 2026-10-05 | `main` and `dev` are **protected**: PR only, 1 approval, conversations resolved, the 4 CI checks required, no force-push/deletion, enforced for admins too | Instructor recommendation; applied by the captain |
+| 2026-10-05 | **edge-01 flavor = `large`** (8 vCPU / 16 GiB / 150 GB): no 4 vCPU / 10 GiB flavor exists, `medium` is 2 GiB short, and Wazuh Manager + Suricata land on edge in Week 3; still within quota (30 vCPU / 60 GiB total) | Captain decision; #8, #19 |
 | 2026-10-05 | Questions for the instructor go in **separate GitHub issues** (label `question`), never inside commits or docs | Instructor review on #6 |
 | 2026-10-05 | We **write our own** student Terraform and Ansible; the instructor provides examples, and `nyameko/infra-hpc-qc-k8s` is reference only | Instructor answer on #16 |
 | 2026-10-05 | Private network CIDRs are **the team's choice** (internal private networks); proposal under review in #21 | Instructor answer on #16 |
@@ -29,7 +31,6 @@ Questions for the instructor are raised as **GitHub issues** (label `question`, 
 
 Design choices the team owns (not instructor questions). Tracked in the linked issues/PRs:
 
-- Edge-01 flavor: `large` (8 vCPU / 16 GiB) vs `medium` (4 / 8 GiB); see #8 and #19.
 - Boot from image vs boot-from-volume; see #19.
 - WireGuard port and allowed source ranges; bootstrap SSH source ranges; see #18.
 - Internal DNS domain for Pi-hole; see #13.
