@@ -2,7 +2,7 @@
 
 Owner: Olerato (`Ole06`) · Reviewer: Phathutshedzo (`saxs-14`) · Issue #9
 
-**Status: DRAFT.** CIDRs, the WireGuard port and the bootstrap SSH source are still waiting on the instructor (#16, `docs/DECISIONS.md` Q2 and Q6). Every unknown is a Terraform variable with **no default**; nothing below invents a value. Real values live only in the private `terraform.tfvars`.
+**Status: DRAFT.** The instructor answered #16: private CIDRs are the team's choice (proposal in #21, awaiting confirmation), Terraform state stays local on the private workstation of whoever applies, and the Rocky 9 bootstrap user is `rocky`. edge-01 uses flavor `large` (team decision, #22). The WireGuard port and the WireGuard/bootstrap SSH source ranges are still team decisions. Every value not yet agreed is a Terraform variable with **no default**; nothing below invents a value. Real values live only in the private `terraform.tfvars`.
 
 Sources: `week1/README.md` §4–5 and §22, issue #8 (Sebowa discovery), and the reference design in `nyameko/infra-hpc-qc-k8s` @ `c493703` (`docs/tutorials/02-networking-and-security.md`, `terraform/modules/{network,security}`), reduced to the five-node POC.
 
@@ -37,12 +37,12 @@ flowchart TB
 | Object | Name (prefix = `name_prefix`) | Value |
 | --- | --- | --- |
 | External network | data source | `Public Internet` (issue #8) |
-| Management network/subnet | `<prefix>-mgmt` | `mgmt_cidr`, gateway, pool: **UNKNOWN — NEEDS VERIFICATION** |
-| Kubernetes network/subnet | `<prefix>-k8s` | `k8s_cidr`, gateway, pool: **UNKNOWN — NEEDS VERIFICATION** |
+| Management network/subnet | `<prefix>-mgmt` | `mgmt_cidr`, gateway, pool: team choice, proposed in #21 |
+| Kubernetes network/subnet | `<prefix>-k8s` | `k8s_cidr`, gateway, pool: team choice, proposed in #21 |
 | Router | `<prefix>-router` | gateway on `Public Internet`, interfaces on both subnets |
 | Static route | on the router | `vpn_cidr` → `edge-01` fixed mgmt IP (VPN return path) |
 | Floating IP | 1, on `edge-01` only | quota is exactly 1 (issue #8) |
-| WireGuard client subnet | not a Neutron network | `vpn_cidr`: **UNKNOWN — NEEDS VERIFICATION** |
+| WireGuard client subnet | not a Neutron network | `vpn_cidr`: team choice, proposed in #21 |
 
 ### Host placement
 
@@ -126,13 +126,13 @@ Not carried over from the reference (outside the five-node POC): Slurm, NFS, Her
 
 | Variable | Meaning | Value |
 | --- | --- | --- |
-| `mgmt_cidr`, `mgmt_gateway_ip`, `mgmt_pool_start`, `mgmt_pool_end` | management subnet | UNKNOWN — NEEDS VERIFICATION (#16) |
-| `k8s_cidr`, `k8s_gateway_ip`, `k8s_pool_start`, `k8s_pool_end` | Kubernetes subnet | UNKNOWN — NEEDS VERIFICATION (#16) |
-| `vpn_cidr` | WireGuard client subnet | UNKNOWN — NEEDS VERIFICATION (#16) |
+| `mgmt_cidr`, `mgmt_gateway_ip`, `mgmt_pool_start`, `mgmt_pool_end` | management subnet | team choice; proposal in #21 |
+| `k8s_cidr`, `k8s_gateway_ip`, `k8s_pool_start`, `k8s_pool_end` | Kubernetes subnet | team choice; proposal in #21 |
+| `vpn_cidr` | WireGuard client subnet | team choice; proposal in #21 |
 | `node_fixed_ips` | map of the five fixed IPs | chosen inside the CIDRs, outside the DHCP pools |
-| `wireguard_port` | edge WireGuard UDP port | UNKNOWN (reference uses 51820; Q6) |
-| `wireguard_allowed_cidrs` | who may reach WireGuard | UNKNOWN (Q6) |
-| `bootstrap_ssh_cidrs` | who may reach temporary SSH | UNKNOWN (Q6); never `0.0.0.0/0` without captain approval |
+| `wireguard_port` | edge WireGuard UDP port | team decision pending (reference uses 51820) |
+| `wireguard_allowed_cidrs` | who may reach WireGuard | team decision pending |
+| `bootstrap_ssh_cidrs` | who may reach temporary SSH | team decision pending; Terraform rejects `0.0.0.0/0` |
 | `dns_nameservers` | resolvers handed out by Neutron DHCP | see open item 3 |
 | `external_network_name` | provider network | `Public Internet` (issue #8) |
 
@@ -140,11 +140,11 @@ Must not overlap each other **or** the Kubernetes pod/service CIDRs Rendani choo
 
 ## 6. Open items
 
-1. **CIDRs** for mgmt, k8s, VPN and pod networks (#16 Q2). Blocks `terraform plan`.
-2. **WireGuard port and allowed sources; bootstrap SSH sources** (Q6).
-3. **DNS during bootstrap:** Pi-hole on edge does not exist until Ansible runs, so pointing `dns_nameservers` at edge from day one breaks package installs. Proposal: start with the provider's resolvers (value UNKNOWN — NEEDS VERIFICATION) and switch subnets to the edge IP through Terraform once Pi-hole is validated.
+1. **CIDRs** for mgmt, k8s, VPN and pod networks: the team's choice (#16); proposal awaiting the instructor in #21. The pod network must not overlap any of them.
+2. **WireGuard port and allowed sources; bootstrap SSH sources:** team decision, tracked on this PR.
+3. **DNS during bootstrap:** Pi-hole on edge does not exist until Ansible runs, so pointing `dns_nameservers` at edge from day one breaks package installs. Proposal: start with `dns_nameservers = []` so Neutron's DHCP hands out its default resolver (verify after apply with `cat /etc/resolv.conf` on a host), then switch the subnets to the edge IP through Terraform once Pi-hole is validated.
 4. **VPN return path:** confirm option A (routed + `allowed_address_pairs`) with Rendani's edge playbook.
-5. **Internal DNS domain** for Pi-hole (Q7).
+5. **Internal DNS domain** for Pi-hole: team decision, tracked in #13.
 
 ## 7. How this will be verified (issue #11)
 
