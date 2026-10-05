@@ -6,6 +6,7 @@ Agenda and owners are on #25. This file is the **exact sequence of safe, read-on
 
 - [ ] VPN up (`sudo wg show` shows a recent handshake), terminal font enlarged.
 - [ ] `export OS_CLOUD=sebowa`; `clouds.yaml`, tfvars, inventories and Vault files **closed**. Never `cat` them on screen.
+- [ ] **After step 3 (public SSH removed), use the post-VPN private inventory:** `edge-01` at its mgmt address, and the `private_nodes` ProxyJump file deleted (see `infrastructure/ansible/README.md`). Check with `ansible all -i inventories/private/hosts.yml -m ping -o` before the demo.
 - [ ] Use host **names**, not addresses, in every command. Commands that print addresses are marked ⚠️: run them **off-screen** or pipe them as shown.
 - [ ] Fallback: screenshots or recordings from `evidence/week1/` ready in a browser tab in case Sebowa or the network misbehaves.
 - [ ] `dev` SHA noted for the reproducibility slide: `git rev-parse --short origin/dev`.
@@ -44,7 +45,7 @@ Then the edge and HAProxy checks over the VPN:
 ```bash
 # RUN ON: edge-01
 sudo wg show | grep -E 'interface|listening port|latest handshake'   # no keys or endpoints on screen
-sudo nft list table inet scc26_edge | head -n 25
+sudo nft list table inet scc26_edge | sed -E 's/[0-9]+(\.[0-9]+){3}(\/[0-9]+)?/<addr>/g' | head -n 25   # the named sets hold real ranges: always redact
 systemctl --failed --no-pager
 # RUN ON: api-lb-01
 sudo haproxy -c -f /etc/haproxy/haproxy.cfg && systemctl is-active haproxy && getenforce
