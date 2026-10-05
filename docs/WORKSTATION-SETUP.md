@@ -45,7 +45,8 @@ TF=1.16.5   # team baseline; instructor minimum is >= 1.9
 curl -fsSLO https://releases.hashicorp.com/terraform/$TF/terraform_${TF}_linux_amd64.zip
 curl -fsSLO https://releases.hashicorp.com/terraform/$TF/terraform_${TF}_SHA256SUMS
 grep linux_amd64.zip terraform_${TF}_SHA256SUMS | sha256sum -c -
-unzip -oq terraform_${TF}_linux_amd64.zip terraform -d ~/.local/bin/
+# Extract with Python (fresh Ubuntu 26.04 WSL images have no `unzip`; this needs no sudo)
+python3 -c "import zipfile,os; d=os.path.expanduser('~/.local/bin'); zipfile.ZipFile('terraform_${TF}_linux_amd64.zip').extract('terraform', d); os.chmod(d+'/terraform', 0o755)"
 ```
 
 ## 4. kubeseal (needed from Week 2)
@@ -65,7 +66,14 @@ tar xzf kubeseal-$KS-linux-amd64.tar.gz kubeseal && install -m 755 kubeseal ~/.l
 ```bash
 # RUN ON: WORKSTATION
 uv tool install --python 3.12 python-openstackclient==10.3.0
-uv tool install --python 3.12 --with ansible-core==2.21.4 --with-executables-from ansible-core ansible
+uv tool install --python 3.12 --with ansible-core==2.21.4 --with netaddr==1.3.0 --with-executables-from ansible-core ansible
+```
+
+`netaddr` is needed by `ansible.utils` network filters (the edge firewall lockout guard). Already installed Ansible without it? Re-run the same line with `--force`:
+
+```bash
+# RUN ON: WORKSTATION
+uv tool install --force --python 3.12 --with ansible-core==2.21.4 --with netaddr==1.3.0 --with-executables-from ansible-core ansible
 ```
 
 ## 6. Verify and report
@@ -86,4 +94,4 @@ Post the output in the Week-1 workstation issue. Do **not** paste anything from 
 | Terraform | 1.16.5 |
 | kubeseal | 0.40.0 |
 | OpenStack CLI (python-openstackclient) | 10.3.0 |
-| Ansible (ansible-core) | 2.21.4 |
+| Ansible (ansible-core) | 2.21.4 (+ netaddr 1.3.0) |
