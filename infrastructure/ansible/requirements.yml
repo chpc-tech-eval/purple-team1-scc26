@@ -6,3 +6,5 @@ collections:
     version: "2.2.2"
   - name: community.general
     version: "13.4.0"
+  - name: ansible.utils
+    version: "6.1.1"  # network_in_network for the edge lockout guard (needs netaddr on the controller)

@@ -21,6 +21,7 @@ roles/pihole/                     edge Pi-hole as a Podman Quadlet, image pinned
 ```bash
 # RUN ON: WORKSTATION (WSL), from infrastructure/ansible
 ansible-galaxy collection install -r requirements.yml -p ~/.ansible/collections
+uv tool install --python 3.12 --with ansible-core==2.21.4 --with netaddr --with-executables-from ansible-core ansible --force  # netaddr: edge lockout guard
 mkdir -p inventories/private
 cp inventories/example/hosts.yml inventories/private/hosts.yml
 # edit inventories/private/hosts.yml with addresses from `terraform output`

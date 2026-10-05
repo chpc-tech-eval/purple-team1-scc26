@@ -7,6 +7,7 @@ pihole_timezone: Africa/Johannesburg
 # ALL is safe here because nftables limits port 53 to firewall_dns_cidrs;
 # LOCAL would refuse the VPN and k8s networks (not on edge's own subnet).
 pihole_listening_mode: ALL
+pihole_secret_name: pihole_web_password
 #
 # Required in the private inventory (no defaults, asserted):
 # pihole_local_domain:   internal DNS domain (team decision, #13)

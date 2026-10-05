@@ -22,6 +22,33 @@
     group: root
     mode: "0700"
 
+# The UI password lives in a Podman secret, not in the unit or the container
+# env shown by `podman inspect` (captain review on #27, point 3). A salted
+# fingerprint label lets the role replace the secret only when it changes.
+- name: Read the current Pi-hole secret fingerprint
+  ansible.builtin.command:
+    cmd: >-
+      podman secret inspect --format
+      '{% raw %}{{ index .Spec.Labels "scc26.fingerprint" }}{% endraw %}' {{ pihole_secret_name }}
+  register: pihole_secret_current
+  changed_when: false
+  failed_when: false
+
+- name: Create or replace the Pi-hole password secret when it changed
+  vars:
+    pihole_secret_fingerprint: "{{ (inventory_hostname ~ ':' ~ pihole_web_password) | hash('sha256') }}"
+  ansible.builtin.command:
+    cmd: >-
+      podman secret create --replace
+      --label scc26.fingerprint={{ pihole_secret_fingerprint }}
+      {{ pihole_secret_name }} -
+    stdin: "{{ pihole_web_password }}"
+    stdin_add_newline: false
+  when: pihole_secret_current.rc != 0 or pihole_secret_current.stdout | trim != pihole_secret_fingerprint
+  changed_when: true
+  notify: Restart Pi-hole
+  no_log: true
+
 - name: Install the Pi-hole Quadlet
   ansible.builtin.template:
     src: pihole.container.j2
@@ -30,7 +57,6 @@
     group: root
     mode: "0600"
   notify: Restart Pi-hole
-  no_log: true
 
 - name: Generate the Quadlet service
   ansible.builtin.systemd_service:
