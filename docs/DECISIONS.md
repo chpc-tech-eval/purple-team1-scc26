@@ -12,6 +12,9 @@ Questions for the instructor are raised as **GitHub issues** (label `question`, 
 | 2026-10-05 | **edge-01 flavor = `large`** (8 vCPU / 16 GiB / 150 GB): no 4 vCPU / 10 GiB flavor exists, `medium` is 2 GiB short, and Wazuh Manager + Suricata land on edge in Week 3; still within quota (30 vCPU / 60 GiB total) | Captain decision; #8, #19 |
 | 2026-10-05 | Questions for the instructor go in **separate GitHub issues** (label `question`), never inside commits or docs | Instructor review on #6 |
 | 2026-10-05 | We **write our own** student Terraform and Ansible; the instructor provides examples, and `nyameko/infra-hpc-qc-k8s` is reference only | Instructor answer on #16 |
+| 2026-10-05 | **Edge exposure:** WireGuard on **UDP 51820**, reachable from anywhere (it drops unauthenticated packets; members' home IPs change); temporary bootstrap SSH from a single applier /32, removed via Terraform once WireGuard works for two members | Captain decision; #11, #18 |
+| 2026-10-05 | **Pi-hole internal domain `pt1.internal`** (`.internal` is reserved for private use); upstream resolvers: the Sebowa resolver the hosts already use, plus `1.1.1.1` as fallback | Captain decision; #13 |
+| 2026-10-05 | **Run-side work stays with whoever has host access** (Olerato until WireGuard is up), approved run by run by the captain; code and reviews continue from everyone | Captain decision; #12 |
 | 2026-10-05 | **Boot from image** (`boot_volume_size = null`): flavor root disks (50-150 GB) already exceed the brief's sizes, no Cinder quota is used, and teardown/rebuild in Week 6 is simpler | Captain decision; #19 |
 | 2026-10-05 | **No real network architecture on GitHub** (public repo): no real CIDRs, IPs, floating IP or address-bearing plan output in files, issues, PRs or comments; examples use placeholders/RFC 5737 addresses; real values stay in gitignored files and the private Discord channel | Instructor review on #23 |
 | 2026-10-05 | The **captain makes the final merge** after instructor/peer approval; captain-authored PRs are merged by another member | Instructor comment on #21 |
@@ -35,8 +38,7 @@ Questions for the instructor are raised as **GitHub issues** (label `question`, 
 
 Design choices the team owns (not instructor questions). Tracked in the linked issues/PRs:
 
-- WireGuard port and allowed source ranges; bootstrap SSH source ranges; see #18.
-- Internal DNS domain for Pi-hole; see #13.
+- None open right now.
 
 ## Roles
 
