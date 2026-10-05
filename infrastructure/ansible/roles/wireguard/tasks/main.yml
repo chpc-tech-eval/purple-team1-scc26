@@ -46,13 +46,25 @@
     owner: root
     group: root
     mode: "0600"
-  notify: Reload WireGuard
+  notify:
+    - Reload WireGuard
+    - Re-apply WireGuard private key
 
 - name: Enable and start wg-quick
   ansible.builtin.systemd_service:
     name: wg-quick@{{ wireguard_interface }}
     enabled: true
     state: started
+
+- name: Apply pending WireGuard changes before verifying
+  ansible.builtin.meta: flush_handlers
+
+- name: Read the live interface public key and port
+  ansible.builtin.command:
+    cmd: wg show {{ wireguard_interface }} {{ item }}
+  loop: [public-key, listen-port]
+  register: wireguard_live
+  changed_when: false
 
 - name: Read the server PUBLIC key for client configs
   ansible.builtin.slurp:
@@ -62,3 +74,10 @@
 - name: Show the server public key (safe to share; the private key stays on edge-01)
   ansible.builtin.debug:
     msg: "{{ wireguard_interface }} public key: {{ wireguard_public_key_file.content | b64decode | trim }}"
+
+- name: Verify the live interface still has its key and listens on the configured port
+  ansible.builtin.assert:
+    that:
+      - wireguard_live.results[0].stdout | trim == wireguard_public_key_file.content | b64decode | trim
+      - wireguard_live.results[1].stdout | trim == wireguard_port | string
+    fail_msg: wg show does not match the on-host key/port; the private key may not be loaded.

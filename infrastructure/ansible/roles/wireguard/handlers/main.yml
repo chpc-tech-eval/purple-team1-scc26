@@ -1,7 +1,14 @@
 ---
 # reload = wg syncconf: applies peer changes without dropping live sessions.
+# The config deliberately has no PrivateKey line, so the key is re-applied
+# from its root-only file straight after every reload (captain review, #27).
 # Changing the address or port needs a manual restart of wg-quick@<interface>.
 - name: Reload WireGuard
   ansible.builtin.systemd_service:
     name: wg-quick@{{ wireguard_interface }}
     state: reloaded
+
+- name: Re-apply WireGuard private key
+  ansible.builtin.command:
+    cmd: wg set {{ wireguard_interface }} private-key /etc/wireguard/{{ wireguard_interface }}.key
+  changed_when: true
