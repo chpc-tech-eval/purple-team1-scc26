@@ -45,7 +45,8 @@ TF=1.16.5   # team baseline; instructor minimum is >= 1.9
 curl -fsSLO https://releases.hashicorp.com/terraform/$TF/terraform_${TF}_linux_amd64.zip
 curl -fsSLO https://releases.hashicorp.com/terraform/$TF/terraform_${TF}_SHA256SUMS
 grep linux_amd64.zip terraform_${TF}_SHA256SUMS | sha256sum -c -
-unzip -oq terraform_${TF}_linux_amd64.zip terraform -d ~/.local/bin/
+# Extract with Python (fresh Ubuntu 26.04 WSL images have no `unzip`; this needs no sudo)
+python3 -c "import zipfile,os; d=os.path.expanduser('~/.local/bin'); zipfile.ZipFile('terraform_${TF}_linux_amd64.zip').extract('terraform', d); os.chmod(d+'/terraform', 0o755)"
 ```
 
 ## 4. kubeseal (needed from Week 2)
