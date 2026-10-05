@@ -1,0 +1,7 @@
+---
+# reload = wg syncconf: applies peer changes without dropping live sessions.
+# Changing the address or port needs a manual restart of wg-quick@<interface>.
+- name: Reload WireGuard
+  ansible.builtin.systemd_service:
+    name: wg-quick@{{ wireguard_interface }}
+    state: reloaded
