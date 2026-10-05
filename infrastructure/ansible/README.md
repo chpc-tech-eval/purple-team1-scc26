@@ -38,7 +38,9 @@ Check it resolved with `ansible-inventory -i inventories/private/hosts.yml --hos
 
 > If the repo sits under `/mnt/c/...` in WSL, Ansible ignores `./ansible.cfg` because the directory is world-writable. Run `export ANSIBLE_CONFIG=$PWD/ansible.cfg` first, or clone into your WSL home.
 
-## Checks (same as CI, no hosts needed)
+## CI-only checks (fake example inventory, no hosts)
+
+The example inventory exists only so CI can run `--syntax-check`; its addresses are fake. Never point a real run at it.
 
 ```bash
 # RUN ON: WORKSTATION
@@ -47,15 +49,22 @@ for pb in playbooks/*.yml; do ansible-playbook -i inventories/example/hosts.yml 
 ansible-lint
 ```
 
-## Running against real hosts
+## Running against real hosts (private inventory)
 
-Only once the VMs exist **and** the captain has approved it in a `HANDOFF` on GitHub. Order (`week1/README.md` Â§14â€“24):
+Only once the VMs exist **and** the captain has approved it in a `HANDOFF` on GitHub. Every real command uses the private inventory (`week1/README.md` §14–24):
 
-1. `ansible-inventory --graph` / `--host <name>` against the private inventory
-2. `ansible all -m ping`
-3. `--syntax-check`
-4. `ansible-playbook playbooks/bootstrap.yml`, then run it again and expect `changed=0`
-5. `ansible-playbook playbooks/edge.yml --tags wireguard,pihole,firewall`, then the WireGuard proof
-6. `ansible-playbook playbooks/api-lb.yml`
+```bash
+# RUN ON: WORKSTATION, from infrastructure/ansible
+INV=inventories/private/hosts.yml
+ansible-inventory -i $INV --graph
+ansible-inventory -i $INV --host k8s-cp-01
+ansible all -i $INV -m ping
+for pb in playbooks/*.yml; do ansible-playbook -i $INV "$pb" --syntax-check; done
+ansible-playbook -i $INV playbooks/bootstrap.yml
+ansible-playbook -i $INV playbooks/bootstrap.yml          # re-run: expect changed=0
+ansible-playbook -i $INV playbooks/edge.yml --tags wireguard,pihole,firewall
+# WireGuard private-access proof (#13) before any public SSH change
+ansible-playbook -i $INV playbooks/api-lb.yml
+```
 
-Never disable SELinux or firewalls to make something work. WireGuard private keys stay on their hosts.
+Never disable SELinux or firewalls to make something work. WireGuard private keys stay on their hosts. Real addresses, ranges and `terraform output` never go in Git, issues or PRs.
