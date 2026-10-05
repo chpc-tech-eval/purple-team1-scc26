@@ -7,9 +7,12 @@ ansible.cfg                       defaults (private inventory, accept-new host k
 requirements.yml                  pinned collections (CI installs these)
 inventories/example/              committed placeholders; copy to inventories/private/ (gitignored)
 playbooks/bootstrap.yml           all hosts: SELinux check, base packages, chrony, Africa/Johannesburg, sshd hardening
-playbooks/edge.yml                edge-01: WireGuard, Pi-hole, nftables (#13)
+playbooks/edge.yml                edge-01: nftables, WireGuard, Pi-hole (#13), tags firewall/wireguard/pihole
 playbooks/api-lb.yml              api-lb-01: HAProxy :6443 (#14)
 roles/common/                     Week-1 host fundamentals used by bootstrap.yml
+roles/firewall/                   edge nftables: own table, routed VPN (no NAT), DNS/SSH/WireGuard only
+roles/wireguard/                  edge WireGuard; private key generated on edge-01, never read back
+roles/pihole/                     edge Pi-hole as a Podman Quadlet, image pinned by tag + digest
 ```
 
 ## First-time setup
@@ -35,6 +38,31 @@ ansible_ssh_common_args: >-
 ```
 
 Check it resolved with `ansible-inventory -i inventories/private/hosts.yml --host k8s-cp-01`. Once WireGuard routes the private networks, delete the file.
+
+### Private inventory: edge variables (#13)
+
+The edge roles have **no defaults** for anything environment-specific and stop if a value is missing. Put them in `inventories/private/group_vars/edge_nodes.yml` (gitignored); the UI password goes in Ansible Vault. Shape only, every value is a placeholder:
+
+```yaml
+# inventories/private/group_vars/edge_nodes.yml  (gitignored)
+firewall_ssh_cidrs: ["<bootstrap-ssh-source>", "<vpn_cidr>"]
+firewall_dns_cidrs: ["<mgmt_cidr>", "<k8s_cidr>", "<vpn_cidr>"]
+firewall_vpn_cidr: "<vpn_cidr>"
+firewall_private_cidrs: ["<mgmt_cidr>", "<k8s_cidr>"]
+firewall_wireguard_port: "<wireguard-port>"
+
+wireguard_port: "<wireguard-port>"
+wireguard_server_address: "<first-vpn-address>/<prefix>"
+wireguard_peers:            # PUBLIC keys only; each member keeps their private key
+  - {name: "<member>", public_key: "<member-public-key>", allowed_ips: "<member-vpn-address>/32"}
+
+pihole_local_domain: "<internal-domain>"
+pihole_dns_upstreams: ["<upstream-resolver>"]
+pihole_dns_hosts: ["<private-ip> <host>.<internal-domain> <host>"]
+pihole_web_password: "{{ vault_pihole_web_password }}"
+```
+
+Edge stays NAT-free for VPN traffic (`docs/network-design.md` §3, option A). If `firewalld` is running on edge, the firewall role stops rather than disabling it; agree the swap on #13 first.
 
 > If the repo sits under `/mnt/c/...` in WSL, Ansible ignores `./ansible.cfg` because the directory is world-writable. Run `export ANSIBLE_CONFIG=$PWD/ansible.cfg` first, or clone into your WSL home.
 

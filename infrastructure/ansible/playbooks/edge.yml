@@ -1,7 +1,14 @@
 ---
-# Week-1 edge subset: WireGuard, Pi-hole, nftables (week1/README.md Part F).
-# Roles land in #13; run with --tags wireguard,pihole,firewall.
+# Week-1 edge subset: nftables, WireGuard, Pi-hole (week1/README.md Part F, #13).
+# Run: ansible-playbook -i inventories/private/hosts.yml playbooks/edge.yml --tags wireguard,pihole,firewall
+# Firewall first, so the WireGuard port and DNS are allowed before they start.
 - name: Configure edge services
   hosts: edge_nodes
   become: true
-  roles: []
+  roles:
+    - role: firewall
+      tags: [firewall]
+    - role: wireguard
+      tags: [wireguard]
+    - role: pihole
+      tags: [pihole]
