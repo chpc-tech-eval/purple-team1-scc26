@@ -1,0 +1,55 @@
+# Copy to terraform.tfvars (gitignored) and fill in real values.
+# Do not commit terraform.tfvars. Placeholders in <...> are UNKNOWN until
+# the instructor answers #16; see docs/network-design.md §5.
+
+# --- Cloud (issue #8) ---
+openstack_cloud       = "sebowa"
+openstack_region      = "RegionOne"
+name_prefix           = "<team-prefix>"
+external_network_name = "Public Internet"
+
+# --- Networks: UNKNOWN — NEEDS VERIFICATION (#16 Q2) ---
+mgmt_cidr       = "<mgmt-cidr>"
+mgmt_gateway_ip = "<mgmt-gateway-ip>"
+mgmt_pool_start = "<mgmt-dhcp-start>"
+mgmt_pool_end   = "<mgmt-dhcp-end>"
+
+k8s_cidr       = "<k8s-cidr>"
+k8s_gateway_ip = "<k8s-gateway-ip>"
+k8s_pool_start = "<k8s-dhcp-start>"
+k8s_pool_end   = "<k8s-dhcp-end>"
+
+vpn_cidr = "<wireguard-client-cidr>"
+
+# Open item 3: provider resolvers during bootstrap, edge-01 once Pi-hole works.
+dns_nameservers = ["<resolver-ip>"]
+
+# Inside each subnet, outside its DHCP pool.
+node_fixed_ips = {
+  "edge-01"       = "<mgmt-ip>"
+  "api-lb-01"     = "<k8s-ip>"
+  "k8s-cp-01"     = "<k8s-ip>"
+  "k8s-worker-01" = "<k8s-ip>"
+  "k8s-worker-02" = "<k8s-ip>"
+}
+
+# --- Edge exposure: UNKNOWN (#16 Q6) ---
+wireguard_port          = 0 # <wireguard-udp-port>
+wireguard_allowed_cidrs = ["<source-cidr>"]
+bootstrap_ssh_cidrs     = ["<your-public-ip>/32"]
+
+# --- Compute (issue #8) ---
+image_name = "<exact Rocky 9 image name from: openstack image list>"
+
+flavors = {
+  edge          = "<pending: large or medium>"
+  api_lb        = "small"
+  control_plane = "medium"
+  worker        = "scc.large"
+}
+
+# Boot from image (null) or from a Cinder volume (size in GB): pending #16.
+boot_volume_size = null
+boot_volume_type = null
+
+admin_ssh_public_key = "ssh-ed25519 AAAA... team-admin"
