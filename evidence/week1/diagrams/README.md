@@ -51,13 +51,14 @@ flowchart TB
 | No 6443 from `vpn_cidr`; `kubectl` runs on `k8s-cp-01` only | `docs/network-design.md` §4, `docs/COMMAND-LOCATIONS.md` |
 | WireGuard admin path works | **pending**: #13 (roles merged in #27/#35, not yet applied) |
 
-## Re-rendering an image export
+## Image exports
 
-GitHub renders the Mermaid block above directly, so no image is committed yet. To export an SVG/PNG (e.g. for the Friday demo slides, #25):
+For slides and the paper (e.g. the Friday demo, #25): [`trust-boundary.svg`](trust-boundary.svg) (scalable, transparent background) and [`trust-boundary.png`](trust-boundary.png) (2× scale, white background). Both were rendered from `trust-boundary.mmd` with `@mermaid-js/mermaid-cli` 11 on 2026-10-05.
+
+The `.mmd` file is the source of truth. After editing it, re-render both exports and commit them together:
 
 ```bash
 # RUN ON: WORKSTATION (needs Node.js)
-npx -y @mermaid-js/mermaid-cli -i trust-boundary.mmd -o trust-boundary.svg
+npx -y @mermaid-js/mermaid-cli@11 -i trust-boundary.mmd -o trust-boundary.svg -b transparent
+npx -y @mermaid-js/mermaid-cli@11 -i trust-boundary.mmd -o trust-boundary.png -b white -s 2
 ```
-
-Commit any export next to the `.mmd` source so it stays editable.
