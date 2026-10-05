@@ -2,7 +2,7 @@
 
 Owner: Olerato (`Ole06`) · Reviewer: Phathutshedzo (`saxs-14`) · Issue #9
 
-**Status: DRAFT.** The instructor answered #16: private CIDRs are the team's choice (proposal in #21, awaiting confirmation), Terraform state stays local on the private workstation of whoever applies, and the Rocky 9 bootstrap user is `rocky`. edge-01 uses flavor `large` (team decision, #22). The WireGuard port and the WireGuard/bootstrap SSH source ranges are still team decisions. Every value not yet agreed is a Terraform variable with **no default**; nothing below invents a value. Real values live only in the private `terraform.tfvars`.
+**Status: agreed design (merged in #18).** The instructor answered #16 and approved the team's private CIDRs in #21. Per the instructor's rule on #23, real addresses (CIDRs, fixed IPs, floating IP, SSH sources) are **never** written on GitHub: they live only in the private `terraform.tfvars` and the team's private Discord channel. Terraform state stays local on the private workstation of whoever applies, and the Rocky 9 bootstrap user is `rocky`. edge-01 uses flavor `large` (team decision, #22). The WireGuard port and the WireGuard/bootstrap SSH source ranges are still team decisions. Every value not yet agreed is a Terraform variable with **no default**; nothing below invents a value. Real values live only in the private `terraform.tfvars`.
 
 Sources: `week1/README.md` §4–5 and §22, issue #8 (Sebowa discovery), and the reference design in `nyameko/infra-hpc-qc-k8s` @ `c493703` (`docs/tutorials/02-networking-and-security.md`, `terraform/modules/{network,security}`), reduced to the five-node POC.
 
@@ -101,6 +101,8 @@ All rules are IPv4 ingress. OpenStack adds an allow-all egress rule to every new
 
 There is deliberately **no** 6443 rule from `vpn_cidr` to anything. The reference repo allows `vpn_cidr → api-lb:6443`, but this course forbids `kubectl` on workstations (`docs/COMMAND-LOCATIONS.md`): admins SSH to `k8s-cp-01` over the VPN and run `kubectl` there, which rule 7 covers.
 
+**Rules 3 and 4 with source `vpn_cidr` never match at the Neutron layer.** A VPN client reaches edge-01 *inside* the WireGuard UDP tunnel (rule 2); once decrypted on `wg0`, that traffic is filtered by edge's nftables, not by the security group. The rules are kept because they are harmless, but if VPN-to-edge SSH or DNS fails, debug nftables on edge, not the security group. (VPN traffic that edge forwards to the *private* hosts does pass their security groups; that is what rule 6 is for.)
+
 ### Week 2 (Kubernetes + Cilium; add before kubeadm)
 
 | # | Target group | Port / proto | Source | Purpose |
@@ -140,7 +142,7 @@ Must not overlap each other **or** the Kubernetes pod/service CIDRs Rendani choo
 
 ## 6. Open items
 
-1. **CIDRs** for mgmt, k8s, VPN and pod networks: the team's choice (#16); proposal awaiting the instructor in #21. The pod network must not overlap any of them.
+1. ~~CIDRs~~ **Settled** in #21 (values private). The Week-2 pod network must not overlap mgmt, k8s or VPN.
 2. **WireGuard port and allowed sources; bootstrap SSH sources:** team decision, tracked on this PR.
 3. **DNS during bootstrap:** Pi-hole on edge does not exist until Ansible runs, so pointing `dns_nameservers` at edge from day one breaks package installs. Proposal: start with `dns_nameservers = []` so Neutron's DHCP hands out its default resolver (verify after apply with `cat /etc/resolv.conf` on a host), then switch the subnets to the edge IP through Terraform once Pi-hole is validated.
 4. **VPN return path:** confirm option A (routed + `allowed_address_pairs`) with Rendani's edge playbook.
