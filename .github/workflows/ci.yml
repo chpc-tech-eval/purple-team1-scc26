@@ -108,6 +108,17 @@ jobs:
       - if: steps.detect.outputs.present == 'true'
         run: pip install "ansible-core==${ANSIBLE_CORE_VERSION}" "ansible-lint==${ANSIBLE_LINT_VERSION}"
       - if: steps.detect.outputs.present == 'true'
+        name: install collections (ansible.posix, community.general, ...) if declared
+        working-directory: infrastructure/ansible
+        run: |
+          for req in requirements.yml collections/requirements.yml; do
+            if [ -f "$req" ]; then
+              ansible-galaxy collection install -r "$req"
+              exit 0
+            fi
+          done
+          echo "No requirements.yml; using ansible-core builtins only."
+      - if: steps.detect.outputs.present == 'true'
         name: syntax-check playbooks against the example inventory
         working-directory: infrastructure/ansible
         run: |

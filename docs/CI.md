@@ -7,7 +7,9 @@
 | secret scan (gitleaks 8.30.1) | the full git history for keys, tokens and passwords | always |
 | yamllint 1.38.0 | YAML syntax/style (config in `.yamllint`; long lines only warn) | always |
 | terraform fmt + validate (1.16.5) | `fmt -check -recursive`; `init -backend=false` + `validate` for every root module outside `modules/` | once `infrastructure/terraform/**/*.tf` exists |
-| ansible-lint + syntax-check (core 2.21.4, lint 26.9.0) | `--syntax-check` of `playbooks/*.yml` against `inventories/example/hosts.yml`, then `ansible-lint` | once `infrastructure/ansible/` has YAML |
+| ansible-lint + syntax-check (core 2.21.4, lint 26.9.0) | installs collections from `requirements.yml` (if present), `--syntax-check` of `playbooks/*.yml` against `inventories/example/hosts.yml`, then `ansible-lint` | once `infrastructure/ansible/` has YAML |
+
+Ansible collections beyond `ansible-core` (e.g. `ansible.posix` for SELinux booleans/firewalld, `community.general`) **must** be declared in `infrastructure/ansible/requirements.yml` with pinned versions, or CI cannot resolve their modules.
 
 ## Running the same checks locally (WSL)
 

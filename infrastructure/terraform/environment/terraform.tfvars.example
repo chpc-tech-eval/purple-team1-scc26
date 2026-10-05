@@ -1,0 +1,57 @@
+# Copy to terraform.tfvars (gitignored) and fill in real values.
+# Do not commit terraform.tfvars. Placeholders in <...> are team choices
+# still being agreed; see docs/network-design.md §5.
+
+# --- Cloud (issue #8) ---
+openstack_cloud       = "sebowa"
+openstack_region      = "RegionOne"
+name_prefix           = "<team-prefix>"
+external_network_name = "Public Internet"
+
+# --- Networks: team choice, proposal in #21 (awaiting the instructor) ---
+mgmt_cidr       = "<mgmt-cidr>"
+mgmt_gateway_ip = "<mgmt-gateway-ip>"
+mgmt_pool_start = "<mgmt-dhcp-start>"
+mgmt_pool_end   = "<mgmt-dhcp-end>"
+
+k8s_cidr       = "<k8s-cidr>"
+k8s_gateway_ip = "<k8s-gateway-ip>"
+k8s_pool_start = "<k8s-dhcp-start>"
+k8s_pool_end   = "<k8s-dhcp-end>"
+
+vpn_cidr = "<wireguard-client-cidr>"
+
+# Empty during bootstrap: Neutron DHCP hands out its default resolver.
+# Switch to edge-01's IP once Pi-hole is validated (network design, open item 3).
+dns_nameservers = []
+
+# Inside each subnet, outside its DHCP pool (Terraform checks the subnet).
+node_fixed_ips = {
+  "edge-01"       = "<mgmt-ip>"
+  "api-lb-01"     = "<k8s-ip>"
+  "k8s-cp-01"     = "<k8s-ip>"
+  "k8s-worker-01" = "<k8s-ip>"
+  "k8s-worker-02" = "<k8s-ip>"
+}
+
+# --- Edge exposure: team decision pending (#18) ---
+wireguard_port          = 0 # placeholder; Terraform rejects 0. Reference uses 51820.
+wireguard_allowed_cidrs = ["<source-cidr>"]
+bootstrap_ssh_cidrs     = ["<your-public-ip>/32"]
+
+# --- Compute (issue #8, #22) ---
+# Bootstrap/cloud user for Rocky 9 is "rocky" (instructor, #16).
+image_name = "Rocky 9"
+
+flavors = {
+  edge          = "large"
+  api_lb        = "small"
+  control_plane = "medium"
+  worker        = "scc.large"
+}
+
+# Boot from image (null) or from a Cinder volume (size in GB): team decision pending.
+boot_volume_size = null
+boot_volume_type = null
+
+admin_ssh_public_key = "ssh-ed25519 AAAA... team-admin"
