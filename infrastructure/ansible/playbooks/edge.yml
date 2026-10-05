@@ -1,0 +1,7 @@
+---
+# Week-1 edge subset: WireGuard, Pi-hole, nftables (week1/README.md Part F).
+# Roles land in #13; run with --tags wireguard,pihole,firewall.
+- name: Configure edge services
+  hosts: edge_nodes
+  become: true
+  roles: []

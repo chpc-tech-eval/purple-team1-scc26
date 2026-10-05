@@ -1,0 +1,36 @@
+---
+- name: Require SELinux enforcing (never disabled to make something work)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.selinux.status == 'enabled'
+      - ansible_facts.selinux.mode == 'enforcing'
+    fail_msg: "SELinux is {{ ansible_facts.selinux.status }}/{{ ansible_facts.selinux.mode | default('n/a') }}; fix the cause, do not disable it."
+
+- name: Install base packages
+  ansible.builtin.dnf:
+    name: "{{ common_packages }}"
+    state: present
+
+- name: Enable and start chronyd
+  ansible.builtin.systemd_service:
+    name: chronyd
+    enabled: true
+    state: started
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ common_timezone }}"
+
+- name: Harden sshd (key-only, no root login)
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-scc26-hardening.conf
+    content: |
+      # Managed by Ansible (infrastructure/ansible/roles/common)
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+    owner: root
+    group: root
+    mode: "0600"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Reload sshd
