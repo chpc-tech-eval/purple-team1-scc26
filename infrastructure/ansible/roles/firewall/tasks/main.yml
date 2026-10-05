@@ -10,14 +10,18 @@
       - "'0.0.0.0/0' not in firewall_ssh_cidrs"
     fail_msg: Set the firewall_* variables in inventories/private (see roles/firewall/defaults/main.yml).
 
-- name: Gather service facts
-  ansible.builtin.service_facts:
+# A single systemctl query instead of service_facts, which took up to ~1100 s
+# on edge-01 (Olerato's finding B on #13).
+- name: Check whether firewalld is active (read-only, single unit)
+  ansible.builtin.systemd_service:
+    name: firewalld
+  register: firewall_firewalld_state
+  failed_when: false
 
 - name: Refuse to run alongside an active firewalld
   ansible.builtin.assert:
     that:
-      - ansible_facts.services['firewalld.service'] is not defined
-        or ansible_facts.services['firewalld.service'].state != 'running'
+      - (firewall_firewalld_state.status | default({})).ActiveState | default('inactive') != 'active'
     fail_msg: >-
       firewalld is running. Replacing it with nftables is a team decision; do
       not stop it from this role. Agree it on #13 first.
@@ -25,20 +29,23 @@
 # Lockout guard (captain review on #27): established sessions survive a reload,
 # but the NEXT run would be refused if this controller's address is missing.
 - name: Read this controller's SSH source address (no privilege escalation)
-  ansible.builtin.setup:
-    gather_subset: [env]
+  ansible.builtin.command:
+    cmd: printenv SSH_CONNECTION
+  register: firewall_ssh_connection
   become: false
+  changed_when: false
+  failed_when: false
 
 - name: Refuse a ruleset that would lock out the current controller
   vars:
-    firewall_controller_ip: "{{ ansible_facts.env.SSH_CONNECTION.split()[0] }}"
+    firewall_controller_ip: "{{ firewall_ssh_connection.stdout.split()[0] }}"
   ansible.builtin.assert:
     that:
       - firewall_ssh_cidrs | map('ansible.utils.network_in_network', firewall_controller_ip) | select | list | length > 0
     fail_msg: >-
       This controller's SSH source is not in firewall_ssh_cidrs; applying the
       ruleset would lock it out of edge-01 on the next run. Add it first.
-  when: ansible_facts.env.SSH_CONNECTION is defined
+  when: firewall_ssh_connection.stdout | trim | length > 0
 
 - name: Install nftables
   ansible.builtin.dnf:

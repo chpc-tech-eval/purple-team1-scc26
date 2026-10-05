@@ -14,13 +14,22 @@
     name: podman
     state: present
 
-- name: Create the Pi-hole data directory
+# The container chowns etc-pihole to its own user on every start, so Ansible
+# only creates the directory when it is missing and never re-owns it
+# (Olerato's finding A on #13: recurring change + pihole unable to traverse).
+- name: Check for the Pi-hole data directory
+  ansible.builtin.stat:
+    path: "{{ pihole_data_dir }}/etc-pihole"
+  register: pihole_data_dir_stat
+
+- name: Create the Pi-hole data directory (first run only)
   ansible.builtin.file:
     path: "{{ pihole_data_dir }}/etc-pihole"
     state: directory
     owner: root
     group: root
-    mode: "0700"
+    mode: "0755"
+  when: not pihole_data_dir_stat.stat.exists
 
 # The UI password lives in a Podman secret, not in the unit or the container
 # env shown by `podman inspect` (captain review on #27). The current value is
