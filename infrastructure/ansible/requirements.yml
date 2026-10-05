@@ -1,0 +1,8 @@
+---
+# Collections beyond ansible-core. CI installs these before --syntax-check
+# (docs/CI.md). Keep every version pinned.
+collections:
+  - name: ansible.posix
+    version: "2.2.2"
+  - name: community.general
+    version: "13.4.0"
