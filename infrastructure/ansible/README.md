@@ -10,6 +10,7 @@ playbooks/bootstrap.yml           all hosts: SELinux check, base packages, chron
 playbooks/edge.yml                edge-01: nftables, WireGuard, Pi-hole (#13), tags firewall/wireguard/pihole
 playbooks/api-lb.yml              api-lb-01: HAProxy :6443 (#14)
 roles/common/                     Week-1 host fundamentals used by bootstrap.yml
+roles/haproxy/                    api-lb-01 HAProxy :6443, backends from the control_plane group, SELinux boolean
 roles/firewall/                   edge nftables: own table, routed VPN (no NAT), DNS/SSH/WireGuard only
 roles/wireguard/                  edge WireGuard; private key generated on edge-01, never read back
 roles/pihole/                     edge Pi-hole as a Podman Quadlet, image pinned by tag + digest
@@ -26,6 +27,16 @@ cp inventories/example/hosts.yml inventories/private/hosts.yml
 ```
 
 The real inventory and its `group_vars/` never go in Git.
+
+### Private inventory: member SSH keys (#12)
+
+Terraform installs one keypair for `rocky`. The bootstrap adds each member's **public** key (additive; the Terraform key stays). Members post public keys on #12; never a private key.
+
+```yaml
+# inventories/private/group_vars/all.yml  (gitignored)
+common_authorized_keys:
+  - {name: "<member>", key: "ssh-ed25519 AAAA... <comment>"}
+```
 
 ### Private inventory: reaching hosts behind the edge
 

@@ -1,0 +1,52 @@
+---
+- name: Require at least one control-plane backend in the inventory
+  ansible.builtin.assert:
+    that:
+      - groups[haproxy_backend_group] | default([]) | length > 0
+    fail_msg: "Inventory group '{{ haproxy_backend_group }}' is empty; HAProxy needs a backend."
+
+- name: Install HAProxy and SELinux tooling
+  ansible.builtin.dnf:
+    name:
+      - haproxy
+      - policycoreutils-python-utils
+      - python3-libselinux
+    state: present
+
+# SELinux stays enforcing; this persistent boolean is the supported way to
+# let HAProxy bind/connect on non-standard ports.
+- name: Allow HAProxy to bind and connect on any port (persistent boolean)
+  ansible.posix.seboolean:
+    name: haproxy_connect_any
+    state: true
+    persistent: true
+
+- name: Deploy haproxy.cfg (validated with haproxy -c before it lands)
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/haproxy -c -f %s
+  notify: Reload HAProxy
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+# Never disable firewalld; if it is running, open only the API port.
+- name: Open the API port in firewalld (only if firewalld is running)
+  ansible.posix.firewalld:
+    port: "{{ haproxy_api_port }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+  when:
+    - ansible_facts.services['firewalld.service'] is defined
+    - ansible_facts.services['firewalld.service'].state == 'running'
+
+- name: Enable and start HAProxy
+  ansible.builtin.systemd_service:
+    name: haproxy
+    enabled: true
+    state: started
