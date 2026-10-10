@@ -8,6 +8,7 @@ Questions for the instructor are raised as **GitHub issues** (label `question`, 
 
 | Date | Decision | Why / source |
 | --- | --- | --- |
+| 2026-10-10 | **Restricted public SSH fallback restored:** edge SSH allowed again, but only from members' known public /32s, in both the security group (`bootstrap_ssh_cidrs`) and edge nftables (`firewall_ssh_cidrs`). Break-glass path in case WireGuard fails; the list needs updating when home IPs change. Open-to-anywhere is not used unless the instructor asks for it | Instructor advice in Discord (2026-10-05); plan on #13 |
 | 2026-10-05 | `main` and `dev` are **protected**: PR only, 1 approval, conversations resolved, the 4 CI checks required, no force-push/deletion, enforced for admins too | Instructor recommendation; applied by the captain |
 | 2026-10-05 | **edge-01 flavor = `large`** (8 vCPU / 16 GiB / 150 GB): no 4 vCPU / 10 GiB flavor exists, `medium` is 2 GiB short, and Wazuh Manager + Suricata land on edge in Week 3; still within quota (30 vCPU / 60 GiB total) | Captain decision; #8, #19 |
 | 2026-10-05 | Questions for the instructor go in **separate GitHub issues** (label `question`), never inside commits or docs | Instructor review on #6 |
