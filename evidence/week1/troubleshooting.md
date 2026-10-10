@@ -38,3 +38,15 @@ Each note is a problem the team actually hit, with its source on GitHub. Address
 **Fix:** #28 extracts the Terraform zip with Python's `zipfile`, which needs no sudo. Its follow-up commit also adds `netaddr` to the Ansible install line, which the edge firewall lockout guard (#35) needs.
 
 **Lesson:** test setup docs on a truly fresh image. The guide now installs everything into `$HOME` with checksum checks.
+
+## 4. Ansible on edge-01 took ~6 minutes: IPv6 neighbour discovery blocked
+
+**When:** 2026-10-05 21:26–22:02 UTC · **Who:** found by Olerato (`Ole06`), fixed by Rendani (`Rendani-Anele`) · **Source:** [#13 finding B](https://github.com/chpc-tech-eval/purple-team1-scc26/issues/13#issuecomment-6003275019), fix in #39, [re-run](https://github.com/chpc-tech-eval/purple-team1-scc26/issues/13#issuecomment-6003975405)
+
+**Symptom:** after the edge firewall was applied, fact gathering on edge-01 only took up to ~1,100 s (`service_facts`) and 59–253 s (`setup`), while the same modules took seconds on other hosts. SSH, sudo and DNS were fast.
+
+**Cause:** the `inet scc26_edge` table accepted ICMP but not **ICMPv6**, so IPv6 neighbour discovery failed and IPv6 attempts during fact gathering stalled until they timed out.
+
+**Fix:** #39 accepts `ipv6-icmp` on edge and replaces `service_facts` with a single `systemd` status query. Re-run on the fixed code: **`changed=0` in 36 s**.
+
+**Lesson:** a default-drop firewall must still allow the control traffic the OS depends on (ICMPv6 for IPv6). Profile a slow run (`profile_tasks`) before guessing.
