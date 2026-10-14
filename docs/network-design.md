@@ -139,7 +139,7 @@ Not carried over from the reference (outside the five-node POC): Slurm, NFS, Her
 | `node_fixed_ips` | map of the five fixed IPs | chosen inside the CIDRs, outside the DHCP pools |
 | `wireguard_port` | edge WireGuard UDP port | decided: 51820 |
 | `wireguard_allowed_cidrs` | who may reach WireGuard | decided: anywhere (WireGuard drops unauthenticated packets) |
-| `bootstrap_ssh_cidrs` | who may reach temporary SSH | `[]` since step 3 (#13); Terraform rejects `0.0.0.0/0` |
+| `bootstrap_ssh_cidrs` | who may reach edge SSH from the Internet | members' known public /32s only: the break-glass fallback restored on #13 after step 3 (`docs/DECISIONS.md`, 2026-10-10); Terraform rejects `0.0.0.0/0` |
 | `dns_nameservers` | resolvers handed out by Neutron DHCP | see open item 3 |
 | `external_network_name` | provider network | `Public Internet` (issue #8) |
 
