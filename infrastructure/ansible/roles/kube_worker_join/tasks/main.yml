@@ -13,6 +13,6 @@
 
 - name: Join the cluster through the stable endpoint
   ansible.builtin.command:
-    cmd: "{{ kube_worker_join_command }}"
+    cmd: "{{ kube_worker_join_command }} --node-name {{ inventory_hostname }}"
     creates: /etc/kubernetes/kubelet.conf
   no_log: true  # contains the bootstrap token

@@ -75,7 +75,7 @@
   register: kube_control_plane_join
   when: >-
     groups['workers'] | default([])
-    | difference(kube_control_plane_nodes.stdout_lines | map('regex_replace', '^node/', '') | list)
+    | difference(kube_control_plane_nodes.stdout_lines | map('regex_replace', '^node/', '') | map('regex_replace', '\..*$', '') | list)
     | length > 0
   changed_when: true
   no_log: true
