@@ -1,0 +1,86 @@
+---
+- name: Require a pod network range from the private inventory
+  ansible.builtin.assert:
+    that:
+      - kube_control_plane_pod_cidr | length > 0
+      - (kube_control_plane_pod_cidr | ansible.utils.ipv4('net')) == kube_control_plane_pod_cidr
+    fail_msg: "Set kube_control_plane_pod_cidr in the private inventory (it must match the Cilium values in Part C)."
+
+- name: Require exactly one API load balancer in the inventory
+  ansible.builtin.assert:
+    that:
+      - groups[kube_control_plane_api_lb_group] | default([]) | length == 1
+    fail_msg: "Inventory group '{{ kube_control_plane_api_lb_group }}' must hold exactly one host (the HAProxy endpoint)."
+
+- name: Set the stable API endpoint (HAProxy on the API load balancer)
+  ansible.builtin.set_fact:
+    kube_control_plane_api_endpoint: >-
+      {{ hostvars[groups[kube_control_plane_api_lb_group][0]].ansible_host }}:{{ kube_control_plane_api_port }}
+
+- name: Check whether the control plane is already initialised
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kube_control_plane_admin_conf
+
+- name: Write the kubeadm configuration
+  ansible.builtin.template:
+    src: kubeadm-init.yaml.j2
+    dest: /etc/kubernetes/kubeadm-init.yaml
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Initialise the control plane through the stable endpoint
+  ansible.builtin.command:
+    cmd: kubeadm init --config /etc/kubernetes/kubeadm-init.yaml
+    creates: /etc/kubernetes/admin.conf
+  register: kube_control_plane_init
+  no_log: true  # output contains a join token
+
+- name: Create the admin kubeconfig directory (control plane only)
+  ansible.builtin.file:
+    path: "/home/{{ kube_control_plane_admin_user }}/.kube"
+    state: directory
+    owner: "{{ kube_control_plane_admin_user }}"
+    group: "{{ kube_control_plane_admin_user }}"
+    mode: "0700"
+
+- name: Install the admin kubeconfig for the admin user (never copied off this host)
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ kube_control_plane_admin_user }}/.kube/config"
+    remote_src: true
+    owner: "{{ kube_control_plane_admin_user }}"
+    group: "{{ kube_control_plane_admin_user }}"
+    mode: "0600"
+
+- name: Wait for the API to report ready
+  ansible.builtin.command:
+    cmd: kubectl --kubeconfig /etc/kubernetes/admin.conf get --raw=/readyz
+  register: kube_control_plane_readyz
+  until: kube_control_plane_readyz.stdout == 'ok'
+  retries: 30
+  delay: 10
+  changed_when: false
+
+- name: Check which workers still need to join
+  ansible.builtin.command:
+    cmd: kubectl --kubeconfig /etc/kubernetes/admin.conf get nodes -o name
+  register: kube_control_plane_nodes
+  changed_when: false
+
+- name: Create a short-lived worker join command (only if a worker is missing)
+  ansible.builtin.command:
+    cmd: kubeadm token create --ttl {{ kube_control_plane_token_ttl }} --print-join-command
+  register: kube_control_plane_join
+  when: >-
+    groups['workers'] | default([])
+    | difference(kube_control_plane_nodes.stdout_lines | map('regex_replace', '^node/', '') | list)
+    | length > 0
+  changed_when: true
+  no_log: true
+
+- name: Keep the join command in memory for the worker play (never written to disk or Git)
+  ansible.builtin.set_fact:
+    kube_control_plane_join_command: "{{ kube_control_plane_join.stdout | default('') }}"
+  no_log: true

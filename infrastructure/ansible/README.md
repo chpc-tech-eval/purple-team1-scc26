@@ -9,7 +9,10 @@ inventories/example/              committed placeholders; copy to inventories/pr
 playbooks/bootstrap.yml           all hosts: SELinux check, base packages, chrony, Africa/Johannesburg, sshd hardening
 playbooks/edge.yml                edge-01: nftables, WireGuard, Pi-hole (#13), tags firewall/wireguard/pihole
 playbooks/api-lb.yml              api-lb-01: HAProxy :6443 (#14)
+playbooks/kubernetes.yml          Week 2 Part B: kubeadm init via the HAProxy endpoint, workers join one at a time
 roles/common/                     Week-1 host fundamentals used by bootstrap.yml
+roles/kube_control_plane/         kubeadm init (creates admin.conf once), admin kubeconfig on k8s-cp-01 only, short-lived join token
+roles/kube_worker_join/           joins a worker once (skips if kubelet.conf exists); token never logged
 roles/haproxy/                    api-lb-01 HAProxy :6443, backends from the control_plane group, SELinux boolean
 roles/firewall/                   edge nftables: own table, routed VPN (no NAT), DNS/SSH/WireGuard only
 roles/wireguard/                  edge WireGuard; private key generated on edge-01, never read back
@@ -105,6 +108,9 @@ ansible-playbook -i $INV playbooks/bootstrap.yml          # re-run: expect chang
 ansible-playbook -i $INV playbooks/edge.yml --tags wireguard,pihole,firewall
 # WireGuard private-access proof (#13) before any public SSH change
 ansible-playbook -i $INV playbooks/api-lb.yml
+# Week 2 Part B (needs the prerequisites + kube_control_plane_pod_cidr in the private group_vars)
+ansible-playbook -i $INV playbooks/kubernetes.yml
+ansible-playbook -i $INV playbooks/kubernetes.yml          # re-run: expect changed=0
 ```
 
 Never disable SELinux or firewalls to make something work. WireGuard private keys stay on their hosts. Real addresses, ranges and `terraform output` never go in Git, issues or PRs.
