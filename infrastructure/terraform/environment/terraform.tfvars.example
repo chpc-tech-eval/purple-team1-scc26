@@ -43,11 +43,13 @@ bootstrap_ssh_cidrs     = ["<your-public-ip>/32"]
 # Bootstrap/cloud user for Rocky 9 is "rocky" (instructor, #16).
 image_name = "Rocky 9"
 
+# pta.sebowa flavor names since the 2026-10-15 rebuild (same vCPU/RAM as the
+# Week-1 large/small/medium/scc.large; see docs/DECISIONS.md).
 flavors = {
-  edge          = "large"
-  api_lb        = "small"
-  control_plane = "medium"
-  worker        = "scc.large"
+  edge          = "C8.medium" # 8 vCPU / 16 GiB
+  api_lb        = "C2.tiny"   # 2 vCPU / 4 GiB
+  control_plane = "C4.small"  # 4 vCPU / 8 GiB
+  worker        = "C8.medium" # 8 vCPU / 16 GiB
 }
 
 # Boot from image (null) or from a Cinder volume (size in GB): team decision pending.

@@ -27,6 +27,22 @@ Status key: ✅ done (evidence linked) · 🟡 partly done · ⏳ pending
 | HAProxy | syntax/service/listener healthy; backend may be DOWN | ✅ | `api-lb.yml` run 1 `changed=5`, run 2 **`changed=0`**; `haproxy -c` valid; active + enabled; listening on 6443; SELinux Enforcing with `haproxy_connect_any` on; backend `k8s-cp-01` DOWN (*connection refused*), as expected before kubeadm: [#14](https://github.com/chpc-tech-eval/purple-team1-scc26/issues/14#issuecomment-6004936750) (22:59) |
 | GitHub | Week-1 PR reviewed and merged into `dev` | ✅ | All Week-1 work reached `dev` through reviewed PRs (#6–#41) with the 4 CI checks required; this final evidence update is the last Week-1 PR |
 
+## Rebuild after the workspace wipe (2026-10-15)
+
+On 2026-10-12 every team's Sebowa workspace was deleted (instructor, Discord #general, 2026-10-14). The whole Week-1 platform was rebuilt from `dev` on the new endpoint, with no code changes, and re-verified:
+
+| Check | Result |
+| --- | --- |
+| Terraform | `Plan: 42 to add, 0 to change, 0 to destroy`, then `Apply complete! Resources: 42 added`; second plan `No changes` |
+| Servers | 5 x ACTIVE (edge-01 `C8.medium`, api-lb-01 `C2.tiny`, k8s-cp-01 `C4.small`, 2 x workers `C8.medium`) |
+| `bootstrap.yml` | run 1 `changed=4` per host, run 2 `changed=0`; SELinux enforcing, Africa/Johannesburg, chronyd active |
+| `edge.yml` | run 1 `changed=19`, run 2 `changed=0`; nftables `inet scc26_edge` policy drop, WireGuard 4 peers on UDP 51820, Pi-hole up |
+| `api-lb.yml` | run 1 `changed=5`, run 2 `changed=0`; `haproxy -c` valid, listening on 6443 |
+| VPN | captain's tunnel to the new edge key; direct SSH to all 5 hosts, each sees the captain's own VPN address; Pi-hole answers `*.pt1.internal` and external names over the VPN |
+| Edge security group | WireGuard from anywhere x1, SSH from VPN x1, SSH from a public /32 x1 (fallback), DNS from private x6 |
+
+Members' WireGuard keys and VPN addresses are unchanged; only edge-01's public key and endpoint changed (sent privately on Discord).
+
 ## Evidence items (#15 checklist)
 
 | Item | Status | Where |
