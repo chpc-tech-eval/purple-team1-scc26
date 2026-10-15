@@ -1,0 +1,24 @@
+# Cilium 1.20.1 values for the 3NCRYP+3D cluster (week2/README.md Part C).
+# Only deliberate project choices live here; everything else is the chart
+# default. First install: the cilium_bootstrap role on k8s-cp-01. After Part D,
+# Argo CD owns this file.
+
+cluster:
+  name: 3ncryp3d
+
+operator:
+  replicas: 1
+
+# Instructor baseline: VXLAN tunnel, kube-proxy kept for first bring-up.
+routingMode: tunnel
+tunnelProtocol: vxlan
+kubeProxyReplacement: false
+
+# Use the pod range kubeadm already allocates per node (podSubnet), so the pod
+# network is defined once and matches in kubeadm and Cilium (docs/DECISIONS.md).
+# The chart default (cluster-pool 10.0.0.0/8) would overlap the node networks.
+ipam:
+  mode: kubernetes
+
+prometheus:
+  enabled: true
