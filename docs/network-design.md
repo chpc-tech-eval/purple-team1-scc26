@@ -107,6 +107,8 @@ There is deliberately **no** 6443 rule from `vpn_cidr` to anything. The referenc
 
 ### Week 2 (Kubernetes + Cilium; add before kubeadm)
 
+In Terraform (`modules/security`) since the Week-2 security-group PR; applied by whoever holds the state, before `kubeadm init/join`. Only adds; no Week-1 rule changes.
+
 | # | Target group | Port / proto | Source | Purpose |
 | --- | --- | --- | --- | --- |
 | 9 | control-plane | 2379-2380/tcp | `k8s_cidr` | etcd |
@@ -115,6 +117,7 @@ There is deliberately **no** 6443 rule from `vpn_cidr` to anything. The referenc
 | 12 | control-plane, worker | 4240/tcp | `k8s_cidr` | Cilium health |
 | 13 | control-plane, worker | ICMP | `k8s_cidr` | node/Cilium health |
 | 14 | control-plane, worker | 30000-32767/tcp+udp | `k8s_cidr` | NodePort |
+| 14a | api-lb, control-plane, worker | ICMP | `mgmt_cidr` | path debugging from edge-01 (review on #18) |
 
 ### Week 3 (observability/security; listed so nobody adds them by hand)
 
@@ -136,7 +139,7 @@ Not carried over from the reference (outside the five-node POC): Slurm, NFS, Her
 | `node_fixed_ips` | map of the five fixed IPs | chosen inside the CIDRs, outside the DHCP pools |
 | `wireguard_port` | edge WireGuard UDP port | decided: 51820 |
 | `wireguard_allowed_cidrs` | who may reach WireGuard | decided: anywhere (WireGuard drops unauthenticated packets) |
-| `bootstrap_ssh_cidrs` | who may reach temporary SSH | `[]` since step 3 (#13); Terraform rejects `0.0.0.0/0` |
+| `bootstrap_ssh_cidrs` | who may reach edge SSH from the Internet | members' known public /32s only: the break-glass fallback restored on #13 after step 3 (`docs/DECISIONS.md`, 2026-10-10); Terraform rejects `0.0.0.0/0` |
 | `dns_nameservers` | resolvers handed out by Neutron DHCP | see open item 3 |
 | `external_network_name` | provider network | `Public Internet` (issue #8) |
 
