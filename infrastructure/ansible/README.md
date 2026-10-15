@@ -13,6 +13,10 @@ playbooks/kubernetes.yml          Week 2 Part B: kubeadm init via the HAProxy en
 roles/common/                     Week-1 host fundamentals used by bootstrap.yml
 roles/kube_control_plane/         kubeadm init (creates admin.conf once), admin kubeconfig on k8s-cp-01 only, short-lived join token
 roles/kube_worker_join/           joins a worker once (skips if kubelet.conf exists); token never logged
+playbooks/kubernetes-prereqs.yml  Week 2: control plane + workers: containerd 2.3.4, Kubernetes 1.36.4 prerequisites
+roles/common/                     Week-1 host fundamentals used by bootstrap.yml
+roles/containerd/                 pinned + versionlocked containerd.io, SystemdCgroup = true, container-selinux
+roles/kube_prereqs/               swap off, overlay/br_netfilter, sysctls, pinned kubelet/kubeadm (kubectl on the control plane only), crictl
 roles/haproxy/                    api-lb-01 HAProxy :6443, backends from the control_plane group, SELinux boolean
 roles/firewall/                   edge nftables: own table, routed VPN (no NAT), DNS/SSH/WireGuard only
 roles/wireguard/                  edge WireGuard; private key generated on edge-01, never read back
@@ -111,6 +115,13 @@ ansible-playbook -i $INV playbooks/api-lb.yml
 # Week 2 Part B (needs the prerequisites + kube_control_plane_pod_cidr in the private group_vars)
 ansible-playbook -i $INV playbooks/kubernetes.yml
 ansible-playbook -i $INV playbooks/kubernetes.yml          # re-run: expect changed=0
+# Week 2 Part A (week2/README.md sections 2-3): runtime + Kubernetes prerequisites
+ansible-playbook -i $INV playbooks/kubernetes-prereqs.yml
+ansible-playbook -i $INV playbooks/kubernetes-prereqs.yml  # re-run: expect changed=0
+ansible control_plane:workers -i $INV -b -m shell   -a 'containerd --version; systemctl is-active containerd; crictl info >/dev/null && echo CRI_OK'
+ansible control_plane:workers -i $INV -b -m shell   -a 'lsmod | grep -E "overlay|br_netfilter"; sysctl net.ipv4.ip_forward net.bridge.bridge-nf-call-iptables'
 ```
+
+kubelet restarts in a loop after the prerequisites run; that is expected until `kubeadm init`/`join` (Part B). Versions are locked with `dnf versionlock`, so upgrade all nodes together through this role, never one node by hand.
 
 Never disable SELinux or firewalls to make something work. WireGuard private keys stay on their hosts. Real addresses, ranges and `terraform output` never go in Git, issues or PRs.
