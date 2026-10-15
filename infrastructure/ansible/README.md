@@ -9,7 +9,9 @@ inventories/example/              committed placeholders; copy to inventories/pr
 playbooks/bootstrap.yml           all hosts: SELinux check, base packages, chrony, Africa/Johannesburg, sshd hardening
 playbooks/edge.yml                edge-01: nftables, WireGuard, Pi-hole (#13), tags firewall/wireguard/pihole
 playbooks/api-lb.yml              api-lb-01: HAProxy :6443 (#14)
+playbooks/cilium.yml              Week 2 Part C: first Cilium 1.20.1 install, run on k8s-cp-01 (values in gitops/resources/cilium/)
 roles/common/                     Week-1 host fundamentals used by bootstrap.yml
+roles/cilium_bootstrap/           pinned + checksum-verified Cilium CLI on the control plane only; installs Cilium once, waits for healthy
 roles/haproxy/                    api-lb-01 HAProxy :6443, backends from the control_plane group, SELinux boolean
 roles/firewall/                   edge nftables: own table, routed VPN (no NAT), DNS/SSH/WireGuard only
 roles/wireguard/                  edge WireGuard; private key generated on edge-01, never read back
@@ -105,6 +107,9 @@ ansible-playbook -i $INV playbooks/bootstrap.yml          # re-run: expect chang
 ansible-playbook -i $INV playbooks/edge.yml --tags wireguard,pihole,firewall
 # WireGuard private-access proof (#13) before any public SSH change
 ansible-playbook -i $INV playbooks/api-lb.yml
+# Week 2 Part C (after kubernetes.yml and the Week-2 security-group rules)
+ansible-playbook -i $INV playbooks/cilium.yml
+# then on k8s-cp-01: cilium status --wait && cilium connectivity test
 ```
 
 Never disable SELinux or firewalls to make something work. WireGuard private keys stay on their hosts. Real addresses, ranges and `terraform output` never go in Git, issues or PRs.
