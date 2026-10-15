@@ -12,12 +12,15 @@ playbooks/api-lb.yml              api-lb-01: HAProxy :6443 (#14)
 playbooks/kubernetes-prereqs.yml  Week 2 Part A: control plane + workers: containerd 2.3.4, Kubernetes 1.36.4 prerequisites
 playbooks/kubernetes.yml          Week 2 Part B: kubeadm init via the HAProxy endpoint, workers join one at a time
 playbooks/cilium.yml              Week 2 Part C: first Cilium 1.20.1 install, run on k8s-cp-01 (values in gitops/resources/cilium/)
+playbooks/argocd.yml              Week 2 Part D: Argo CD v3.5.0 + Sealed Secrets v0.39.1 from k8s-cp-01; root app follows dev
 roles/common/                     Week-1 host fundamentals used by bootstrap.yml
 roles/containerd/                 pinned + versionlocked containerd.io, SystemdCgroup = true, container-selinux
 roles/kube_prereqs/               swap off, overlay/br_netfilter, sysctls, pinned kubelet/kubeadm (kubectl on the control plane only), crictl
 roles/kube_control_plane/         kubeadm init (creates admin.conf once), admin kubeconfig on k8s-cp-01 only, short-lived join token
 roles/kube_worker_join/           joins a worker once (skips if kubelet.conf exists); token never logged
 roles/cilium_bootstrap/           pinned + checksum-verified Cilium CLI on the control plane only; installs Cilium once, waits for healthy
+roles/argocd_bootstrap/           pinned + checksum-verified Argo CD install, root Application from gitops/bootstrap/
+roles/sealed_secrets/             pinned controller; copies ONLY the public sealing cert to ~/.config/scc26-secrets/
 roles/haproxy/                    api-lb-01 HAProxy :6443, backends from the control_plane group, SELinux boolean
 roles/firewall/                   edge nftables: own table, routed VPN (no NAT), DNS/SSH/WireGuard only
 roles/wireguard/                  edge WireGuard; private key generated on edge-01, never read back
@@ -124,6 +127,8 @@ ansible-playbook -i $INV playbooks/kubernetes.yml          # re-run: expect chan
 # Week 2 Part C (after Part B and the Week-2 security-group rules, #47)
 ansible-playbook -i $INV playbooks/cilium.yml
 # then on k8s-cp-01: cilium status --wait && cilium connectivity test
+# Week 2 Part D (after Cilium): Argo CD + Sealed Secrets, public cert to the workstation
+ansible-playbook -i $INV playbooks/argocd.yml
 ```
 
 After Part A, kubelet restarts in a loop until `kubeadm init`/`join` (Part B). Versions are locked with `dnf versionlock`, so upgrade all nodes together through the role, never one node by hand.
