@@ -1,0 +1,47 @@
+# Cinder CSI (week2/README.md Part E). The chart provides the driver; our
+# StorageClasses and the SEALED cloud credential come from this repo.
+# Argo CD's own identity is not the Cinder credential (README §13).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cinder-csi
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  sources:
+    - repoURL: https://kubernetes.github.io/cloud-provider-openstack
+      chart: openstack-cinder-csi
+      targetRevision: 2.36.5  # app v1.36, matches Kubernetes 1.36
+      helm:
+        releaseName: cinder-csi
+        valuesObject:
+          clusterID: 3ncryp3d
+          secret:
+            enabled: true
+            create: false
+            name: cinder-csi-cloud-config
+            filename: cloud.conf
+          storageClass:
+            enabled: false  # ours are in gitops/resources/cinder-csi/
+          csi:
+            provisioner:
+              topology: true
+            snapshotter:
+              enabled: true
+          plugin:
+            httpEndpoint:
+              enabled: false
+            controllerPlugin:
+              replicas: 1  # small POC; 2 workers
+    - repoURL: https://github.com/chpc-tech-eval/purple-team1-scc26.git
+      targetRevision: dev
+      path: gitops/resources/cinder-csi
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
