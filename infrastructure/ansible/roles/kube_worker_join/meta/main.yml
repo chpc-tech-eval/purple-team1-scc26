@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: saxs-14
+  description: Join a worker to the cluster with short-lived, never-logged kubeadm join material
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []
