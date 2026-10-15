@@ -1,0 +1,13 @@
+---
+# Week-2 Part D (week2/README.md §10-12): Argo CD + Sealed Secrets, bootstrapped
+# with kubectl ON k8s-cp-01 as the admin user (the workstation has no kubeconfig).
+# Afterwards Argo CD owns Kubernetes applications from gitops/ on dev.
+# Run: ansible-playbook -i inventories/private/hosts.yml playbooks/argocd.yml
+- name: Bootstrap Argo CD and Sealed Secrets from the control plane
+  hosts: control_plane
+  become: false
+  roles:
+    - role: argocd_bootstrap
+      tags: [argocd]
+    - role: sealed_secrets
+      tags: [sealed_secrets]

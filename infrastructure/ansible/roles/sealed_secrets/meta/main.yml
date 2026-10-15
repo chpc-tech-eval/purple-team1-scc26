@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: saxs-14
+  description: Sealed Secrets controller (pinned, checksum-verified); exports only the public sealing certificate to the workstation
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

@@ -1,0 +1,58 @@
+---
+- name: Check the API answers with the admin kubeconfig
+  ansible.builtin.command:
+    cmd: kubectl --kubeconfig {{ argocd_bootstrap_kubeconfig }} get --raw=/readyz
+  changed_when: false
+
+- name: Download the pinned Argo CD manifest (checksum-verified)
+  ansible.builtin.get_url:
+    url: "https://raw.githubusercontent.com/argoproj/argo-cd/{{ argocd_bootstrap_version }}/manifests/install.yaml"
+    dest: "{{ ansible_env.HOME }}/argocd-{{ argocd_bootstrap_version }}-install.yaml"
+    checksum: "sha256:{{ argocd_bootstrap_manifest_sha256 }}"
+    mode: "0644"
+
+- name: Create the Argo CD namespace
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      kubectl --kubeconfig {{ argocd_bootstrap_kubeconfig }}
+      create namespace {{ argocd_bootstrap_namespace }} --dry-run=client -o yaml |
+      kubectl --kubeconfig {{ argocd_bootstrap_kubeconfig }} apply -f -
+    executable: /bin/bash
+  register: argocd_bootstrap_ns
+  changed_when: "'created' in argocd_bootstrap_ns.stdout"
+
+- name: Install Argo CD (server-side apply)
+  ansible.builtin.command:
+    cmd: >-
+      kubectl --kubeconfig {{ argocd_bootstrap_kubeconfig }}
+      apply --server-side --force-conflicts
+      -n {{ argocd_bootstrap_namespace }}
+      -f {{ ansible_env.HOME }}/argocd-{{ argocd_bootstrap_version }}-install.yaml
+  # Server-side apply prints "serverside-applied" whether or not anything
+  # changed, so report a change only on the first install.
+  changed_when: argocd_bootstrap_ns is changed
+
+- name: Wait for the Argo CD workloads
+  ansible.builtin.command:
+    cmd: >-
+      kubectl --kubeconfig {{ argocd_bootstrap_kubeconfig }}
+      -n {{ argocd_bootstrap_namespace }} rollout status {{ item }} --timeout=10m
+  loop:
+    - deployment/argocd-server
+    - deployment/argocd-repo-server
+    - deployment/argocd-redis
+    - statefulset/argocd-application-controller
+  changed_when: false
+
+- name: Copy the Git-tracked root Application to the control plane
+  ansible.builtin.copy:
+    src: "{{ argocd_bootstrap_root_application }}"
+    dest: "{{ ansible_env.HOME }}/root-application.yaml"
+    mode: "0644"
+
+- name: Apply the root Application (follows this repo's dev branch)
+  ansible.builtin.command:
+    cmd: kubectl --kubeconfig {{ argocd_bootstrap_kubeconfig }} apply -f {{ ansible_env.HOME }}/root-application.yaml
+  register: argocd_bootstrap_root
+  changed_when: argocd_bootstrap_root.stdout is search('created|configured')

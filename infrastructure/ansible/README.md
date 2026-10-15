@@ -9,7 +9,10 @@ inventories/example/              committed placeholders; copy to inventories/pr
 playbooks/bootstrap.yml           all hosts: SELinux check, base packages, chrony, Africa/Johannesburg, sshd hardening
 playbooks/edge.yml                edge-01: nftables, WireGuard, Pi-hole (#13), tags firewall/wireguard/pihole
 playbooks/api-lb.yml              api-lb-01: HAProxy :6443 (#14)
+playbooks/argocd.yml              Week 2 Part D: Argo CD v3.5.0 + Sealed Secrets v0.39.1 from k8s-cp-01; root app follows dev
 roles/common/                     Week-1 host fundamentals used by bootstrap.yml
+roles/argocd_bootstrap/           pinned + checksum-verified Argo CD install, root Application from gitops/bootstrap/
+roles/sealed_secrets/             pinned controller; copies ONLY the public sealing cert to ~/.config/scc26-secrets/
 roles/haproxy/                    api-lb-01 HAProxy :6443, backends from the control_plane group, SELinux boolean
 roles/firewall/                   edge nftables: own table, routed VPN (no NAT), DNS/SSH/WireGuard only
 roles/wireguard/                  edge WireGuard; private key generated on edge-01, never read back
@@ -105,6 +108,8 @@ ansible-playbook -i $INV playbooks/bootstrap.yml          # re-run: expect chang
 ansible-playbook -i $INV playbooks/edge.yml --tags wireguard,pihole,firewall
 # WireGuard private-access proof (#13) before any public SSH change
 ansible-playbook -i $INV playbooks/api-lb.yml
+# Week 2 Part D (after Cilium): Argo CD + Sealed Secrets, public cert to the workstation
+ansible-playbook -i $INV playbooks/argocd.yml
 ```
 
 Never disable SELinux or firewalls to make something work. WireGuard private keys stay on their hosts. Real addresses, ranges and `terraform output` never go in Git, issues or PRs.

@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: saxs-14
+  description: Bootstrap Argo CD (pinned, checksum-verified) from k8s-cp-01 and point the root Application at this repo's dev branch
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []
