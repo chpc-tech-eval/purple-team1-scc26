@@ -60,6 +60,12 @@ locals {
     { for group in local.private_groups : "${group}-icmp-mgmt" => {
       group = group, protocol = "icmp", cidr = var.mgmt_cidr
     } },
+    # 14b. Traefik web/websecure NodePorts on the workers from the VPN only
+    # (Week-2 Part F ingress path; edge routes VPN traffic without NAT).
+    {
+      "k8s-worker-traefik-web-vpn"       = { group = "k8s-worker", protocol = "tcp", port = 30080, cidr = var.vpn_cidr }
+      "k8s-worker-traefik-websecure-vpn" = { group = "k8s-worker", protocol = "tcp", port = 30443, cidr = var.vpn_cidr }
+    },
   )
 
   rules = { for key, spec in local.rule_specs : key => {

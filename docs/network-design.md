@@ -118,6 +118,7 @@ In Terraform (`modules/security`) since the Week-2 security-group PR; applied by
 | 13 | control-plane, worker | ICMP | `k8s_cidr` | node/Cilium health |
 | 14 | control-plane, worker | 30000-32767/tcp+udp | `k8s_cidr` | NodePort |
 | 14a | api-lb, control-plane, worker | ICMP | `mgmt_cidr` | path debugging from edge-01 (review on #18) |
+| 14b | worker | 30080/tcp, 30443/tcp | `vpn_cidr` | Traefik web/websecure NodePorts, the Part F ingress path for VPN clients (edge routes without NAT, so the source is the VPN address) |
 
 ### Week 3 (observability/security; listed so nobody adds them by hand)
 
