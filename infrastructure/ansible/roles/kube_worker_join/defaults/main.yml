@@ -1,0 +1,3 @@
+---
+# Set by playbooks/kubernetes.yml from the control-plane play (in memory only).
+kube_worker_join_command: ""

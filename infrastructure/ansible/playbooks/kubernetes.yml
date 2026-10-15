@@ -1,0 +1,21 @@
+---
+# Week-2 Part B (week2/README.md §4): kubeadm init on the control plane
+# through the HAProxy endpoint, then join the workers one at a time.
+# Needs: playbooks/kubernetes-prereqs.yml and the Week-2 security-group rules.
+# Run: ansible-playbook -i inventories/private/hosts.yml playbooks/kubernetes.yml
+- name: Initialise the Kubernetes control plane
+  hosts: control_plane
+  become: true
+  roles:
+    - role: kube_control_plane
+      tags: [kube_control_plane]
+
+- name: Join the Kubernetes workers
+  hosts: workers
+  become: true
+  serial: 1
+  vars:
+    kube_worker_join_command: "{{ hostvars[groups['control_plane'][0]].kube_control_plane_join_command | default('') }}"
+  roles:
+    - role: kube_worker_join
+      tags: [kube_worker_join]
