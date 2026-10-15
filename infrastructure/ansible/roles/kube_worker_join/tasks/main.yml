@@ -1,0 +1,18 @@
+---
+- name: Check whether this worker has already joined
+  ansible.builtin.stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kube_worker_join_kubelet_conf
+
+- name: Require a join command when the worker has not joined yet
+  ansible.builtin.assert:
+    that:
+      - kube_worker_join_command | length > 0
+    fail_msg: "No join command from the control-plane play; run the whole playbooks/kubernetes.yml, not this play alone."
+  when: not kube_worker_join_kubelet_conf.stat.exists
+
+- name: Join the cluster through the stable endpoint
+  ansible.builtin.command:
+    cmd: "{{ kube_worker_join_command }} --node-name {{ inventory_hostname }}"
+    creates: /etc/kubernetes/kubelet.conf
+  no_log: true  # contains the bootstrap token

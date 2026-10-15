@@ -1,0 +1,7 @@
+# Verified false positives only, each pinned to one commit:file:rule:line fingerprint.
+# Never add a real credential here; rotate it instead.
+#
+# sha256 checksum of the PUBLIC sealed-secrets v0.39.1 controller.yaml release file
+# (anyone can recompute it from GitHub); flagged as generic-api-key because the
+# variable name contains "secrets". PR #50.
+7f942b23d00b4241c421ef91d46c5dc71377fb56:infrastructure/ansible/roles/sealed_secrets/defaults/main.yml:generic-api-key:5
