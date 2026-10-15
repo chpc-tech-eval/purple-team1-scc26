@@ -1,0 +1,11 @@
+---
+# Week-2 Part C (week2/README.md §7-9): first Cilium install, run ON k8s-cp-01.
+# Needs: playbooks/kubernetes.yml done and the Week-2 security-group rules
+# applied (VXLAN 8472/udp, health 4240/tcp, kubelet 10250/tcp, #47).
+# Run: ansible-playbook -i inventories/private/hosts.yml playbooks/cilium.yml
+- name: Bootstrap Cilium from the control plane
+  hosts: control_plane
+  become: true
+  roles:
+    - role: cilium_bootstrap
+      tags: [cilium]
