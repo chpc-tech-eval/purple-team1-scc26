@@ -2,7 +2,7 @@
 # Sealed Secrets controller (week2/README.md Part D). Instructor reference pin,
 # checksum-verified.
 sealed_secrets_version: "v0.39.1"
-sealed_secrets_manifest_sha256: "bddc9187b441f986b1921d87ca6bc8b04bd51059b76514808784fbdd0f7898fe"
+sealed_secrets_manifest_sha256: "bddc9187b441f986b1921d87ca6bc8b04bd51059b76514808784fbdd0f7898fe"  # gitleaks:allow (public release-file checksum)
 sealed_secrets_kubeconfig: "/home/{{ ansible_user | default('rocky') }}/.kube/config"
 
 # Only the PUBLIC sealing certificate leaves the cluster; the private key
