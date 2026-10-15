@@ -9,17 +9,15 @@ inventories/example/              committed placeholders; copy to inventories/pr
 playbooks/bootstrap.yml           all hosts: SELinux check, base packages, chrony, Africa/Johannesburg, sshd hardening
 playbooks/edge.yml                edge-01: nftables, WireGuard, Pi-hole (#13), tags firewall/wireguard/pihole
 playbooks/api-lb.yml              api-lb-01: HAProxy :6443 (#14)
-playbooks/cilium.yml              Week 2 Part C: first Cilium 1.20.1 install, run on k8s-cp-01 (values in gitops/resources/cilium/)
-roles/common/                     Week-1 host fundamentals used by bootstrap.yml
-roles/cilium_bootstrap/           pinned + checksum-verified Cilium CLI on the control plane only; installs Cilium once, waits for healthy
+playbooks/kubernetes-prereqs.yml  Week 2 Part A: control plane + workers: containerd 2.3.4, Kubernetes 1.36.4 prerequisites
 playbooks/kubernetes.yml          Week 2 Part B: kubeadm init via the HAProxy endpoint, workers join one at a time
-roles/common/                     Week-1 host fundamentals used by bootstrap.yml
-roles/kube_control_plane/         kubeadm init (creates admin.conf once), admin kubeconfig on k8s-cp-01 only, short-lived join token
-roles/kube_worker_join/           joins a worker once (skips if kubelet.conf exists); token never logged
-playbooks/kubernetes-prereqs.yml  Week 2: control plane + workers: containerd 2.3.4, Kubernetes 1.36.4 prerequisites
+playbooks/cilium.yml              Week 2 Part C: first Cilium 1.20.1 install, run on k8s-cp-01 (values in gitops/resources/cilium/)
 roles/common/                     Week-1 host fundamentals used by bootstrap.yml
 roles/containerd/                 pinned + versionlocked containerd.io, SystemdCgroup = true, container-selinux
 roles/kube_prereqs/               swap off, overlay/br_netfilter, sysctls, pinned kubelet/kubeadm (kubectl on the control plane only), crictl
+roles/kube_control_plane/         kubeadm init (creates admin.conf once), admin kubeconfig on k8s-cp-01 only, short-lived join token
+roles/kube_worker_join/           joins a worker once (skips if kubelet.conf exists); token never logged
+roles/cilium_bootstrap/           pinned + checksum-verified Cilium CLI on the control plane only; installs Cilium once, waits for healthy
 roles/haproxy/                    api-lb-01 HAProxy :6443, backends from the control_plane group, SELinux boolean
 roles/firewall/                   edge nftables: own table, routed VPN (no NAT), DNS/SSH/WireGuard only
 roles/wireguard/                  edge WireGuard; private key generated on edge-01, never read back
@@ -115,19 +113,19 @@ ansible-playbook -i $INV playbooks/bootstrap.yml          # re-run: expect chang
 ansible-playbook -i $INV playbooks/edge.yml --tags wireguard,pihole,firewall
 # WireGuard private-access proof (#13) before any public SSH change
 ansible-playbook -i $INV playbooks/api-lb.yml
-# Week 2 Part C (after kubernetes.yml and the Week-2 security-group rules)
-ansible-playbook -i $INV playbooks/cilium.yml
-# then on k8s-cp-01: cilium status --wait && cilium connectivity test
-# Week 2 Part B (needs the prerequisites + kube_control_plane_pod_cidr in the private group_vars)
-ansible-playbook -i $INV playbooks/kubernetes.yml
-ansible-playbook -i $INV playbooks/kubernetes.yml          # re-run: expect changed=0
 # Week 2 Part A (week2/README.md sections 2-3): runtime + Kubernetes prerequisites
 ansible-playbook -i $INV playbooks/kubernetes-prereqs.yml
 ansible-playbook -i $INV playbooks/kubernetes-prereqs.yml  # re-run: expect changed=0
-ansible control_plane:workers -i $INV -b -m shell   -a 'containerd --version; systemctl is-active containerd; crictl info >/dev/null && echo CRI_OK'
-ansible control_plane:workers -i $INV -b -m shell   -a 'lsmod | grep -E "overlay|br_netfilter"; sysctl net.ipv4.ip_forward net.bridge.bridge-nf-call-iptables'
+ansible control_plane:workers -i $INV -b -m shell \
+  -a 'containerd --version; systemctl is-active containerd; crictl info >/dev/null && echo CRI_OK'
+# Week 2 Part B (needs Part A + kube_control_plane_pod_cidr in the private group_vars)
+ansible-playbook -i $INV playbooks/kubernetes.yml
+ansible-playbook -i $INV playbooks/kubernetes.yml          # re-run: expect changed=0
+# Week 2 Part C (after Part B and the Week-2 security-group rules, #47)
+ansible-playbook -i $INV playbooks/cilium.yml
+# then on k8s-cp-01: cilium status --wait && cilium connectivity test
 ```
 
-kubelet restarts in a loop after the prerequisites run; that is expected until `kubeadm init`/`join` (Part B). Versions are locked with `dnf versionlock`, so upgrade all nodes together through this role, never one node by hand.
+After Part A, kubelet restarts in a loop until `kubeadm init`/`join` (Part B). Versions are locked with `dnf versionlock`, so upgrade all nodes together through the role, never one node by hand.
 
 Never disable SELinux or firewalls to make something work. WireGuard private keys stay on their hosts. Real addresses, ranges and `terraform output` never go in Git, issues or PRs.
