@@ -16,13 +16,21 @@
     group: root
     mode: "0600"
 
-- name: Check which members already have a kubeconfig
-  ansible.builtin.stat:
-    path: "/home/{{ item.name }}/.kube/config"
+- name: Check each member's kubeconfig exists and is not close to expiry
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      kubectl config view --raw --kubeconfig /home/{{ item.name }}/.kube/config
+      -o jsonpath='{.users[0].user.client-certificate-data}'
+      | base64 -d
+      | openssl x509 -noout -checkend {{ kube_user_credentials_renew_before }}
+    executable: /bin/bash
   loop: "{{ kube_user_credentials_users }}"
   loop_control:
     label: "{{ item.name }}"
   register: kube_user_credentials_existing
+  changed_when: false
+  failed_when: false
 
 - name: Create ~/.kube for each member
   ansible.builtin.file:
@@ -35,7 +43,7 @@
   loop_control:
     label: "{{ item.name }}"
 
-- name: Issue a personal kubeconfig (only when missing; key never logged)
+- name: Issue a personal kubeconfig when missing or expiring (key never logged)
   ansible.builtin.shell:
     cmd: >-
       umask 077 &&
@@ -50,7 +58,7 @@
   loop: "{{ kube_user_credentials_existing.results }}"
   loop_control:
     label: "{{ item.item.name }}"
-  when: not item.stat.exists
+  when: item.rc != 0
   changed_when: true
   no_log: true
 

@@ -1,8 +1,12 @@
 ---
 # Personal kubeconfigs on k8s-cp-01 only (never on a workstation; course rule).
-# Each member gets a client certificate signed by the cluster CA with
-# O=<group>; gitops/resources/cluster-rbac binds that group to cluster-admin.
+# Each member gets a client certificate signed by the cluster CA with CN=<name>.
+# Rights come ONLY from that member's own ClusterRoleBinding in
+# gitops/resources/cluster-rbac, so deleting it there revokes access at once
+# (client certificates themselves cannot be revoked). The O= group below has
+# no binding and grants nothing by itself.
 kube_user_credentials_users: "{{ team_users_members | default([]) | rejectattr('state', 'equalto', 'absent') | list }}"
-kube_user_credentials_group: scc26-admins
-kube_user_credentials_validity: "8760h"  # one year; re-run after deleting a config to renew
+kube_user_credentials_group: scc26-members
+kube_user_credentials_validity: "720h"  # 30 days
+kube_user_credentials_renew_before: 604800  # seconds; re-issue when under 7 days remain
 kube_user_credentials_admin_kubeconfig: /etc/kubernetes/admin.conf

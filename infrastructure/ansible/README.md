@@ -52,7 +52,9 @@ common_authorized_keys:
 
 ### Private inventory: per-member accounts
 
-`playbooks/team-users.yml` gives each member their own Linux account on every host (SSH key only, sudo through the `scc26-admins` group) and a personal kubeconfig on `k8s-cp-01`. That kubeconfig is a client certificate with `O=scc26-admins`, which `gitops/resources/cluster-rbac` binds to cluster-admin. `rocky` stays as the break-glass account. Off-board someone with `state: absent`; their home directory is kept for the record.
+`playbooks/team-users.yml` gives each member their own Linux account on every host (SSH key only, sudo through the `scc26-admins` group) and a personal kubeconfig on `k8s-cp-01`. That kubeconfig is a 30-day client certificate (CN = the member's name), renewed by re-running the playbook. Its rights come only from that member's own ClusterRoleBinding in `gitops/resources/cluster-rbac/members.yaml`. `rocky` stays as the break-glass account.
+
+Off-boarding: delete the member's binding in `members.yaml` (certificates cannot be revoked, so the binding is what grants access), set `state: absent` for them and re-run the playbook. Their home directory is kept for the record.
 
 ```yaml
 # inventories/private/group_vars/all.yml  (gitignored)

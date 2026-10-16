@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: saxs-14
-  description: Personal kubeconfigs on the control plane, one client certificate per member (group scc26-admins)
+  description: Personal kubeconfigs on the control plane, one 30-day client certificate per member, rights only via per-member bindings
   license: MIT
   min_ansible_version: "2.21"
   platforms:
