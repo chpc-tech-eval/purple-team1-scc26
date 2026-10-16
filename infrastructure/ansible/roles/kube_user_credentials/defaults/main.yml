@@ -1,0 +1,8 @@
+---
+# Personal kubeconfigs on k8s-cp-01 only (never on a workstation; course rule).
+# Each member gets a client certificate signed by the cluster CA with
+# O=<group>; gitops/resources/cluster-rbac binds that group to cluster-admin.
+kube_user_credentials_users: "{{ team_users_members | default([]) | rejectattr('state', 'equalto', 'absent') | list }}"
+kube_user_credentials_group: scc26-admins
+kube_user_credentials_validity: "8760h"  # one year; re-run after deleting a config to renew
+kube_user_credentials_admin_kubeconfig: /etc/kubernetes/admin.conf

@@ -50,6 +50,20 @@ common_authorized_keys:
   - {name: "<member>", key: "ssh-ed25519 AAAA... <comment>"}
 ```
 
+### Private inventory: per-member accounts
+
+`playbooks/team-users.yml` gives each member their own Linux account on every host (SSH key only, sudo through the `scc26-admins` group) and a personal kubeconfig on `k8s-cp-01`. That kubeconfig is a client certificate with `O=scc26-admins`, which `gitops/resources/cluster-rbac` binds to cluster-admin. `rocky` stays as the break-glass account. Off-board someone with `state: absent`; their home directory is kept for the record.
+
+```yaml
+# inventories/private/group_vars/all.yml  (gitignored)
+team_users_members:
+  - {name: "<member>", github: "<github-handle>", key: "ssh-ed25519 AAAA... <comment>"}
+```
+
+```bash
+ansible-playbook -i $INV playbooks/team-users.yml   # re-run: expect changed=0
+```
+
 ### Private inventory: reaching hosts behind the edge
 
 Until WireGuard works (#13), private hosts are reached through `edge-01`. Create this file **only in the private inventory**:
@@ -85,7 +99,7 @@ pihole_dns_hosts: ["<private-ip> <host>.<internal-domain> <host>"]
 pihole_web_password: "{{ vault_pihole_web_password }}"
 ```
 
-Edge stays NAT-free for VPN traffic (`docs/network-design.md` ง3, option A). If `firewalld` is running on edge, the firewall role stops rather than disabling it; agree the swap on #13 first.
+Edge stays NAT-free for VPN traffic (`docs/network-design.md` ยง3, option A). If `firewalld` is running on edge, the firewall role stops rather than disabling it; agree the swap on #13 first.
 
 > If the repo sits under `/mnt/c/...` in WSL, Ansible ignores `./ansible.cfg` because the directory is world-writable. Run `export ANSIBLE_CONFIG=$PWD/ansible.cfg` first, or clone into your WSL home.
 
@@ -102,7 +116,7 @@ ansible-lint
 
 ## Running against real hosts (private inventory)
 
-Only once the VMs exist **and** the captain has approved it in a `HANDOFF` on GitHub. Every real command uses the private inventory (`week1/README.md` ง14–24):
+Only once the VMs exist **and** the captain has approved it in a `HANDOFF` on GitHub. Every real command uses the private inventory (`week1/README.md` ยง14โ€“24):
 
 ```bash
 # RUN ON: WORKSTATION, from infrastructure/ansible

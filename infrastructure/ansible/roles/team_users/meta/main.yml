@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: saxs-14
+  description: One Linux account per team member (SSH key only, sudo via a group); rocky stays as break-glass
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

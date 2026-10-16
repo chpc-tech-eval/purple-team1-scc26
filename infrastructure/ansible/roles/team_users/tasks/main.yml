@@ -1,0 +1,41 @@
+---
+- name: Create the team admin group
+  ansible.builtin.group:
+    name: "{{ team_users_group }}"
+    state: present
+
+- name: Allow the team admin group to use sudo (validated before install)
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/20-scc26-admins
+    content: |
+      # Managed by Ansible (infrastructure/ansible/roles/team_users)
+      %{{ team_users_group }} ALL=(ALL) NOPASSWD: ALL
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+
+- name: Create or remove member accounts
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    comment: "{{ item.github | default(item.name) }}"
+    groups: "{{ team_users_group }}"
+    append: true
+    shell: "{{ team_users_shell }}"
+    password: "!"  # locked password; SSH key login only
+    update_password: on_create
+    state: "{{ item.state | default('present') }}"
+    remove: false  # off-boarding keeps the home directory for the record
+  loop: "{{ team_users_members }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Install each member's own public key (exclusive for that account)
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ item.key }}"
+    exclusive: true
+    state: present
+  loop: "{{ team_users_members | rejectattr('state', 'equalto', 'absent') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
