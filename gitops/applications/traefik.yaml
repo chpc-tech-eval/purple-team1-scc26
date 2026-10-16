@@ -45,6 +45,15 @@ spec:
                   permanent: true
           websecure:
             nodePort: 30443
+        providers:
+          kubernetesIngress:
+            # A NodePort Service has no load-balancer status to publish, so
+            # Ingresses would stay without an address and Argo CD would report
+            # them Progressing forever. Publish a DNS name instead (Pi-hole).
+            publishedService:
+              enabled: false
+            ingressEndpoint:
+              hostname: ingress.pt1.internal
         ingressRoute:
           dashboard:
             enabled: false  # no unauthenticated dashboard
