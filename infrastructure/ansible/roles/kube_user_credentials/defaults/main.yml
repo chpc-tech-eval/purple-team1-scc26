@@ -5,7 +5,10 @@
 # gitops/resources/cluster-rbac, so deleting it there revokes access at once
 # (client certificates themselves cannot be revoked). The O= group below has
 # no binding and grants nothing by itself.
-kube_user_credentials_users: "{{ team_users_members | default([]) | rejectattr('state', 'equalto', 'absent') | list }}"
+# Members without `state`, plus those with state: present (strict-undefined safe).
+kube_user_credentials_users: >-
+  {{ (team_users_members | default([]) | rejectattr('state', 'defined') | list)
+     + (team_users_members | default([]) | selectattr('state', 'defined') | selectattr('state', 'equalto', 'present') | list) }}
 kube_user_credentials_group: scc26-members
 kube_user_credentials_validity: "720h"  # 30 days
 kube_user_credentials_renew_before: 604800  # seconds; re-issue when under 7 days remain

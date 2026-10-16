@@ -36,6 +36,7 @@
     key: "{{ item.key }}"
     exclusive: true
     state: present
-  loop: "{{ team_users_members | rejectattr('state', 'equalto', 'absent') | list }}"
+  loop: "{{ team_users_members }}"
+  when: item.state | default('present') == 'present'
   loop_control:
     label: "{{ item.name }}"
