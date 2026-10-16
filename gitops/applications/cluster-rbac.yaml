@@ -1,9 +1,8 @@
-# Persistence exercise (week2/README.md §16): a Git-managed 1Gi PVC and a test
-# pod. Remove this Application (and its PVC) once the evidence is recorded.
+# Cluster-wide RBAC kept in Git (team decision 2026-10-16).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: storage-test
+  name: cluster-rbac
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -11,14 +10,11 @@ spec:
   project: default
   destination:
     server: https://kubernetes.default.svc
-    namespace: storage-test
   source:
     repoURL: https://github.com/chpc-tech-eval/purple-team1-scc26.git
     targetRevision: dev
-    path: gitops/resources/storage-test
+    path: gitops/resources/cluster-rbac
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      - CreateNamespace=true

@@ -35,3 +35,23 @@ terraform plan -out=tfplan                      # share a sanitised summary for 
 ## Never commit
 
 `terraform.tfvars`, `*.tfstate*`, `tfplan`, `.terraform/`, `clouds.yaml`. Commit `.terraform.lock.hcl` and `terraform.tfvars.example`. The repo `.gitignore` enforces this.
+
+## State backup (so the team is not tied to one laptop)
+
+The state contains secrets, so it never goes to GitHub. After every apply, the state holder runs:
+
+```bash
+# RUN ON: WORKSTATION (the state holder's)
+../scripts/backup-state.sh ~/.config/scc26-secrets/backup-recipients.txt edge-01
+```
+
+This encrypts `terraform.tfstate` + `terraform.tfvars` with [age](https://github.com/FiloSottile/age) to every member's SSH **public** key (the recipients file holds one per line, kept private). It keeps a copy locally and stores one root-only in `/var/backups/scc26/` on edge-01.
+
+To take over as state holder, a member copies the newest file from edge-01 (they have sudo there) and decrypts it with their own SSH key:
+
+```bash
+age -d -i ~/.ssh/<your-key> scc26-tfstate-<stamp>.tar.age | tar x   # gives terraform.tfstate + terraform.tfvars
+terraform init && terraform plan   # expect "No changes" before doing anything else
+```
+
+Only one person applies at a time. The captain announces any change of state holder in #purple-1.
