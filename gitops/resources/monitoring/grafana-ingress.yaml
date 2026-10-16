@@ -1,0 +1,25 @@
+# Grafana over the approved path: VPN -> worker NodePort 30443 -> Traefik.
+# Certificate from the team CA; the name resolves through Pi-hole (private).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: monitoring
+  annotations:
+    cert-manager.io/cluster-issuer: pt1-internal-ca
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [grafana.pt1.internal]
+      secretName: grafana-tls
+  rules:
+    - host: grafana.pt1.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kps-grafana
+                port:
+                  number: 80
