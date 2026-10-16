@@ -40,7 +40,9 @@ spec:
             http:
               redirections:
                 entryPoint:
-                  to: websecure
+                  # The NodePort, not the websecure entrypoint: "to: websecure"
+                  # redirects to the Service port 443, which clients can't reach.
+                  to: ":30443"
                   scheme: https
                   permanent: true
           websecure:
