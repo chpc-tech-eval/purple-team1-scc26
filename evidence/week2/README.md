@@ -5,7 +5,7 @@ Owner: Phathutshedzo (`saxs-14`) · Ref: [`week2/README.md`](../../week2/README.
 This is an **index**: each row points to sanitised evidence in a PR on GitHub. It is **address-free** (instructor rule on #23); real-address output stays in Discord #purple-1. All checks were run from `k8s-cp-01` (cluster) or from a member workstation over WireGuard (traffic path), following the command-location rule. Times are UTC.
 
 - **Index last updated:** 2026-10-17
-- **`dev` at time of writing:** `2444dbd60d2da1a50904f7d13eac1a5218cb0af1`
+- **`dev` at time of writing:** `b3d6b5305afd999512bc3e126b9ca9e54618fc23`
 
 Status key: ✅ done (evidence linked) · 🟡 partly done · ⏳ pending
 
@@ -36,8 +36,8 @@ Status key: ✅ done (evidence linked) · 🟡 partly done · ⏳ pending
 | Sealed Secrets | controller healthy; workstation has the public cert only | ✅ | Public cert on the workstation (0 private-key blocks); offline `kubeseal` works; only the sealed Cinder credential is committed: [#50](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/50), [#51](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/51) |
 | Cinder | real PVC write/recreate/read persistence test | ✅ | Marker written, pod deleted (PVC kept), Argo self-heal recreated it **on the other worker**, marker read back: `PASS`; the volume is `in-use` on the new node in OpenStack: [#51](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/51). Test removed and the volume released: [#52](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/52) |
 | Ingress | Traefik/cert-manager baseline reachable through the approved path | ✅ | Team CA `pt1-internal-ca` (internal domain `pt1.internal`, #13); the whoami certificate was issued by the Ingress annotation; VPN → worker NodePort 30443 (rule 14b, [#53](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/53)) → Traefik: **HTTP 200, TLS verified against the team CA** on both workers; Pi-hole resolves the names over the VPN: [#54](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/54). Ingress address + `http → https :30443` redirect: [#60](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/60). Domain strategy question to the instructor: [#55](https://github.com/chpc-tech-eval/purple-team1-scc26/issues/55) |
-| GitOps | a Git change produces the intended cluster reconciliation | ⏳ | whoami `replicas 1 → 2` changed only in Git: [#61](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/61) (before-state recorded; after-state follows the merge) |
-| PR | Week-2 changes reviewed and merged into `dev` | 🟡 | #45, #47–#54, #56, #58–#60 merged with the 4 CI checks green; #61 and this evidence PR pending |
+| GitOps | a Git change produces the intended cluster reconciliation | ✅ | whoami `replicas 1 → 2` + pod annotation changed **only in Git** ([#61](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/61), merged 23:20 UTC). Argo reconciled at 23:25: app at the merge commit `b3d6b53`, Synced/Healthy; new ReplicaSet 2/2 across both workers carrying the annotation, old one scaled to 0; the Deployment's only field managers are `argocd-controller` and `kube-controller-manager` (no hand edits): [#61](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/61) |
+| PR | Week-2 changes reviewed and merged into `dev` | ✅ | #45, #47–#54, #56, #58–#61 reviewed and merged with the 4 CI checks green; this evidence PR is the last Week-2 PR |
 
 ## Beyond the gate
 
