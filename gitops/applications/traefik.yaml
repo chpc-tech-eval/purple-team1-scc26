@@ -40,13 +40,14 @@ spec:
             http:
               redirections:
                 entryPoint:
-                  # The NodePort, not the websecure entrypoint: "to: websecure"
-                  # redirects to the Service port 443, which clients can't reach.
-                  to: ":30443"
+                  # The chart turns this into "to=:<websecure exposedPort>", so
+                  # exposedPort below is set to the NodePort clients really use.
+                  to: websecure
                   scheme: https
                   permanent: true
           websecure:
             nodePort: 30443
+            exposedPort: 30443  # = NodePort, so redirects land on a reachable port
         providers:
           kubernetesIngress:
             # A NodePort Service has no load-balancer status to publish, so
