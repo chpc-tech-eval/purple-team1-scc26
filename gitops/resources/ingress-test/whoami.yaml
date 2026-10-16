@@ -1,0 +1,70 @@
+# Request path: VPN client -> worker NodePort 30443 -> Traefik -> whoami.
+# TLS comes from the Ingress annotation; no hand-made certificates.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whoami
+  namespace: ingress-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: whoami}
+  template:
+    metadata:
+      labels: {app: whoami}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: whoami
+          # v1.12.0, pinned by digest
+          image: traefik/whoami@sha256:80f8bb74f634d45d55967820a702c5fddf01cf92968bb29ed7a3573dd16b0e55
+          args: ["--port", "8080"]
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami
+  namespace: ingress-test
+spec:
+  selector: {app: whoami}
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: whoami
+  namespace: ingress-test
+  annotations:
+    cert-manager.io/cluster-issuer: pt1-internal-ca
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [whoami.pt1.internal]
+      secretName: whoami-tls
+  rules:
+    - host: whoami.pt1.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80

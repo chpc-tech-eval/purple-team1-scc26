@@ -1,0 +1,57 @@
+# Traefik ingress controller (Part F). No cloud LoadBalancer (no Octavia in
+# this POC): a NodePort Service on fixed ports, reached over the VPN through
+# security-group rule 14b (docs/network-design.md §4). An empty LoadBalancer
+# status is therefore expected (week2/README.md §18).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: traefik
+  source:
+    repoURL: https://traefik.github.io/charts
+    chart: traefik
+    targetRevision: 41.7.1  # Traefik v3.7.14; 42.0.0 (new major) is left for a later PR
+    helm:
+      releaseName: traefik
+      valuesObject:
+        deployment:
+          replicas: 2  # one per worker
+        podDisruptionBudget:
+          enabled: true
+          minAvailable: 1
+        ingressClass:
+          enabled: true
+          isDefaultClass: true
+        core:
+          strictTLSOptions: true  # GHSA-g55h-rg46-x9c5 mitigation, needs v3.7.11+
+        service:
+          spec:
+            type: NodePort
+        ports:
+          web:
+            nodePort: 30080
+            http:
+              redirections:
+                entryPoint:
+                  to: websecure
+                  scheme: https
+                  permanent: true
+          websecure:
+            nodePort: 30443
+        ingressRoute:
+          dashboard:
+            enabled: false  # no unauthenticated dashboard
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true  # large Traefik CRDs
