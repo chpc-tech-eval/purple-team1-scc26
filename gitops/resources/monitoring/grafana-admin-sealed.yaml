@@ -1,0 +1,17 @@
+# Grafana admin credential, SEALED for this cluster's Sealed Secrets key.
+# Plaintext lives only in the captain's private secrets directory.
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: grafana-admin
+  namespace: monitoring
+spec:
+  encryptedData:
+    admin-password: AgAXo5oXqnBPKwf3bzNPSktoU7J+V7qGqk3cSbUZvd1o/fq+E7nvEGXu0ipZMX7+tLp/TJdXJhbnoiLlZb0lBbZdwwB+GlnpMhEx+j1pOPBceOCFUvMeMb/zACmP19wlLkP+RKneezZTS9HpgetYFvbEel0ZX/F21s76JBre8ZbggiUzop3XsfEdV2YXLkEvn/+9kxjKifFYRM49qCO8a2SNjm3Ge7kcb4WrC+wm6HcSJabPxzfH8nq03ZUSbxAetO+Z54CN2pf2IA2VV0uQpBFDMbQPL8m/KrMuUWYmhqKDpvfWloLhRBZ+DTfn1lC5Zcwxq1SFDvspJ6E2smB5IHuxs9mXdVymafql7xJLobCiDcjoefZWuml3qteramINi8JcYNaLyj7nq1i165xCqCnxc2bSkmAA5tLfH1y3D1RmpR94edgzevChFE2n1/sWX5N9K+TuCngI82S3EV7PFg0kByjoTdyGN7XiZElC6ouR24jxm8WaFm8xHbk4dlmAuiFBJ0VawcaXp/39KDsCStzrNqYzaUfeM+n0t0+mBdwID6azR6iUSSurgFvEgIZhdwA/hbISfcmpqX2fTnQyPZew8F+CUD7atc2Dh2HKofrDLK86+hLAgIDwK/jHHilJqjYnudp8SM1BJYMeA2zKBweBdO2iTTieaik0XqDn8kHSg9wTQHZkiP3+M0NLeI7NKN5TOCYEocZqMFSwDu1OXQevOFUeVma+cRCwZCndyK8nLQ==
+    admin-user: AgCPlOpi6X4kzEbA1mKTNkG1PudMyB05uwHb1KarVx7wMsH/9oh56d9LK0Q/j+/+2NKLpxYW0ZRwAyTVeVbZEjR3A88X90mrJ93shBClmrrTp2Qcx3LCAOO22Lojg5TbHTsutaXjjDai8ZYySR56d8gO7QO5sdYsqFsWlSJbqzPbSJL1bJ9pj4vHzhMObjYA8aybMOVx6BMvtXcucgokV7Her4AsuVUfnrVOLicvLG0ycC2eRb4zBGlReBeoLQPEFPmQtIRjBmhQRA0gkDttW4lrG2PIX+6ENexn5jUMm0mSnKGlTj9VH3YuDCCPjjT25g3++LssjDhRwfRAZu8Ev4cqQV0bObxcXOD3yfK4L0cIhAxzhzvHi3xz/aLzSvgBFIzz6tvSYlY/PW/Yv/R31OKL4atd1kS1fgd838gSSzfsav+lK/rl/od8dWXb8rUXiX+AcvshOBhjEU6tAzxgYuyKuZZ3xqKIluM28MWoeXWYiM2PwjXT/uY9+wQAZuVYV2EYA+ibvVOs+2wMfwxuCtFhv0EbeF7zZN5MspN4m4iN30Ei3S8srzhEFshTz4qvu0CQkITLCso7AidRAhgAc8kNqg91j6/M/PSdC6M4mT0P71HOy4HPzGSuYzGcJ1NTmGvyxctMy7cAos2V2xr+Myz9ghNdF0i5dshRI2OfjYje9IvtPB9Y3BSsBRISAc0ub1QyUYELGg==
+  template:
+    metadata:
+      name: grafana-admin
+      namespace: monitoring
+    type: Opaque
