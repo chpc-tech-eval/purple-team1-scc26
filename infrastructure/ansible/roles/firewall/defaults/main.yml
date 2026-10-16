@@ -7,5 +7,13 @@
 # firewall_vpn_cidr:       WireGuard client range (also allowed to the Pi-hole UI)
 # firewall_private_cidrs:  private networks VPN clients may reach (mgmt, k8s)
 # firewall_wireguard_port: WireGuard UDP port
+#
+# Optional, Week 3 (#64, docs/network-design.md §4 rows 15-16). Empty means the
+# rule is not rendered at all, so edge is unchanged until Wazuh is deployed:
+#   firewall_wazuh_agent_cidrs: [mgmt_cidr, k8s_cidr]   Wazuh agents -> manager, 1514-1515/tcp
+#   firewall_wazuh_api_cidrs:   [k8s_cidr]              Wazuh API, 55000/tcp
+firewall_wazuh_agent_cidrs: []
+firewall_wazuh_api_cidrs: []
+
 firewall_wireguard_interface: wg0
 firewall_ruleset_path: /etc/nftables/scc26-edge.nft

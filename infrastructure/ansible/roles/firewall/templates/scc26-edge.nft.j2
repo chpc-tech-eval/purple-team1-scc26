@@ -25,6 +25,12 @@ table inet scc26_edge {
         tcp dport 22 ip saddr @ssh_src accept
         meta l4proto { tcp, udp } th dport 53 ip saddr @dns_src accept
         tcp dport 80 ip saddr {{ firewall_vpn_cidr }} accept comment "Pi-hole UI over VPN only"
+{% if firewall_wazuh_agent_cidrs | length > 0 %}
+        tcp dport 1514-1515 ip saddr { {{ firewall_wazuh_agent_cidrs | join(', ') }} } accept comment "Wazuh agents (row 15)"
+{% endif %}
+{% if firewall_wazuh_api_cidrs | length > 0 %}
+        tcp dport 55000 ip saddr { {{ firewall_wazuh_api_cidrs | join(', ') }} } accept comment "Wazuh API (row 16)"
+{% endif %}
     }
 
     chain forward {
