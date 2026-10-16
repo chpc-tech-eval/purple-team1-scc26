@@ -6,12 +6,14 @@ metadata:
   name: whoami
   namespace: ingress-test
 spec:
-  replicas: 1
+  replicas: 2  # Part G (week2 §19): changed in Git 1 -> 2, Argo reconciles
   selector:
     matchLabels: {app: whoami}
   template:
     metadata:
       labels: {app: whoami}
+      annotations:
+        scc26/gitops-test: "v2: scaled to 2 by a merged Git change"
     spec:
       securityContext:
         runAsNonRoot: true
@@ -20,8 +22,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: whoami
-          # v1.12.0, pinned by digest
-          image: traefik/whoami@sha256:80f8bb74f634d45d55967820a702c5fddf01cf92968bb29ed7a3573dd16b0e55
+          # v1.12.0, explicit registry + digest (week1/README.md §21)
+          image: docker.io/traefik/whoami@sha256:80f8bb74f634d45d55967820a702c5fddf01cf92968bb29ed7a3573dd16b0e55
           args: ["--port", "8080"]
           ports:
             - containerPort: 8080
