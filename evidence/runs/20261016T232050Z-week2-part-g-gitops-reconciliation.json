@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "run_id": "06116979-e4d6-4039-b742-b081b2311feb",
+  "project": "purple-team1-scc26",
+  "experiment": "week2-part-g-gitops-reconciliation",
+  "status": "completed",
+  "started_at": "2026-10-16T23:20:50Z",
+  "finished_at": "2026-10-16T23:25:54Z",
+  "source": {
+    "repository": "https://github.com/chpc-tech-eval/purple-team1-scc26",
+    "commit": "b3d6b5305afd999512bc3e126b9ca9e54618fc23",
+    "dirty": false
+  },
+  "software": {
+    "images": [
+      {
+        "name": "whoami",
+        "ref": "docker.io/traefik/whoami@sha256:80f8bb74f634d45d55967820a702c5fddf01cf92968bb29ed7a3573dd16b0e55"
+      }
+    ]
+  },
+  "execution": {
+    "location": "sebowa-kubernetes",
+    "host_class": "2 x C8.medium workers",
+    "namespace": "ingress-test",
+    "requested_resources": {
+      "cpu_per_pod": "10m",
+      "memory_per_pod": "16Mi",
+      "replicas": 2
+    }
+  },
+  "parameters": {
+    "change": "replicas 1 -> 2 + pod annotation, made only in Git (PR #61)",
+    "argocd_app": "ingress-test",
+    "replicas_before": 1,
+    "replicas_after": 2
+  },
+  "metrics": {
+    "merge_to_reconcile_seconds": 281,
+    "ready_replicas_after": 2,
+    "old_replicaset_replicas_after": 0
+  },
+  "artifacts": [],
+  "notes": "Merged 23:20:50, Argo reconciled 23:25:31 (default ~3 min poll). Deployment field managers after: argocd-controller, kube-controller-manager only. Evidence on PR #61."
+}
