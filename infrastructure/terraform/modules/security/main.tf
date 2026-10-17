@@ -1,6 +1,6 @@
 # Cloud-side firewall. Rule numbers match the matrix in
-# docs/network-design.md §4. Week-3 (Wazuh/metrics) rules are added in a
-# later PR, never by hand in Horizon.
+# docs/network-design.md §4 (Weeks 1-3). New rules are added here through a
+# reviewed PR, never by hand in Horizon.
 
 locals {
   groups = toset(["edge", "api-lb", "k8s-control-plane", "k8s-worker"])
@@ -66,6 +66,20 @@ locals {
       "k8s-worker-traefik-web-vpn"       = { group = "k8s-worker", protocol = "tcp", port = 30080, cidr = var.vpn_cidr }
       "k8s-worker-traefik-websecure-vpn" = { group = "k8s-worker", protocol = "tcp", port = 30443, cidr = var.vpn_cidr }
     },
+
+    # --- Week 3: observability and security (#64) ------------------------------
+    # 15. Wazuh agents -> manager on edge-01 (agent events 1514, enrolment 1515).
+    { for src, cidr in { mgmt = var.mgmt_cidr, k8s = var.k8s_cidr } : "edge-wazuh-agent-${src}" => {
+      group                   = "edge", protocol = "tcp", port_min = 1514, port_max = 1515, cidr = cidr
+    } },
+    # 16. Wazuh API on edge-01, for the in-cluster dashboard/indexer side only.
+    { "edge-wazuh-api-k8s" = { group = "edge", protocol = "tcp", port = 55000, cidr = var.k8s_cidr } },
+    # 17. Prometheus scrapes node-exporter and Cilium agent/operator/Hubble metrics
+    #     on every Kubernetes node, from inside k8s_cidr only.
+    merge([for group in local.k8s_node_groups : {
+      "${group}-node-exporter"  = { group = group, protocol = "tcp", port = 9100, cidr = var.k8s_cidr }
+      "${group}-cilium-metrics" = { group = group, protocol = "tcp", port_min = 9962, port_max = 9964, cidr = var.k8s_cidr }
+    }]...),
   )
 
   rules = { for key, spec in local.rule_specs : key => {

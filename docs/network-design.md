@@ -120,7 +120,9 @@ In Terraform (`modules/security`) since the Week-2 security-group PR; applied by
 | 14a | api-lb, control-plane, worker | ICMP | `mgmt_cidr` | path debugging from edge-01 (review on #18) |
 | 14b | worker | 30080/tcp, 30443/tcp | `vpn_cidr` | Traefik web/websecure NodePorts, the Part F ingress path for VPN clients (edge routes without NAT, so the source is the VPN address) |
 
-### Week 3 (observability/security; listed so nobody adds them by hand)
+### Week 3 (observability/security)
+
+In Terraform (`modules/security`) since #64's PR; adds only. Rows 15–16 also have matching edge nftables input rules in the firewall role, rendered only once `firewall_wazuh_agent_cidrs` / `firewall_wazuh_api_cidrs` are set in the private inventory (Wazuh, Week-3 Part B). Row 17 needs no edge rule: the scrapes stay inside `k8s_cidr`.
 
 | # | Target group | Port / proto | Source | Purpose |
 | --- | --- | --- | --- | --- |

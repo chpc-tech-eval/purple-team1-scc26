@@ -89,6 +89,9 @@ firewall_dns_cidrs: ["<mgmt_cidr>", "<k8s_cidr>", "<vpn_cidr>"]
 firewall_vpn_cidr: "<vpn_cidr>"
 firewall_private_cidrs: ["<mgmt_cidr>", "<k8s_cidr>"]
 firewall_wireguard_port: "<wireguard-port>"
+# Week 3, optional (empty = not rendered): set when Wazuh is deployed (#64, #65)
+firewall_wazuh_agent_cidrs: ["<mgmt_cidr>", "<k8s_cidr>"]
+firewall_wazuh_api_cidrs: ["<k8s_cidr>"]
 
 wireguard_port: "<wireguard-port>"
 wireguard_server_address: "<first-vpn-address>/<prefix>"
