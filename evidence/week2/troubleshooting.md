@@ -117,3 +117,5 @@ Each note is a problem the team actually hit in Week 2, with its source on GitHu
 **What happened:** after the Part E persistence evidence was recorded, #52 removed the `storage-test` app. Argo pruned the pod and PVC, and the Cinder volume was deleted with it.
 
 **Decision (captain, 2026-10-17):** everything that ran on the servers stays there until the end of the project. #70 restores the app from Git history, and the persistence test is re-run on the new volume. Test apps (`storage-test`, `ingress-test`) and test workloads (the Cilium connectivity test, re-run without cleanup) are now kept permanently.
+
+**Trace it left:** the Cilium connectivity re-run on 2026-10-17 passed every connectivity test, but its `no-errors-in-logs` check (1/82) flagged one cilium-agent warning, *"CEP was deleted externally"* for `storage-test/persistence-test`, logged at 21:21 UTC on 10-16, four minutes after #52 merged and Argo pruned that pod. It is expected for a pod deleted while its endpoint was syncing, and not a network fault. The full log is kept on k8s-cp-01 in `~/scc26-evidence/`.
