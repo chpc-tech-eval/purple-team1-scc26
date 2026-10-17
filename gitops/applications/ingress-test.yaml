@@ -1,6 +1,6 @@
 # Part F proof: a tiny whoami app behind Traefik with a cert-manager
-# certificate from the team CA. Remove it (like storage-test) once the
-# evidence is recorded.
+# certificate from the team CA. Kept permanently (team rule: nothing that
+# ran on the servers is removed).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
