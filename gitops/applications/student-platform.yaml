@@ -1,0 +1,26 @@
+# Week-3 Part C (week3/README.md §9-14, #66): Student Project Platform.
+# Order from §12: namespace -> sealed credential -> PostgreSQL on a Cinder PVC
+# -> backend -> frontend -> Service/Ingress/TLS. The database comes first; the
+# backend and frontend are added to gitops/resources/student-platform later.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: student-platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: student-platform
+  source:
+    repoURL: https://github.com/chpc-tech-eval/purple-team1-scc26.git
+    targetRevision: dev
+    path: gitops/resources/student-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
