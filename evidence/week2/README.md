@@ -7,6 +7,8 @@ This is an **index**: each row points to sanitised evidence in a PR on GitHub. I
 - **Index last updated:** 2026-10-17
 - **`dev` at time of writing:** `b3d6b5305afd999512bc3e126b9ca9e54618fc23`
 
+Also in this folder: [architecture diagram](diagrams/README.md) · [troubleshooting notes](troubleshooting.md) · demo: [`docs/demo/week2-demo-runbook.md`](../../docs/demo/week2-demo-runbook.md)
+
 Status key: ✅ done (evidence linked) · 🟡 partly done · ⏳ pending
 
 ## Versions in use (read from the live cluster)
