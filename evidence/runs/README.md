@@ -16,3 +16,4 @@ Manifests are never deleted (team rule: everything stays).
 | Run | Manifest |
 | --- | --- |
 | Week-2 Part G: Git change reconciled by Argo CD (#61) | [`20261016T232050Z-week2-part-g-gitops-reconciliation.json`](20261016T232050Z-week2-part-g-gitops-reconciliation.json) |
+| Week-2 Part E: persistence re-test on the restored storage-test app (#70) | [`20261018T183913Z-week2-part-e-persistence-retest.json`](20261018T183913Z-week2-part-e-persistence-retest.json) |
