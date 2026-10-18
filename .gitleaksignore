@@ -5,3 +5,6 @@
 # (anyone can recompute it from GitHub); flagged as generic-api-key because the
 # variable name contains "secrets". PR #50.
 7f942b23d00b4241c421ef91d46c5dc71377fb56:infrastructure/ansible/roles/sealed_secrets/defaults/main.yml:generic-api-key:5
+
+# SealedSecret ciphertext (spec.encryptedData), not a plaintext password; flagged by key name. PR #73.
+c2d69b208d42381440cd99f563a1650aaf5a45a1:gitops/resources/student-platform/postgres-credentials-sealed.yaml:generic-api-key:12
