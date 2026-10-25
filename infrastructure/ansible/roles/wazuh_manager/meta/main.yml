@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: saxs-14
+  description: Wazuh manager on edge-01 (pinned), reading Suricata EVE
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

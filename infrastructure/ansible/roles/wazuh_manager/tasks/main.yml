@@ -1,0 +1,37 @@
+---
+- name: Wazuh signing key
+  ansible.builtin.rpm_key:
+    key: "{{ wazuh_manager_gpg_key }}"
+    state: present
+
+- name: Wazuh 4.x repository
+  ansible.builtin.yum_repository:
+    name: wazuh
+    description: Wazuh repository
+    baseurl: "{{ wazuh_manager_repo }}"
+    gpgcheck: true
+    gpgkey: "{{ wazuh_manager_gpg_key }}"
+    enabled: true
+
+- name: Install the pinned Wazuh manager
+  ansible.builtin.dnf:
+    name: "wazuh-manager-{{ wazuh_manager_version }}"
+    state: present
+
+- name: Read Suricata EVE JSON into the manager
+  ansible.builtin.blockinfile:
+    path: /var/ossec/etc/ossec.conf
+    marker: "<!-- {mark} SCC26 suricata eve (Ansible) -->"
+    insertbefore: "</ossec_config>"
+    block: |
+        <localfile>
+          <log_format>json</log_format>
+          <location>{{ wazuh_manager_suricata_eve }}</location>
+        </localfile>
+  notify: Restart wazuh-manager
+
+- name: Enable and start the manager
+  ansible.builtin.systemd_service:
+    name: wazuh-manager
+    enabled: true
+    state: started

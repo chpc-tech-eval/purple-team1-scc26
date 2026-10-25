@@ -1,0 +1,35 @@
+---
+- name: Wazuh signing key
+  ansible.builtin.rpm_key:
+    key: "{{ wazuh_agent_gpg_key }}"
+    state: present
+
+- name: Wazuh 4.x repository
+  ansible.builtin.yum_repository:
+    name: wazuh
+    description: Wazuh repository
+    baseurl: "{{ wazuh_agent_repo }}"
+    gpgcheck: true
+    gpgkey: "{{ wazuh_agent_gpg_key }}"
+    enabled: true
+
+- name: Install the pinned Wazuh agent (manager address set at install time)
+  ansible.builtin.dnf:
+    name: "wazuh-agent-{{ wazuh_agent_version }}"
+    state: present
+  environment:
+    WAZUH_MANAGER: "{{ wazuh_agent_manager }}"
+    WAZUH_AGENT_NAME: "{{ inventory_hostname }}"
+
+- name: Point the agent at the manager
+  ansible.builtin.replace:
+    path: /var/ossec/etc/ossec.conf
+    regexp: '<address>[^<]*</address>'
+    replace: '<address>{{ wazuh_agent_manager }}</address>'
+  notify: Restart wazuh-agent
+
+- name: Enable and start the agent
+  ansible.builtin.systemd_service:
+    name: wazuh-agent
+    enabled: true
+    state: started
