@@ -48,9 +48,24 @@
   changed_when: true
   notify: Restart suricata
 
+- name: Log files belong to the suricata user (the service drops privileges)
+  ansible.builtin.file:
+    path: "/var/log/suricata/{{ item }}"
+    state: touch
+    owner: suricata
+    group: suricata
+    mode: "0640"
+    access_time: preserve
+    modification_time: preserve
+  loop: [eve.json, fast.log, stats.log]
+  notify: Restart suricata
+
+# Run the check as the service user: as root it would create root-owned log
+# files that the running service then cannot open (found on the first run).
 - name: Validate the configuration before any restart (suricata -T)
   ansible.builtin.command:
     cmd: suricata -T -c /etc/suricata/suricata.yaml
+  become_user: suricata
   changed_when: false
 
 - name: Enable and start Suricata
