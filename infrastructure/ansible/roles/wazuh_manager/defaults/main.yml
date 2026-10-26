@@ -1,0 +1,7 @@
+---
+# Week-3 Part B (week3/README.md §4-5): Wazuh manager on edge-01.
+wazuh_manager_version: "4.14.8"
+wazuh_manager_repo: https://packages.wazuh.com/4.x/yum/
+wazuh_manager_gpg_key: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+# Suricata's EVE JSON on the same host feeds the manager (§4 flow).
+wazuh_manager_suricata_eve: /var/log/suricata/eve.json
