@@ -1,0 +1,41 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base title="Sign in">
+  <section class="card narrow">
+    <h1>Sign in</h1>
+    <p class="muted">Team 3NCRYP+3D · project <code>purple-team1-scc26</code></p>
+    <form id="login" autocomplete="on">
+      <label>Username <input name="username" autocomplete="username" required maxlength="64" /></label>
+      <label>Password <input name="password" type="password" autocomplete="current-password" required maxlength="256" /></label>
+      <button type="submit">Sign in</button>
+      <p id="error" class="error" role="alert" hidden></p>
+    </form>
+  </section>
+</Base>
+
+<script>
+  const form = document.getElementById("login") as HTMLFormElement;
+  const error = document.getElementById("error") as HTMLParagraphElement;
+  // Already signed in? Go straight to the team page.
+  fetch("/api/me", { credentials: "same-origin" }).then((r) => {
+    if (r.ok) location.replace("/home");
+  });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    error.hidden = true;
+    const data = Object.fromEntries(new FormData(form));
+    const r = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(data),
+    });
+    if (r.ok) {
+      location.replace("/home");
+    } else {
+      error.textContent = (await r.json().catch(() => ({}))).error || "Sign-in failed";
+      error.hidden = false;
+    }
+  });
+</script>
