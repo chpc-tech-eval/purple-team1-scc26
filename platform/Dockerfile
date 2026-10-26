@@ -2,14 +2,14 @@
 # Stage 1 builds the static Astro site; stage 2 runs the API as a non-root user.
 # No credentials are baked in: they arrive as Kubernetes env from SealedSecrets.
 
-FROM docker.io/library/node:22.21.1-bookworm-slim@sha256:25b3eb23a00590b7499f2a2ce939322727fcce1b15fdd69754fcd09536a3ae2c AS frontend
+FROM docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS frontend
 WORKDIR /src
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
 RUN npx astro build
 
-FROM docker.io/library/node:22.21.1-bookworm-slim@sha256:25b3eb23a00590b7499f2a2ce939322727fcce1b15fdd69754fcd09536a3ae2c
+FROM docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
 ENV NODE_ENV=production PORT=8080 STATIC_DIR=/app/public
 WORKDIR /app
 COPY api/package.json api/package-lock.json ./
