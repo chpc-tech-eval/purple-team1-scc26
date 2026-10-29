@@ -1,0 +1,48 @@
+# Change `message` or `replicas` in a PR to dev, then watch Argo reconcile:
+#   kubectl -n gitops-demo get deploy,pod,configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitops-demo
+  namespace: gitops-demo
+data:
+  message: "v1: deployed by Argo CD from dev"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitops-demo
+  namespace: gitops-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: gitops-demo}
+  template:
+    metadata:
+      labels: {app: gitops-demo}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: demo
+          # Explicit registry + index digest (week1/README.md §21; review on #57).
+          image: docker.io/library/busybox:1.37.0@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+          # Prints the ConfigMap value so the change is visible in the logs too.
+          command: ["sh", "-c", "echo \"$MESSAGE\"; exec sleep 3600000"]
+          env:
+            - name: MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: gitops-demo
+                  key: message
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 50m, memory: 32Mi}
