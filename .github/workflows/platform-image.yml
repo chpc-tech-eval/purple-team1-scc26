@@ -1,0 +1,74 @@
+# Student Project Platform image (week3/README.md §11):
+# source change -> tests -> OCI image -> GHCR immutable sha-<commit> tag.
+# Pull requests build and test only; a merge into dev also pushes the image.
+# The image never contains credentials; Kubernetes injects them from SealedSecrets.
+name: platform-image
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths: ["platform/**", ".github/workflows/platform-image.yml"]
+  push:
+    branches: [dev]
+    paths: ["platform/**", ".github/workflows/platform-image.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/chpc-tech-eval/purple-team1-scc26/student-platform
+
+jobs:
+  test-build:
+    name: platform test + image build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: API unit tests
+        working-directory: platform/api
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+
+      - name: Build the image (immutable sha tag)
+        working-directory: platform
+        run: |
+          short="${GITHUB_SHA::12}"
+          docker build \
+            --build-arg GIT_SHA="${GITHUB_SHA}" \
+            --build-arg APP_VERSION="sha-${short}" \
+            -t "${IMAGE}:sha-${short}" .
+          echo "TAG=sha-${short}" >> "$GITHUB_ENV"
+
+      - name: Smoke test the image (liveness without a database)
+        run: |
+          docker run -d --name smoke -p 18080:8080 --entrypoint node "${IMAGE}:${TAG}" \
+            -e "import('./src/server.js').then(m => m.createApp().listen(8080))"
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:18080/healthz && break; sleep 1; done
+          curl -fsS http://127.0.0.1:18080/ | grep -q "Sign in"
+          docker rm -f smoke
+
+      - name: Push to GHCR (dev only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker push "${IMAGE}:${TAG}"
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "${IMAGE}:${TAG}")"
+          {
+            echo "### Student Platform image"
+            echo ""
+            echo "- tag: \`${IMAGE}:${TAG}\`"
+            echo "- digest: \`${digest}\`"
+            echo "- commit: \`${GITHUB_SHA}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

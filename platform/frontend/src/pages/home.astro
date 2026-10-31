@@ -1,0 +1,52 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base title="Team home">
+  <section class="card">
+    <div class="row">
+      <div>
+        <h1 id="hello">Loading…</h1>
+        <p class="muted" id="team"></p>
+      </div>
+      <button id="logout" class="secondary">Sign out</button>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Platform status</h2>
+    <p class="muted">Read from the backend only. The browser never sees database or cluster credentials.</p>
+    <dl id="status" class="grid"></dl>
+  </section>
+</Base>
+
+<script>
+  const $ = (id: string) => document.getElementById(id)!;
+  function item(dl: HTMLElement, k: string, v: unknown) {
+    const dt = document.createElement("dt");
+    dt.textContent = k;
+    const dd = document.createElement("dd");
+    dd.textContent = v === null || v === undefined ? "—" : String(v);
+    dl.append(dt, dd);
+  }
+  async function load() {
+    const me = await fetch("/api/me", { credentials: "same-origin" });
+    if (!me.ok) return location.replace("/");
+    const user = await me.json();
+    $("hello").textContent = `Welcome, ${user.display_name}`;
+    $("team").textContent = `@${user.username} · ${user.team} · ${user.project_slug}`;
+    const s = await (await fetch("/api/status", { credentials: "same-origin" })).json();
+    const dl = $("status");
+    item(dl, "App version", s.app_version);
+    item(dl, "Git commit", s.git_sha);
+    item(dl, "Started (UTC)", s.started_at);
+    item(dl, "Uptime (s)", s.uptime_seconds);
+    item(dl, "PostgreSQL", s.database.server_version);
+    item(dl, "Users", s.database.users);
+    item(dl, "Logins recorded", s.database.logins);
+    item(dl, "Last login (UTC)", s.database.last_login);
+  }
+  $("logout").addEventListener("click", async () => {
+    await fetch("/api/logout", { method: "POST", credentials: "same-origin" });
+    location.replace("/");
+  });
+  load();
+</script>

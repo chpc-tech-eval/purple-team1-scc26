@@ -1,0 +1,15 @@
+---
+# Week-3 Part B (week3/README.md §4-5, #65): Wazuh manager on edge-01, agents
+# on every other VM. Needs SG row 15 (#69) and, in the private inventory,
+# firewall_wazuh_agent_cidrs set (edge nftables), then edge.yml --tags firewall.
+- name: Wazuh manager on the edge
+  hosts: edge_nodes
+  become: true
+  roles:
+    - role: wazuh_manager
+
+- name: Wazuh agents on the private VMs
+  hosts: private_nodes
+  become: true
+  roles:
+    - role: wazuh_agent
