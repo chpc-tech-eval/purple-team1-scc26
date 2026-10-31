@@ -65,6 +65,7 @@
 - name: Validate the configuration before any restart (suricata -T)
   ansible.builtin.command:
     cmd: suricata -T -c /etc/suricata/suricata.yaml
+  become: true
   become_user: suricata
   changed_when: false
 
