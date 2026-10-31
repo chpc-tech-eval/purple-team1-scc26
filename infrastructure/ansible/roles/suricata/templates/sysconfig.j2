@@ -1,0 +1,2 @@
+# Managed by Ansible (infrastructure/ansible/roles/suricata). IDS mode (af-packet), no inline.
+OPTIONS="{% for i in suricata_interfaces %}-i {{ i }} {% endfor %}--user suricata"

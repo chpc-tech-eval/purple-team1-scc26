@@ -1,0 +1,2 @@
+# Managed by Ansible (infrastructure/ansible/roles/suricata). Team-owned rules only.
+alert tcp any any -> $HOME_NET any (msg:"SCC26 benign IDS drill marker seen"; flow:established,to_server; content:"{{ suricata_drill_marker }}"; classtype:misc-activity; sid:{{ suricata_drill_sid }}; rev:1;)
