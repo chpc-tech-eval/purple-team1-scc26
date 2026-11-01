@@ -1,4 +1,4 @@
-# Wazuh indexer 4.14.8 (OpenSearch), single node, adapted from the official
+# Wazuh indexer 4.14.9 (OpenSearch), single node, adapted from the official
 # wazuh-kubernetes v4.14.8 manifests: one replica instead of three, Cinder SSD
 # instead of the wazuh-storage class, team-CA certificates, our own sealed
 # internal_users.yml (no default passwords), and no privileged init container
@@ -129,7 +129,7 @@ spec:
             name: indexer-conf
       containers:
         - name: wazuh-indexer
-          image: wazuh/wazuh-indexer:4.14.8@sha256:6a9c1e3827da627a70859213b3e9cfe43193a492e358953de332b94de33b07de
+          image: wazuh/wazuh-indexer:4.14.9@sha256:615465315b560d974100ea55bbe67efa72afc6490ef563d4d1bef127df0e98f6
           env:
             - name: OPENSEARCH_JAVA_OPTS
               value: "-Xms2g -Xmx2g -Dlog4j2.formatMsgNoLookups=true"

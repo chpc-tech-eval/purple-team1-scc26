@@ -15,9 +15,9 @@ Status key: ✅ done (evidence linked) · 🟡 partly done · ⏳ pending
 | kube-prometheus-stack | chart 91.9.0 (operator v0.94.1) | Argo `monitoring` (#68) |
 | Grafana / Prometheus storage | 5Gi / 20Gi on `cinder-ssd` | Argo `monitoring` (#68) |
 | Suricata | 7.0.17 (EPEL), ET Open via suricata-update | Ansible `suricata` (#75) |
-| Wazuh manager + agents | 4.14.8 | Ansible `wazuh_manager`, `wazuh_agent` (#76) |
-| Wazuh indexer + dashboard | 4.14.8 (by digest), indexer 10Gi `cinder-ssd` | Argo `wazuh` (#87) |
-| Filebeat (edge-01 → indexer) | 7.10.2 + Wazuh module 0.4 (checksums pinned) | Ansible `wazuh_manager` (#87) |
+| Wazuh manager + agents | 4.14.9 (upgraded from 4.14.8) | Ansible `wazuh_manager`, `wazuh_agent` (#76, #89) |
+| Wazuh indexer + dashboard | 4.14.9 (by digest), indexer 10Gi `cinder-ssd` | Argo `wazuh` (#87, #89) |
+| Filebeat (edge-01 → indexer) | 7.10.2 + Wazuh module 0.4 (checksums pinned) | Ansible `wazuh_manager` (#87, #88) |
 | PostgreSQL | 17.11 (by digest), 10Gi `cinder-ssd` | Argo `student-platform` (#73) |
 | Student Project Platform | image `sha-73b714146e47` (Node 24.21.0, Astro 7.4.2, Express 5.3.0) | GitHub Actions → GHCR → Argo (#77, #80, #81, #84, #85) |
 
