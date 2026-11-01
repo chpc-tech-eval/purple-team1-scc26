@@ -22,8 +22,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: platform
-          # Immutable CI tag + digest (week3 §11), from platform-image run 41300343880 (commit d01e5ad).
-          image: ghcr.io/saxs-14/scc26-student-platform:sha-d01e5adc4a1a@sha256:b8123524a47cb4efa982ce08772b43d5024b41c012b10efb1ce8ea9b5bde9e62
+          # Immutable CI tag + digest (week3 §11), from platform-image run 41305938253 (commit 73b7141).
+          image: ghcr.io/saxs-14/scc26-student-platform:sha-73b714146e47@sha256:32e8d4511cec988122757113c09806425ca4cd39bd1312e08d4f438bcf2eb871
           ports:
             - containerPort: 8080
               name: http
