@@ -9,13 +9,21 @@
 - name: Wazuh alerts index template
   ansible.builtin.get_url:
     url: "{{ wazuh_manager_filebeat_template_url }}"
+    checksum: "{{ wazuh_manager_filebeat_template_checksum }}"
     dest: /etc/filebeat/wazuh-template.json
     mode: "0644"
   notify: Restart filebeat
 
+- name: Download the Wazuh Filebeat module (checksum verified)
+  ansible.builtin.get_url:
+    url: "{{ wazuh_manager_filebeat_module_url }}"
+    checksum: "{{ wazuh_manager_filebeat_module_checksum }}"
+    dest: /root/wazuh-filebeat-module.tar.gz
+    mode: "0600"
+
 - name: Wazuh Filebeat module
   ansible.builtin.unarchive:
-    src: "{{ wazuh_manager_filebeat_module_url }}"
+    src: /root/wazuh-filebeat-module.tar.gz
     dest: /usr/share/filebeat/module
     remote_src: true
     creates: /usr/share/filebeat/module/wazuh/module.yml

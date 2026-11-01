@@ -44,5 +44,5 @@
   ansible.builtin.include_tasks: filebeat.yml
   when:
     - wazuh_manager_indexer_hosts | length > 0
-    - wazuh_indexer_admin_password is defined
+    - wazuh_filebeat_indexer_password is defined
     - wazuh_manager_filebeat_ca_cert is defined

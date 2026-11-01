@@ -39,6 +39,10 @@ spec:
       labels: {app: wazuh-dashboard}
     spec:
       securityContext:
+        # The image's own user is wazuh-dashboard, uid/gid 1000 (checked live).
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
       volumes:
@@ -77,6 +81,8 @@ spec:
               valueFrom: {secretKeyRef: {name: wazuh-creds, key: API_PASSWORD}}
           securityContext:
             allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
           readinessProbe:
             tcpSocket: {port: dashboard}
             initialDelaySeconds: 30

@@ -131,3 +131,29 @@ Each note is a problem the team actually hit in Week 3, with its source on GitHu
 
 **Effect:** none for users; VPN clients use the wg0 address. It is likely tied to the 2026-10-25 edge firewall re-render and is recorded here for the Week-5 review instead of being changed blindly.
 
+
+## 15. The Wazuh API still had its factory passwords
+
+**When:** 2026-11-01 · **Source:** [#87](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/87)
+
+**Symptom:** while wiring the dashboard, `POST /security/user/authenticate` on edge-01 returned **200** for `wazuh:wazuh` and `wazuh-wui:wazuh-wui`.
+
+**Effect:** the API was only reachable from `k8s_cidr` (SG row 16), but any pod could have taken over the manager with a public default password.
+
+**Fix (#87):** the `wazuh_manager` role sets both passwords from Ansible Vault (idempotent) and **fails the run if a default still works**. Verified: both defaults now 401, a second run `changed=0`.
+
+## 16. Chrome shows "Not secure" on the `*.pt1.internal` pages
+
+**When:** 2026-11-01
+
+**Symptom:** `https://wazuh.pt1.internal` (and the platform/Grafana pages) open, but the address bar says "Not secure".
+
+**Cause:** not a server fault. The served certificate is correct (issuer `CN=3NCRYP+3D pt1.internal CA`, SAN `wazuh.pt1.internal`, and `curl --cacert` with the team CA verifies it). The workstation simply does not trust our private CA yet.
+
+**Fix (per member, on their own machine):** import the team CA certificate into the **current user's** trusted roots, for example on Windows `certutil -user -addstore Root pt1-team-ca.crt`, then restart Chrome. Check the SHA-256 fingerprint against the one shared in Discord before importing; never import a CA you can't verify.
+
+## 17. Threat note: one CA signs both Ingress and indexer-admin certificates
+
+**When:** 2026-11-01 · **Source:** [#87 review](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/87)
+
+The indexer trusts `CN=admin,O=3NCRYP3D` as its security admin, and that certificate comes from `pt1-internal-ca`, the same ClusterIssuer every Ingress uses. Anyone allowed to create a cert-manager `Certificate` could mint an indexer-admin identity. Today only cluster admins can, so the risk is accepted; it goes on the **Week-5** review list. The fix then is a separate namespaced `Issuer` (own CA) for the indexer's node/admin certificates.

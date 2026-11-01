@@ -6,7 +6,7 @@ output.elasticsearch:
 {% endfor %}
   protocol: https
   username: "{{ wazuh_manager_indexer_username }}"
-  password: "{{ wazuh_indexer_admin_password }}"
+  password: "{{ wazuh_filebeat_indexer_password }}"
   ssl.certificate_authorities:
     - /etc/filebeat/certs/root-ca.pem
   # The NodePort is reached by node IP, which is not in the certificate's SANs
