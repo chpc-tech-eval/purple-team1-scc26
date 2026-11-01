@@ -1,0 +1,104 @@
+# Student Project Platform (week3 §10-14): CI-built image from GHCR, deployed
+# by Argo. Credentials come only from SealedSecrets (postgres-credentials,
+# platform-seed); the browser talks to this app, never to the database.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: platform
+  namespace: student-platform
+  labels: {app: platform}
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: platform}
+  template:
+    metadata:
+      labels: {app: platform}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: platform
+          # Immutable CI tag + digest (week3 §11), from platform-image run 41300343880 (commit d01e5ad).
+          image: ghcr.io/saxs-14/scc26-student-platform:sha-d01e5adc4a1a@sha256:b8123524a47cb4efa982ce08772b43d5024b41c012b10efb1ce8ea9b5bde9e62
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - secretRef:
+                name: postgres-credentials
+            - secretRef:
+                name: platform-seed
+          env:
+            - name: POSTGRES_HOST
+              value: postgres
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: platform
+  namespace: student-platform
+  labels: {app: platform}
+spec:
+  selector: {app: platform}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+# Browser path (week3 §14): Pi-hole name -> team-CA TLS -> Traefik -> app -> PostgreSQL.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: platform
+  namespace: student-platform
+  annotations:
+    cert-manager.io/cluster-issuer: pt1-internal-ca
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [platform.pt1.internal]
+      secretName: platform-tls
+  rules:
+    - host: platform.pt1.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: platform
+                port:
+                  number: 80
+---
+# Prometheus (Part A) scrapes the app's bounded counters.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: platform
+  namespace: student-platform
+spec:
+  selector:
+    matchLabels: {app: platform}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
