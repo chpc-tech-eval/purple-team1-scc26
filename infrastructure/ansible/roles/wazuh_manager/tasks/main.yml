@@ -26,6 +26,8 @@
   register: wazuh_manager_versionlocks
   changed_when: false
   check_mode: false  # read-only; lets --check evaluate the release condition
+  # The plugin is missing only before its first real install (e.g. a --check run): no locks yet.
+  failed_when: wazuh_manager_versionlocks.rc != 0 and 'No such command' not in wazuh_manager_versionlocks.stderr
 
 - name: Release a wazuh-manager lock for a different version (upgrade PRs only)
   community.general.dnf_versionlock:
