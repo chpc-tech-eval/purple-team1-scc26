@@ -1,5 +1,5 @@
 # Hermes worker: CPU only, no Kubernetes token, no shell tool, one fixed read-only
-# diagnostic, one explicit remote model route (week4 ง2). Profile on a retained PVC.
+# diagnostic, one explicit remote model route (week4 ยง2). Profile on a retained PVC.
 apiVersion: v1
 kind: Service
 metadata:
@@ -24,7 +24,7 @@ metadata:
     argocd.argoproj.io/sync-wave: '2'
 spec:
   serviceName: agent-control-plane-hermes
-  # Singleton by design (week4 ง8). 0 until the approved model endpoint and its sealed
+  # Singleton by design (week4 ยง8). 0 until the approved model endpoint and its sealed
   # credential exist (#94): the worker refuses to start without a model route.
   replicas: 0
   selector:

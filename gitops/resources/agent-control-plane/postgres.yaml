@@ -1,4 +1,4 @@
-# ACP's own PostgreSQL (week4 ง7: dedicated DB, not the Student Platform's). Pinned by
+# ACP's own PostgreSQL (week4 ยง7: dedicated DB, not the Student Platform's). Pinned by
 # digest (18.4, >2 weeks old). The claim is retained and never pruned.
 apiVersion: v1
 kind: Service

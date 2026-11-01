@@ -1,4 +1,4 @@
-# Schema migration as the owner role, before the API (week4 ง8). Same pinned image as the API.
+# Schema migration as the owner role, before the API (week4 ยง8). Same pinned image as the API.
 apiVersion: batch/v1
 kind: Job
 metadata:
