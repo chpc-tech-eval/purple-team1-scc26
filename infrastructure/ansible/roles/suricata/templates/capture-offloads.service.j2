@@ -1,0 +1,16 @@
+# Managed by Ansible (suricata role).
+[Unit]
+Description=Disable receive offloads on Suricata capture interfaces
+Wants=network-online.target
+After=network-online.target {{ suricata_vpn_unit }}
+Before=suricata.service
+# Re-run whenever the VPN restarts: wg-quick recreates the interface with GRO on.
+PartOf={{ suricata_vpn_unit }}
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/scc26-capture-offloads
+
+[Install]
+WantedBy=multi-user.target suricata.service {{ suricata_vpn_unit }}
