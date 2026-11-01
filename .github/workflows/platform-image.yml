@@ -2,6 +2,10 @@
 # source change -> tests -> OCI image -> GHCR immutable sha-<commit> tag.
 # Pull requests build and test only; a merge into dev also pushes the image.
 # The image never contains credentials; Kubernetes injects them from SealedSecrets.
+#
+# Registry: the org denies package creation to this repo's GITHUB_TOKEN (#79),
+# so the image is published under the captain's GHCR namespace with a
+# write:packages token stored as the repo secret GHCR_TOKEN.
 name: platform-image
 
 on:
@@ -21,7 +25,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: ghcr.io/chpc-tech-eval/purple-team1-scc26/student-platform
+  IMAGE: ghcr.io/saxs-14/scc26-student-platform
+  REGISTRY_USER: saxs-14
 
 jobs:
   test-build:
@@ -29,7 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -60,9 +64,10 @@ jobs:
       - name: Push to GHCR (dev only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
-          echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          if [ -z "$GHCR_TOKEN" ]; then echo "::error::repo secret GHCR_TOKEN is not set (see #79)"; exit 1; fi
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
           docker push "${IMAGE}:${TAG}"
           digest="$(docker inspect --format '{{index .RepoDigests 0}}' "${IMAGE}:${TAG}")"
           {
