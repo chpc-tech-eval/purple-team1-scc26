@@ -2,37 +2,44 @@
 import Base from "../layouts/Base.astro";
 ---
 <Base title="Sign in">
+  <section class="hero">
+    <p class="eyebrow">// student project platform</p>
+    <h1 class="glow">Secure access<span class="cursor" aria-hidden="true">_</span></h1>
+    <p class="muted">Kubernetes · Cilium · Argo CD · PostgreSQL on Cinder · TLS from our own CA</p>
+  </section>
   <section class="card narrow">
-    <h1>Sign in</h1>
-    <p class="muted">Team 3NCRYP+3D · project <code>purple-team1-scc26</code></p>
+    <h2><span class="dot ok" aria-hidden="true"></span>Sign in</h2>
     <form id="login" autocomplete="on">
-      <label>Username <input name="username" autocomplete="username" required maxlength="64" /></label>
+      <label>Username <input name="username" autocomplete="username" required maxlength="64" spellcheck="false" /></label>
       <label>Password <input name="password" type="password" autocomplete="current-password" required maxlength="256" /></label>
-      <button type="submit">Sign in</button>
+      <button type="submit">Authenticate →</button>
       <p id="error" class="error" role="alert" hidden></p>
     </form>
+    <p class="hint">First time here? You'll be asked to choose your own password right after signing in.</p>
   </section>
 </Base>
 
 <script>
   const form = document.getElementById("login") as HTMLFormElement;
   const error = document.getElementById("error") as HTMLParagraphElement;
-  // Already signed in? Go straight to the team page.
-  fetch("/api/me", { credentials: "same-origin" }).then((r) => {
-    if (r.ok) location.replace("/home");
+  fetch("/api/me", { credentials: "same-origin" }).then(async (r) => {
+    if (r.ok) location.replace((await r.json()).must_change_password ? "/password/" : "/home/");
   });
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     error.hidden = true;
-    const data = Object.fromEntries(new FormData(form));
+    const button = form.querySelector("button") as HTMLButtonElement;
+    button.disabled = true;
     const r = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
-      body: JSON.stringify(data),
+      body: JSON.stringify(Object.fromEntries(new FormData(form))),
     });
+    button.disabled = false;
     if (r.ok) {
-      location.replace("/home");
+      const body = await r.json();
+      location.replace(body.must_change_password ? "/password/" : "/home/");
     } else {
       error.textContent = (await r.json().catch(() => ({}))).error || "Sign-in failed";
       error.hidden = false;
