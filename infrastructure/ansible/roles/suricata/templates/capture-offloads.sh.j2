@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Managed by Ansible (suricata role). Turn receive offloads off on Suricata's
+# capture interfaces so af-packet sees real wire-size packets, not merged
+# GRO/LRO super-packets (which Suricata truncates: decoder sids 2200122/2200003).
+# Interfaces that do not exist yet (e.g. wg0 before WireGuard is up) are skipped;
+# the unit re-runs when wg-quick starts.
+set -u
+for iface in {{ suricata_interfaces | join(' ') }}; do
+  [ -e "/sys/class/net/$iface" ] || { echo "$iface: absent, skipped"; continue; }
+  for feature in {{ suricata_disabled_offloads | join(' ') }}; do
+    ethtool -K "$iface" "$feature" off 2>/dev/null || true
+  done
+  echo "$iface: $(ethtool -k "$iface" | grep -E '^(generic-receive-offload|large-receive-offload|rx-gro-hw):' | tr '\n' ' ')"
+done
