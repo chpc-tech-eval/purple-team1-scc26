@@ -121,6 +121,8 @@ Each note is a problem the team actually hit in Week 3, with its source on GitHu
 
 **Fix (#82):** a pool `error` handler (log, reconnect on next use), a start-up `waitForDatabase()` retry instead of crash-looping, and a regression test.
 
+**Verified (2026-11-01, image `sha-73b714146e47`):** replacing `postgres-0` again gave **0 restarts** on both platform pods (previously 3 each); the log shows `postgres pool: idle connection lost (57P01); will reconnect`.
+
 ## 14. Pi-hole answered on one edge address only
 
 **When:** 2026-11-01
