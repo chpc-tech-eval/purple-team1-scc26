@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "run_id": "2099106e-5815-443d-8112-18cb54383e5b",
+  "project": "purple-team1-scc26",
+  "experiment": "week3-part-c-platform-v2-verify",
+  "status": "completed",
+  "started_at": "2026-11-01T12:30:00Z",
+  "finished_at": "2026-11-01T12:40:00Z",
+  "source": {
+    "repository": "https://github.com/chpc-tech-eval/purple-team1-scc26",
+    "commit": "22bc78fdab7bcbc81ce0d7b628b08de26c471c31",
+    "dirty": false
+  },
+  "software": {
+    "images": [
+      {
+        "name": "platform",
+        "ref": "ghcr.io/saxs-14/scc26-student-platform:sha-73b714146e47@sha256:32e8d4511cec988122757113c09806425ca4cd39bd1312e08d4f438bcf2eb871"
+      }
+    ]
+  },
+  "execution": {
+    "location": "sebowa-kubernetes",
+    "host_class": "",
+    "namespace": "student-platform",
+    "requested_resources": {}
+  },
+  "parameters": {
+    "checks": "forced first-login change (403 until changed), wrong current 401, too-short 400, throttling, DB pod replacement"
+  },
+  "metrics": {
+    "accounts": 4,
+    "throttled_after_failures": 20,
+    "platform_restarts_during_db_replacement": 0
+  },
+  "artifacts": [],
+  "notes": "Verifies #84/#85 live; the #82 fix confirmed (0 restarts, was 3). Evidence on issue #66."
+}

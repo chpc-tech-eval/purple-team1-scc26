@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "run_id": "dc566b9c-9dca-4b48-934a-99534ea55141",
+  "project": "purple-team1-scc26",
+  "experiment": "week3-part-b-security-drill",
+  "status": "completed",
+  "started_at": "2026-10-25T17:44:32Z",
+  "finished_at": "2026-10-25T17:47:42Z",
+  "source": {
+    "repository": "https://github.com/chpc-tech-eval/purple-team1-scc26",
+    "commit": "b1d8c6df700a5b52398d55fe5fa3912f6a453387",
+    "dirty": false
+  },
+  "software": {
+    "images": []
+  },
+  "execution": {
+    "location": "other-approved-target",
+    "host_class": "edge-01 (Wazuh manager + Suricata) and 4 agents",
+    "namespace": "",
+    "requested_resources": {}
+  },
+  "parameters": {
+    "host_drill": "one SSH login to api-lb-01 as a non-existent user (key auth, fails)",
+    "network_drill": "GET /scc26-ids-drill to the team's whoami NodePort over the VPN",
+    "clock": "edge-01 NTP-synced; server timestamps authoritative"
+  },
+  "metrics": {
+    "wazuh_rule_5710_seconds_after_attempt": 3,
+    "suricata_sid_9000001_to_wazuh_86601_ms": 53,
+    "agents_active": 4
+  },
+  "artifacts": [],
+  "notes": "Fresh, benign, team-owned drills (week3 \u00a78). Suricata 7.0.17 + Wazuh 4.14.8. Evidence on PRs #75 and #76."
+}
