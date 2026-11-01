@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import express from "express";
 import client from "prom-client";
-import { migrate, pool, seed } from "./db.js";
+import { migrate, pool, seed, waitForDatabase } from "./db.js";
 
 const PORT = Number(process.env.PORT || 8080);
 const SESSION_HOURS = Number(process.env.SESSION_HOURS || 12);
@@ -158,6 +158,7 @@ export function createApp() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  await waitForDatabase();
   await migrate();
   await seed(bcrypt);
   createApp().listen(PORT, () => console.log(`student-platform listening on :${PORT}`));

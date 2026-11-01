@@ -1,6 +1,7 @@
 // Unit tests that need no database: run with `npm test` in platform/api.
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import { pool } from "../api/src/db.js";
 import { createApp, parseCookies } from "../api/src/server.js";
 
 let server;
@@ -52,3 +53,10 @@ test("metrics endpoint exposes bounded platform counters", async () => {
   assert.match(text, /platform_http_requests_total/);
   assert.match(text, /platform_logins_total/);
 });
+
+test("the PostgreSQL pool handles dropped connections instead of crashing", () => {
+  // Regression: replacing postgres-0 crashed every platform pod (3 restarts each)
+  // because the pool's 'error' event had no listener.
+  assert.ok(pool.listenerCount("error") >= 1);
+});
+
