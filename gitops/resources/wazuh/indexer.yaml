@@ -180,8 +180,10 @@ spec:
         resources:
           requests: {storage: 10Gi}
 ---
-# Transport (9300) is not needed by anyone on a single node; REST (9200) stays
-# open to the dashboard and the NodePort path (TLS + authentication).
+# Indexer ingress (#87 review, follow-up 3). Transport 9300 is closed (single
+# node). REST 9200 from pods: only the dashboard and the security-config Job,
+# both in this namespace. Policies are additive; the CiliumNetworkPolicy below
+# adds the Filebeat NodePort path.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -192,6 +194,30 @@ spec:
     matchLabels: {app: wazuh-indexer}
   policyTypes: [Ingress]
   ingress:
-    - ports:
+    - from:
+        - podSelector:
+            matchLabels: {app: wazuh-dashboard}
+        - podSelector:
+            matchLabels: {app: wazuh-security-config}
+      ports:
         - protocol: TCP
           port: 9200
+---
+# Filebeat on edge-01 reaches 9200 through NodePort 30920 (SG row 18 limits the
+# source to mgmt_cidr). kube-proxy masquerades it, so it arrives from a node
+# (host / remote-node), or from world if not masqueraded. Cilium entities express
+# that without writing any real address range in Git; other pods stay denied.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: indexer-rest-from-nodeport
+  namespace: wazuh
+spec:
+  endpointSelector:
+    matchLabels: {app: wazuh-indexer}
+  ingress:
+    - fromEntities: [host, remote-node, world]
+      toPorts:
+        - ports:
+            - port: "9200"
+              protocol: TCP
