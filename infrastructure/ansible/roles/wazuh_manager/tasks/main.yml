@@ -35,3 +35,14 @@
     name: wazuh-manager
     enabled: true
     state: started
+
+- name: Replace the default Wazuh API passwords
+  ansible.builtin.include_tasks: api_passwords.yml
+  when: wazuh_api_password is defined and wazuh_wui_password is defined
+
+- name: Ship alerts to the in-cluster Wazuh indexer
+  ansible.builtin.include_tasks: filebeat.yml
+  when:
+    - wazuh_manager_indexer_hosts | length > 0
+    - wazuh_indexer_admin_password is defined
+    - wazuh_manager_filebeat_ca_cert is defined

@@ -1,0 +1,151 @@
+# Wazuh dashboard 4.14.8. Traefik terminates TLS with the team CA
+# (wazuh.pt1.internal); the dashboard verifies the indexer against the same CA
+# and talks to the manager API on edge-01 (SG row 16) with the non-default
+# wazuh-wui password. Every credential comes from the sealed wazuh-creds.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-conf
+  namespace: wazuh
+data:
+  opensearch_dashboards.yml: |
+    server.host: 0.0.0.0
+    server.port: 5601
+    server.ssl.enabled: false
+    opensearch.hosts: https://indexer:9200
+    opensearch.ssl.verificationMode: full
+    opensearch.ssl.certificateAuthorities: ["/usr/share/wazuh-dashboard/certs/root-ca.pem"]
+    opensearch.requestHeadersWhitelist: [authorization, securitytenant]
+    opensearch_security.multitenancy.enabled: false
+    opensearch_security.readonly_mode.roles: ["kibana_read_only"]
+    opensearch_security.cookie.secure: true
+    opensearch_security.cookie.ttl: 900000
+    opensearch_security.session.ttl: 900000
+    opensearch_security.session.keepalive: true
+    uiSettings.overrides.defaultRoute: /app/wz-home
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wazuh-dashboard
+  namespace: wazuh
+  labels: {app: wazuh-dashboard}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: wazuh-dashboard}
+  template:
+    metadata:
+      labels: {app: wazuh-dashboard}
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: config
+          configMap:
+            name: dashboard-conf
+        - name: ca
+          secret:
+            secretName: dashboard-tls
+            items:
+              - {key: ca.crt, path: root-ca.pem}
+      containers:
+        - name: wazuh-dashboard
+          image: wazuh/wazuh-dashboard:4.14.8@sha256:dd338d22355e8f0cdf8cc97d5b928539d56061b83c3274a79059e60ad5b8ac14
+          ports:
+            - containerPort: 5601
+              name: dashboard
+          env:
+            - name: INDEXER_URL
+              value: https://indexer:9200
+            - name: SERVER_SSL_ENABLED
+              value: "false"
+            - name: INDEXER_USERNAME
+              valueFrom: {secretKeyRef: {name: wazuh-creds, key: INDEXER_USERNAME}}
+            - name: INDEXER_PASSWORD
+              valueFrom: {secretKeyRef: {name: wazuh-creds, key: INDEXER_PASSWORD}}
+            - name: DASHBOARD_USERNAME
+              valueFrom: {secretKeyRef: {name: wazuh-creds, key: DASHBOARD_USERNAME}}
+            - name: DASHBOARD_PASSWORD
+              valueFrom: {secretKeyRef: {name: wazuh-creds, key: DASHBOARD_PASSWORD}}
+            - name: WAZUH_API_URL
+              valueFrom: {secretKeyRef: {name: wazuh-creds, key: WAZUH_API_URL}}
+            - name: API_USERNAME
+              valueFrom: {secretKeyRef: {name: wazuh-creds, key: API_USERNAME}}
+            - name: API_PASSWORD
+              valueFrom: {secretKeyRef: {name: wazuh-creds, key: API_PASSWORD}}
+          securityContext:
+            allowPrivilegeEscalation: false
+          readinessProbe:
+            tcpSocket: {port: dashboard}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 200m, memory: 512Mi}
+            limits: {memory: 1Gi}
+          volumeMounts:
+            - name: config
+              mountPath: /usr/share/wazuh-dashboard/config/opensearch_dashboards.yml
+              subPath: opensearch_dashboards.yml
+            - name: ca
+              mountPath: /usr/share/wazuh-dashboard/certs/root-ca.pem
+              subPath: root-ca.pem
+              readOnly: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wazuh-dashboard
+  namespace: wazuh
+  labels: {app: wazuh-dashboard}
+spec:
+  selector: {app: wazuh-dashboard}
+  ports:
+    - name: http
+      port: 5601
+      targetPort: dashboard
+---
+# Browser path: VPN -> Pi-hole name -> worker NodePort 30443 -> Traefik (team-CA TLS) -> dashboard.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wazuh-dashboard
+  namespace: wazuh
+  annotations:
+    cert-manager.io/cluster-issuer: pt1-internal-ca
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [wazuh.pt1.internal]
+      secretName: wazuh-ingress-tls
+  rules:
+    - host: wazuh.pt1.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wazuh-dashboard
+                port:
+                  number: 5601
+---
+# Only Traefik may reach the dashboard.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dashboard-from-traefik-only
+  namespace: wazuh
+spec:
+  podSelector:
+    matchLabels: {app: wazuh-dashboard}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 5601

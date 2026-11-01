@@ -129,6 +129,7 @@ In Terraform (`modules/security`) since #64's PR; adds only. Rows 15–16 also h
 | 15 | edge | 1514-1515/tcp | `mgmt_cidr`, `k8s_cidr` | Wazuh agents → manager |
 | 16 | edge | 55000/tcp | `k8s_cidr` | Wazuh API |
 | 17 | control-plane, worker | 9100/tcp, 9962-9964/tcp | `k8s_cidr` | node-exporter, Cilium metrics |
+| 18 | worker | 30920/tcp | `mgmt_cidr` | Filebeat on edge-01 -> Wazuh indexer NodePort |
 
 Not carried over from the reference (outside the five-node POC): Slurm, NFS, Hermes VM, Cloudflare HTTP/HTTPS on edge, Octavia.
 

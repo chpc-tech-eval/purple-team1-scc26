@@ -5,3 +5,16 @@ wazuh_manager_repo: https://packages.wazuh.com/4.x/yum/
 wazuh_manager_gpg_key: https://packages.wazuh.com/key/GPG-KEY-WAZUH
 # Suricata's EVE JSON on the same host feeds the manager (§4 flow).
 wazuh_manager_suricata_eve: /var/log/suricata/eve.json
+
+# Week-3 dashboard follow-up. The API passwords and the indexer admin password
+# come from Ansible Vault in the private inventory (wazuh_api_password,
+# wazuh_wui_password, wazuh_indexer_admin_password); the tasks are skipped
+# until they are defined.
+# wazuh_manager_indexer_hosts:      ["https://<worker>:30920", ...]   private inventory (real IPs)
+# wazuh_manager_filebeat_ca_cert:   team CA PEM (pt1-internal-ca)       private inventory
+wazuh_manager_indexer_hosts: []
+wazuh_manager_indexer_username: admin
+wazuh_manager_filebeat_version: "7.10.2"
+wazuh_manager_filebeat_template_url: >-
+  https://raw.githubusercontent.com/wazuh/wazuh/v{{ wazuh_manager_version }}/extensions/elasticsearch/7.x/wazuh-template.json
+wazuh_manager_filebeat_module_url: https://packages.wazuh.com/4.x/filebeat/wazuh-filebeat-0.4.tar.gz
