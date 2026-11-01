@@ -23,7 +23,7 @@ flowchart TB
     subgraph EDGE["edge-01 (mgmt_cidr)"]
         wg["WireGuard wg0"]
         suri["Suricata IDS<br/>af-packet on NIC + wg0<br/>EVE JSON"]
-        wm["Wazuh manager 4.14.8<br/>reads EVE + agent events"]
+        wm["Wazuh manager 4.14.9<br/>reads EVE + agent events"]
         suri -- "eve.json" --> wm
     end
 

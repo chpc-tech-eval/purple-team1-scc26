@@ -1,7 +1,7 @@
 ---
 # Week-3 Part B: Wazuh agents on the private VMs, enrolling to the manager on
 # edge-01 over its private address (SG row 15 + edge nftables, ports 1514-1515).
-wazuh_agent_version: "4.14.8"
+wazuh_agent_version: "4.14.9"
 wazuh_agent_repo: https://packages.wazuh.com/4.x/yum/
 wazuh_agent_gpg_key: https://packages.wazuh.com/key/GPG-KEY-WAZUH
 # Manager address: edge-01's private (default-route) IPv4, taken from facts so
