@@ -1,11 +1,11 @@
 # Managed by Ansible (wazuh_manager role). Ships Wazuh alerts to the in-cluster indexer.
 output.elasticsearch:
   hosts:
-{% for host in wazuh_indexer_hosts %}
+{% for host in wazuh_manager_indexer_hosts %}
     - "{{ host }}"
 {% endfor %}
   protocol: https
-  username: "{{ wazuh_indexer_username }}"
+  username: "{{ wazuh_manager_indexer_username }}"
   password: "{{ wazuh_indexer_admin_password }}"
   ssl.certificate_authorities:
     - /etc/filebeat/certs/root-ca.pem

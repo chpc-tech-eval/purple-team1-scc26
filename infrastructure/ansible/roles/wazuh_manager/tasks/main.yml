@@ -43,6 +43,6 @@
 - name: Ship alerts to the in-cluster Wazuh indexer
   ansible.builtin.include_tasks: filebeat.yml
   when:
-    - wazuh_indexer_hosts | length > 0
+    - wazuh_manager_indexer_hosts | length > 0
     - wazuh_indexer_admin_password is defined
-    - wazuh_filebeat_ca_cert is defined
+    - wazuh_manager_filebeat_ca_cert is defined
