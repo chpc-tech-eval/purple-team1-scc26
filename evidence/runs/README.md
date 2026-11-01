@@ -21,3 +21,4 @@ Manifests are never deleted (team rule: everything stays).
 | Week-3 Part B: security drill, SSH → Wazuh 5710, Suricata → Wazuh 86601 (#75, #76) | [`20261025T174432Z-week3-part-b-security-drill.json`](20261025T174432Z-week3-part-b-security-drill.json) |
 | Week-3 Part C: platform browser path, auth and data persistence (#66) | [`20261101T112300Z-week3-part-c-platform-e2e.json`](20261101T112300Z-week3-part-c-platform-e2e.json) |
 | Week-3 Part C: platform v2 (forced password change, throttling, 0 restarts on DB replacement) (#84, #85) | [`20261101T123000Z-week3-part-c-platform-v2-verify.json`](20261101T123000Z-week3-part-c-platform-v2-verify.json) |
+| Week-3 close-out: fresh drill through the whole chain (Suricata → Wazuh → Filebeat → indexer/dashboard) with platform health, after #87–#91 | [`20261101T193548Z-week3-closeout-full-chain-drill.json`](20261101T193548Z-week3-closeout-full-chain-drill.json) |

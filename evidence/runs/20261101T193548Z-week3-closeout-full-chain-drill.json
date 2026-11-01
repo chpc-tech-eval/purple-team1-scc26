@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "run_id": "f94c20a4-d763-4995-bbe7-fee5b494f055",
+  "project": "purple-team1-scc26",
+  "experiment": "week3-closeout-full-chain-drill",
+  "status": "completed",
+  "started_at": "2026-11-01T19:35:48Z",
+  "finished_at": "2026-11-01T19:36:29Z",
+  "source": {
+    "repository": "https://github.com/chpc-tech-eval/purple-team1-scc26",
+    "commit": "e4d82612d3cb6e38fb8fd06ff1d951dde7bc1271",
+    "dirty": false
+  },
+  "software": {
+    "images": [
+      {
+        "name": "wazuh_indexer",
+        "ref": "wazuh/wazuh-indexer:4.14.9@sha256:615465315b560d974100ea55bbe67efa72afc6490ef563d4d1bef127df0e98f6"
+      },
+      {
+        "name": "wazuh_dashboard",
+        "ref": "wazuh/wazuh-dashboard:4.14.9@sha256:e8e2340265feb6f61711d2ba460d04d2dea875ee46de26cd1832da2a3558a341"
+      },
+      {
+        "name": "student_platform",
+        "ref": "ghcr.io/saxs-14/scc26-student-platform:sha-73b714146e47@sha256:32e8d4511cec988122757113c09806425ca4cd39bd1312e08d4f438bcf2eb871"
+      }
+    ]
+  },
+  "execution": {
+    "location": "other-approved-target",
+    "host_class": "edge-01 (Suricata, Wazuh manager, Filebeat) + Kubernetes (Wazuh indexer/dashboard, Student Platform) + 4 agents",
+    "namespace": "wazuh",
+    "requested_resources": {}
+  },
+  "parameters": {
+    "network_drill": "GET /scc26-ids-drill over the VPN to the Traefik web NodePort (runbook section 6)",
+    "host_drill": "one SSH login to api-lb-01 as a non-existent user, key auth, fails on purpose",
+    "preceding_change": "wg-quick@wg0 restarted at 19:34:35Z (detached); wg0 recreated, offload unit re-ran",
+    "prometheus_window": "2026-11-01T19:35:48Z/2026-11-01T19:36:29Z",
+    "chain": "Suricata EVE -> Wazuh manager -> Filebeat (filebeat user) -> Wazuh indexer -> dashboard",
+    "clock": "edge-01 NTP-synced; server timestamps authoritative"
+  },
+  "metrics": {
+    "suricata_sid_9000001_interfaces": 2,
+    "suricata_to_wazuh_86601_seconds": 1,
+    "ssh_attempt_to_wazuh_5710_seconds_max": 6,
+    "indexer_hits_sid_9000001": 2,
+    "indexer_hits_rule_5710": 1,
+    "platform_available_replicas": 2,
+    "platform_targets_up": 2,
+    "pods_not_running": 0,
+    "wazuh_pods_ready": 2,
+    "truncated_packet_alerts_300mb_transfer": 0,
+    "agents_active": 5
+  },
+  "artifacts": [],
+  "notes": "Fresh benign team-owned drill (week3 section 8) after #87-#91: Wazuh 4.14.9 everywhere, Suricata 7.0.17 with default-packet-size 8968 and GRO/LRO off. Evidence on #91 and the Week-3 close-out PR."
+}
