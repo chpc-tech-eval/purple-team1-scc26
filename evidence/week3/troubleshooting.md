@@ -121,11 +121,12 @@ Each note is a problem the team actually hit in Week 3, with its source on GitHu
 
 **Fix (#82):** a pool `error` handler (log, reconnect on next use), a start-up `waitForDatabase()` retry instead of crash-looping, and a regression test.
 
-## 14. Pi-hole answered on one edge address only
+## 14. Pi-hole seemed to answer on one edge address only (it was the link)
 
 **When:** 2026-11-01
 
-**Symptom:** a VPN query to Pi-hole on edge-01's **management** address timed out, while the **wg0** address answered (`platform.pt1.internal`, `grafana.pt1.internal`). Both had answered on 2026-10-16.
+**Symptom:** a VPN query to Pi-hole on edge-01's management address timed out while the wg0 address answered. In a burst of 20 queries each, the results flipped: management 14/20, wg0 0/20.
 
-**Effect:** none for users; VPN clients use the wg0 address. It is likely tied to the 2026-10-25 edge firewall re-render and is recorded here for the Week-5 review instead of being changed blindly.
+**Investigation:** the edge nftables ruleset is correct (input policy drop; DNS allowed from the three private ranges via `@dns_src`), Pi-hole listens on all addresses, and `terraform plan` shows **No changes** (no security-group drift). Ping showed 0% loss but round-trip times of **86-980 ms** (average 550 ms). At one query per second with a 6 s timeout, **both** addresses answered (9/10 and 8/10).
 
+**Conclusion:** not a firewall problem. The misses come from a slow, jittery workstation link. For demos, use a longer DNS timeout or `curl --resolve`, and test the path before presenting.
