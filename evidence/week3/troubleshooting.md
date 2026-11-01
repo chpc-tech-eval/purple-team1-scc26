@@ -93,3 +93,39 @@ Each note is a problem the team actually hit in Week 3, with its source on GitHu
 
 **Observation:** Suricata/Wazuh also raised *ET INFO "Server Responded with Vulnerable OpenSSH Version (CVE-2024-6409)"* on our SSH banners. Rocky Linux backports security fixes without changing the upstream version string, so this banner-based rule is likely a false positive. It is recorded here for Week 5 rather than suppressed.
 
+## 11. GHCR refused the image push (org setting)
+
+**When:** 2026-10-26 · **Source:** [#79](https://github.com/chpc-tech-eval/purple-team1-scc26/issues/79), [#80](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/80)
+
+**Symptom:** on `dev`, tests, build and smoke test passed, then `docker push ghcr.io/chpc-tech-eval/...` failed with `error from registry: denied`, although the job's `GITHUB_TOKEN` had `Packages: write`.
+
+**Cause:** the `chpc-tech-eval` organisation doesn't let this repo create container packages. Only an org owner can change that, and the instructor was unavailable.
+
+**Fix:** the image is published under the captain's GHCR namespace (`ghcr.io/saxs-14/scc26-student-platform`) with a 30-day, `write:packages`-only token stored as the repo secret `GHCR_TOKEN`, and the package made public so the cluster pulls without credentials. Still GHCR, still built by Actions, still an immutable `sha-` tag. The question stays open on #79.
+
+## 12. Merging with no available reviewer
+
+**When:** 2026-11-01 · **Source:** [#75](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/75), [#80](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/80), [#81](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/81)
+
+**Situation:** every other member and the instructor were unavailable, and `dev` requires one approval. Branch protection also applied to admins, so there was no bypass at first.
+
+**What we did:** the captain (repo admin) briefly allowed admin bypass, merged #75, #80 and #81 with CI green, and then switched enforcement back on (`enforce_admins=true` verified). Each PR carries a note explaining the exception and asking for review after the fact. It is recorded as an exception, not a new practice.
+
+## 13. A PostgreSQL restart crashed the platform pods
+
+**When:** 2026-11-01 · **Source:** [#66](https://github.com/chpc-tech-eval/purple-team1-scc26/issues/66), [#82](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/82)
+
+**Symptom:** during the §13 test (deleting `postgres-0`), both platform pods restarted 3 times and a login attempt got no response. The data survived and the pods self-healed.
+
+**Cause:** node-postgres emits an `error` event when an idle pooled connection drops; with no listener, Node exits.
+
+**Fix (#82):** a pool `error` handler (log, reconnect on next use), a start-up `waitForDatabase()` retry instead of crash-looping, and a regression test.
+
+## 14. Pi-hole answered on one edge address only
+
+**When:** 2026-11-01
+
+**Symptom:** a VPN query to Pi-hole on edge-01's **management** address timed out, while the **wg0** address answered (`platform.pt1.internal`, `grafana.pt1.internal`). Both had answered on 2026-10-16.
+
+**Effect:** none for users; VPN clients use the wg0 address. It is likely tied to the 2026-10-25 edge firewall re-render and is recorded here for the Week-5 review instead of being changed blindly.
+
