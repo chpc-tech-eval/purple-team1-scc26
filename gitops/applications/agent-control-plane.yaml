@@ -1,0 +1,23 @@
+# Week-4 Agent Control Plane (week4/README.md). Upstream images pinned by digest,
+# sealed credentials, dedicated PostgreSQL, sync waves: namespace/storage (-4) ->
+# policies/config/secrets (-3/-2) -> PostgreSQL (0) -> migration hook (1) -> API/worker (2).
+# No prune and no deletion finalizer: removing this Application must never cascade into
+# the retained ACP database or Hermes profile (team rule: nothing is removed).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: agent-control-plane
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: agent-control-plane
+  source:
+    repoURL: https://github.com/chpc-tech-eval/purple-team1-scc26.git
+    targetRevision: dev
+    path: gitops/resources/agent-control-plane
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
