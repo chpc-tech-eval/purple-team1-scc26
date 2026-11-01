@@ -11,6 +11,27 @@ export const pool = new pg.Pool({
   max: 5,
 });
 
+// An idle pooled connection can drop when PostgreSQL restarts (e.g. the
+// postgres-0 pod is replaced). Without a listener, node-postgres' 'error'
+// event crashes the process; log it instead; the pool reconnects on next use.
+pool.on("error", (err) => {
+  console.error(`postgres pool: idle connection lost (${err.code || err.message}); will reconnect`);
+});
+
+// Wait for PostgreSQL at start-up instead of crash-looping while it starts.
+export async function waitForDatabase({ attempts = 30, delayMs = 2000 } = {}) {
+  for (let i = 1; i <= attempts; i += 1) {
+    try {
+      await pool.query("SELECT 1");
+      return;
+    } catch (err) {
+      console.error(`postgres not ready (attempt ${i}/${attempts}): ${err.code || err.message}`);
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  throw new Error("postgres unreachable after start-up retries");
+}
+
 // Idempotent schema: the Week-3 contract (platform/README.md) plus sessions.
 export async function migrate() {
   await pool.query(`
