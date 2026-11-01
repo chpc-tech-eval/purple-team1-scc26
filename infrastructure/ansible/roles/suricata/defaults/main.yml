@@ -1,0 +1,18 @@
+---
+# Week-3 Part B (week3/README.md §4, §6): Suricata on edge-01, IDS mode only
+# (no inline IPS in the Week-3 critical path).
+#
+# HOME_NET: RFC 1918 by default; the private inventory may narrow it to the
+# team ranges. No real addresses are committed.
+suricata_home_net: "[10.0.0.0/8,172.16.0.0/12,192.168.0.0/16]"
+# Interfaces to watch: the edge NIC (defaults to the host's default-route
+# interface) and the WireGuard interface, where VPN traffic is decrypted.
+suricata_interfaces:
+  - "{{ ansible_facts.default_ipv4.interface }}"
+  - wg0
+# Rules: Emerging Threats Open via suricata-update, plus our local rules.
+suricata_update_enabled: true
+# A harmless, team-owned drill signature (week3 §8): matches only a request
+# carrying this exact marker, e.g. GET /scc26-ids-drill.
+suricata_drill_marker: scc26-ids-drill
+suricata_drill_sid: 9000001

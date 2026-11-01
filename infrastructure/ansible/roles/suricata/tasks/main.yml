@@ -1,0 +1,76 @@
+---
+- name: Enable EPEL (Suricata is packaged there for EL9)
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+
+- name: Install Suricata and suricata-update
+  ansible.builtin.dnf:
+    name:
+      - suricata
+    state: present
+
+- name: Set HOME_NET
+  ansible.builtin.replace:
+    path: /etc/suricata/suricata.yaml
+    regexp: '^(\s*)HOME_NET:\s*".*"'
+    replace: '\1HOME_NET: "{{ suricata_home_net }}"'
+  notify: Restart suricata
+
+- name: Interfaces to watch (IDS, af-packet)
+  ansible.builtin.template:
+    src: sysconfig.j2
+    dest: /etc/sysconfig/suricata
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart suricata
+
+- name: Team-owned local rules (drill signature)
+  ansible.builtin.template:
+    src: local.rules.j2
+    dest: /etc/suricata/rules/local.rules
+    owner: root
+    group: root
+    mode: "0644"
+  register: suricata_local_rules
+  notify: Restart suricata
+
+- name: Check whether the merged rules file exists
+  ansible.builtin.stat:
+    path: /var/lib/suricata/rules/suricata.rules
+  register: suricata_rules_file
+
+- name: Fetch ET Open rules and merge our local rules
+  ansible.builtin.command:
+    cmd: suricata-update --no-test --local /etc/suricata/rules/local.rules
+  when: suricata_update_enabled and (suricata_local_rules.changed or not suricata_rules_file.stat.exists)
+  changed_when: true
+  notify: Restart suricata
+
+- name: Log files belong to the suricata user (the service drops privileges)
+  ansible.builtin.file:
+    path: "/var/log/suricata/{{ item }}"
+    state: touch
+    owner: suricata
+    group: suricata
+    mode: "0640"
+    access_time: preserve
+    modification_time: preserve
+  loop: [eve.json, fast.log, stats.log]
+  notify: Restart suricata
+
+# Run the check as the service user: as root it would create root-owned log
+# files that the running service then cannot open (found on the first run).
+- name: Validate the configuration before any restart (suricata -T)
+  ansible.builtin.command:
+    cmd: suricata -T -c /etc/suricata/suricata.yaml
+  become: true
+  become_user: suricata
+  changed_when: false
+
+- name: Enable and start Suricata
+  ansible.builtin.systemd_service:
+    name: suricata
+    enabled: true
+    state: started

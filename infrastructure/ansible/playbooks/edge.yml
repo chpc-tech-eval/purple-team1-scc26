@@ -1,5 +1,5 @@
 ---
-# Week-1 edge subset: nftables, WireGuard, Pi-hole (week1/README.md Part F, #13).
+# Edge services: nftables, WireGuard, Pi-hole (Week 1, #13) and Suricata IDS (Week 3 Part B, #65).
 # Run: ansible-playbook -i inventories/private/hosts.yml playbooks/edge.yml --tags wireguard,pihole,firewall
 # Firewall first, so the WireGuard port and DNS are allowed before they start.
 - name: Configure edge services
@@ -12,3 +12,5 @@
       tags: [wireguard]
     - role: pihole
       tags: [pihole]
+    - role: suricata
+      tags: [suricata]
