@@ -133,6 +133,31 @@ In Terraform (`modules/security`) since #64's PR; adds only. Rows 15–16 also h
 
 Not carried over from the reference (outside the five-node POC): Slurm, NFS, Hermes VM, Cloudflare HTTP/HTTPS on edge, Octavia.
 
+### Week 4 (Agent Control Plane + Hermes): proposal, not yet applied
+
+Source: `week4/README.md` (mental model, Part D §9, Part F). Week 4 adds no new **ingress** from outside the cluster: the browser keeps using the platform's existing path (row 14b → Traefik). What is new is **in-cluster traffic** and **one outbound path** to a remote GPU model, so the work is mostly Kubernetes `NetworkPolicy`, not security groups.
+
+| # | From | To | Port | Enforced by | Notes |
+| --- | --- | --- | --- | --- | --- |
+| W4-1 | `student-platform` (platform pods) | ACP API | API port from the starter manifests | NetworkPolicy, ingress on the ACP API | only the platform backend calls ACP, with a short-lived signed assertion; the browser never reaches ACP |
+| W4-2 | ACP API, migration Job, Hermes (as the starter requires) | ACP PostgreSQL | 5432/tcp | NetworkPolicy, namespace-only | the same pattern as the platform DB (#73); a separate database, not the platform's |
+| W4-3 | Hermes (fixed diagnostic) | Prometheus in `monitoring` | 9090/tcp | NetworkPolicy, egress from Hermes + ingress on Prometheus | read-only queries; the only telemetry source |
+| W4-4 | Hermes | the **one** approved A100/H200 endpoint | the approved HTTPS port | Cilium egress policy (`toFQDNs` on the approved hostname, plus the DNS rule it needs) | **one host, one port**: never a GPU subnet (§9). A hostname keeps addresses out of Git |
+| W4-5 | every pod in the ACP namespace | kube-dns | 53/udp+tcp | NetworkPolicy egress | needed for W4-4's FQDN rule |
+| W4-6 | every pod in the ACP namespace | **anything else** | all | **default-deny egress** in the namespace | blocks the Kubernetes API, OpenStack/metadata (`169.254.169.254`), edge-01, the platform DB and the Internet: the Part F "no broad credentials" boundary, enforced on the network as well |
+
+**Security groups:** none expected. Neutron egress is still allow-all (§4), and the GPU traffic leaves a worker via the router, so it needs no inbound rule here. A security-group row is needed only if the GPU service has to call **back** into the cluster, which the Phase-1 design does not do. If the approved endpoint only accepts listed sources, the source it sees is the router's external SNAT address: that is shared on Discord, never in Git.
+
+**Observability caveat for Weeks 4–5:** the k8s nodes' default route is the Neutron router, **not** edge-01. Hermes → GPU traffic therefore never crosses edge, so **Suricata and the edge nftables do not see it**. Evidence for W4-4 comes from Cilium/Hubble flow logs and the ACP event ledger (and Wazuh agents on the workers), not from the edge IDS.
+
+**Questions for the instructor (before W4-4 can be written):**
+
+1. The approved endpoint's hostname and port, whether it is HTTPS with a public or a CHPC CA, and how Hermes authenticates (API key as a SealedSecret?).
+2. Is it reachable from Sebowa through the router's SNAT, or does it need a route or a peering?
+3. Does the GPU side allowlist callers by source address? If so, which address will it see?
+
+**Verification once applied (from `k8s-cp-01`):** a debug pod in the ACP namespace can reach the endpoint and Prometheus, but **cannot** reach the Kubernetes API, `169.254.169.254`, edge-01 or an Internet host. Hubble shows the drops (`hubble observe --namespace <acp-ns> --verdict DROPPED`).
+
 ## 5. Variables (no invented defaults)
 
 | Variable | Meaning | Value |
