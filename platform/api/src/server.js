@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import express from "express";
 import client from "prom-client";
+import { ACP_DIAGNOSTIC, acpConfig, acpRequest, browserResult, isUuid } from "./acp.js";
 import { migrate, pool, seed, waitForDatabase } from "./db.js";
 
 const PORT = Number(process.env.PORT || 8080);
@@ -67,7 +68,8 @@ export function parseCookies(header = "") {
   return out;
 }
 
-export function createApp() {
+// options.acp: Crypty/ACP config (acpConfig() or null); options.fetchImpl for tests.
+export function createApp({ acp = null, fetchImpl = fetch } = {}) {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1); // one hop: Traefik sets X-Forwarded-For
@@ -107,7 +109,7 @@ export function createApp() {
     if (!token) return null;
     const { rows } = await pool.query(
       `SELECT u.id, u.username, u.display_name, t.name AS team, t.project_slug,
-              (u.password_changed_at IS NULL) AS must_change_password
+              u.agent_principal, (u.password_changed_at IS NULL) AS must_change_password
          FROM sessions s JOIN users u ON u.id = s.user_id LEFT JOIN teams t ON t.id = u.team_id
         WHERE s.token_hash = $1 AND s.expires_at > now()`,
       [sha256(token)],
@@ -199,7 +201,10 @@ export function createApp() {
     res.json({ ok: true });
   });
 
-  app.get("/api/me", requireUser, (req, res) => res.json(req.user));
+  app.get("/api/me", requireUser, (req, res) => {
+    const { agent_principal: _hidden, ...user } = req.user; // the ACP subject stays server-side
+    res.json(user);
+  });
 
   // Safe status view: no credentials, no cluster access, only what the app knows.
   app.get("/api/status", requireUser, requireOwnPassword, async (_req, res) => {
@@ -222,6 +227,47 @@ export function createApp() {
     });
   });
 
+  // Crypty (Week 4): the one allowed read-only diagnostic through the Agent Control
+  // Plane. The backend checks the user, signs a short-lived assertion and calls ACP;
+  // the browser only ever talks to this app.
+  function requireCrypty(req, res, next) {
+    if (!acp) return res.status(503).json({ error: "Crypty is not configured on this platform yet" });
+    if (!acp.allowed.has(req.user.username)) {
+      return res.status(403).json({ error: "your account may not request diagnostics" });
+    }
+    return next();
+  }
+  async function callAcp(req, res, method, path, extra = {}) {
+    try {
+      const result = browserResult(await acpRequest(acp, req.user, method, path, { ...extra, fetchImpl }));
+      return res.status(result.status).json(result.body);
+    } catch (err) {
+      console.error(`crypty: ACP call failed (${err.name})`);
+      return res.status(503).json({ error: "Crypty (ACP) is unreachable" });
+    }
+  }
+  app.get("/api/crypty", requireUser, requireOwnPassword, (req, res) =>
+    res.json({
+      configured: Boolean(acp),
+      allowed: Boolean(acp && acp.allowed.has(req.user.username)),
+      diagnostic: ACP_DIAGNOSTIC,
+      model: acp?.model || null,
+    }),
+  );
+  app.post("/api/crypty/diagnostics", requireUser, requireOwnPassword, requireCrypty, (req, res) => {
+    // One key per click from the browser (a double click is one task); else a fresh one.
+    const offered = req.get("idempotency-key");
+    const idempotencyKey = isUuid(offered) ? offered : crypto.randomUUID();
+    return callAcp(req, res, "POST", "/v1/admin/tasks", { body: { diagnostic: ACP_DIAGNOSTIC }, idempotencyKey });
+  });
+  app.get("/api/crypty/tasks", requireUser, requireOwnPassword, requireCrypty, (req, res) =>
+    callAcp(req, res, "GET", "/v1/admin/tasks"),
+  );
+  app.get("/api/crypty/tasks/:id", requireUser, requireOwnPassword, requireCrypty, (req, res) => {
+    if (!isUuid(req.params.id)) return res.status(400).json({ error: "invalid task id" });
+    return callAcp(req, res, "GET", `/v1/admin/tasks/${req.params.id}`);
+  });
+
   app.use(express.static(STATIC_DIR, { extensions: ["html"] }));
   return app;
 }
@@ -230,5 +276,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   await waitForDatabase();
   await migrate();
   await seed(bcrypt);
-  createApp().listen(PORT, () => console.log(`student-platform listening on :${PORT}`));
+  const acp = acpConfig();
+  console.log(acp ? `crypty: ACP at ${acp.url}, ${acp.allowed.size} allowed user(s)` : "crypty: not configured");
+  createApp({ acp }).listen(PORT, () => console.log(`student-platform listening on :${PORT}`));
 }

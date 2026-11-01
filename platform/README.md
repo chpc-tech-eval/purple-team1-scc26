@@ -49,3 +49,13 @@ platform/
 ```
 
 Exact starter implementation may evolve before the programme baseline is frozen. Preserve the contract even if framework details are adjusted.
+
+## Crypty (Week 4): server-side ACP integration
+
+`/crypty/` lets an allowlisted, signed-in user (own password set) run the **one fixed read-only diagnostic** through the Agent Control Plane and read its history, evidence and explanation. "Crypty" is the display name; records always name the real approved model.
+
+- The browser only calls this app (`/api/crypty`, `/api/crypty/diagnostics`, `/api/crypty/tasks[/:id]`). It never sees ACP, the signing key or an assertion.
+- For each call the backend signs a fresh **EdDSA assertion valid for 60 s** (ACP rejects anything over 90 s): `iss=quantum-platform`, `aud=agent-control-plane`, `sub=urn:quantum-platform:user:<agent_principal UUID>`, `tenant`, `scope=admin:diagnostics`, unique `jti` (`api/src/acp.js`). Checked against ACP's own PyJWT verification settings.
+- `users.agent_principal` is a random UUID per user, so the ACP subject never reveals the username or row id; `/api/me` doesn't return it.
+- ACP errors stay errors (401 → 502, 404, 429, 503 passed through; anything else → 502). A failed run is shown as failed, never as healthy.
+- Configuration (Deployment env, not secrets): `ACP_URL`, `ACP_TENANT_ID`, `ACP_ALLOWED_USERS` (comma-separated usernames), optional `ACP_MODEL_LABEL`; `ACP_SIGNING_KEY_FILE` points at the mounted `acp-signing` SealedSecret. Without them the page says Crypty isn't configured.
