@@ -59,6 +59,8 @@ jobs:
             -e "import('./src/server.js').then(m => m.createApp().listen(8080))"
           for i in $(seq 1 20); do curl -fsS http://127.0.0.1:18080/healthz && break; sleep 1; done
           curl -fsS http://127.0.0.1:18080/ | grep -q "Sign in"
+          curl -fsS http://127.0.0.1:18080/ | grep -q "University of Mpumalanga"
+          curl -fsS http://127.0.0.1:18080/password/ | grep -q "Set your password"
           docker rm -f smoke
 
       - name: Push to GHCR (dev only)

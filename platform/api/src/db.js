@@ -59,6 +59,8 @@ export async function migrate() {
       user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
       at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+    -- NULL = still on the password someone else handed out: must change it.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;
   `);
 }
 
