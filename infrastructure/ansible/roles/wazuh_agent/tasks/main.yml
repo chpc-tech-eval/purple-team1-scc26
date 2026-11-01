@@ -13,6 +13,28 @@
     gpgkey: "{{ wazuh_agent_gpg_key }}"
     enabled: true
 
+- name: Install the versionlock plugin
+  ansible.builtin.dnf:
+    name: python3-dnf-plugin-versionlock
+    state: present
+
+# A routine `dnf update` must not move wazuh-agent out of order (agents newer than
+# the manager are unsupported). An upgrade PR changes wazuh_agent_version; this
+# releases the old lock first, then the pinned version is installed and locked.
+- name: Read the current version locks
+  ansible.builtin.command: dnf versionlock list
+  register: wazuh_agent_versionlocks
+  changed_when: false
+  check_mode: false  # read-only; lets --check evaluate the release condition
+
+- name: Release a wazuh-agent lock for a different version (upgrade PRs only)
+  community.general.dnf_versionlock:
+    name: wazuh-agent
+    state: absent
+  when:
+    - "'wazuh-agent-' in wazuh_agent_versionlocks.stdout"
+    - "('wazuh-agent-0:' ~ wazuh_agent_version ~ '-') not in wazuh_agent_versionlocks.stdout"
+
 - name: Install the pinned Wazuh agent (manager address set at install time)
   ansible.builtin.dnf:
     name: "wazuh-agent-{{ wazuh_agent_version }}"
@@ -20,6 +42,11 @@
   environment:
     WAZUH_MANAGER: "{{ wazuh_agent_manager }}"
     WAZUH_AGENT_NAME: "{{ inventory_hostname }}"
+
+- name: Lock wazuh-agent to the pinned version
+  community.general.dnf_versionlock:
+    name: wazuh-agent
+    state: present
 
 - name: Point the agent at the manager
   ansible.builtin.replace:

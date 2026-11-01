@@ -6,6 +6,11 @@
     name: "filebeat-{{ wazuh_manager_filebeat_version }}"
     state: present
 
+- name: Lock Filebeat to the pinned version
+  community.general.dnf_versionlock:
+    name: filebeat
+    state: present
+
 - name: Wazuh alerts index template
   ansible.builtin.get_url:
     url: "{{ wazuh_manager_filebeat_template_url }}"

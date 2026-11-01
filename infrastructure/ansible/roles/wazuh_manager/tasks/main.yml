@@ -13,9 +13,36 @@
     gpgkey: "{{ wazuh_manager_gpg_key }}"
     enabled: true
 
+- name: Install the versionlock plugin
+  ansible.builtin.dnf:
+    name: python3-dnf-plugin-versionlock
+    state: present
+
+# A routine `dnf update` must not move wazuh-manager out of order (agents newer than
+# the manager are unsupported). An upgrade PR changes wazuh_manager_version; this
+# releases the old lock first, then the pinned version is installed and locked.
+- name: Read the current version locks
+  ansible.builtin.command: dnf versionlock list
+  register: wazuh_manager_versionlocks
+  changed_when: false
+  check_mode: false  # read-only; lets --check evaluate the release condition
+
+- name: Release a wazuh-manager lock for a different version (upgrade PRs only)
+  community.general.dnf_versionlock:
+    name: wazuh-manager
+    state: absent
+  when:
+    - "'wazuh-manager-' in wazuh_manager_versionlocks.stdout"
+    - "('wazuh-manager-0:' ~ wazuh_manager_version ~ '-') not in wazuh_manager_versionlocks.stdout"
+
 - name: Install the pinned Wazuh manager
   ansible.builtin.dnf:
     name: "wazuh-manager-{{ wazuh_manager_version }}"
+    state: present
+
+- name: Lock wazuh-manager to the pinned version
+  community.general.dnf_versionlock:
+    name: wazuh-manager
     state: present
 
 - name: Read Suricata EVE JSON into the manager
