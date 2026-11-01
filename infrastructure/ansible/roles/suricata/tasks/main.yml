@@ -17,6 +17,13 @@
     replace: '\1HOME_NET: "{{ suricata_home_net }}"'
   notify: Restart suricata
 
+- name: Capture whole jumbo frames (no truncated-packet decoder floods)
+  ansible.builtin.lineinfile:
+    path: /etc/suricata/suricata.yaml
+    regexp: '^#?default-packet-size:'
+    line: "default-packet-size: {{ suricata_default_packet_size }}"
+  notify: Restart suricata
+
 - name: Interfaces to watch (IDS, af-packet)
   ansible.builtin.template:
     src: sysconfig.j2

@@ -16,3 +16,10 @@ suricata_update_enabled: true
 # carrying this exact marker, e.g. GET /scc26-ids-drill.
 suricata_drill_marker: scc26-ids-drill
 suricata_drill_sid: 9000001
+# Packet buffer size. Suricata's default (1514) assumes MTU 1500, but the
+# OpenStack network uses jumbo frames (MTU 8950 on the edge NIC), so every
+# full-size packet was truncated: decoder alerts 2200122/2200003 flooded
+# Wazuh during bulk transfers (~98k in 25 minutes on 2026-11-01) and the IDS
+# only inspected the first 1514 bytes. Largest watched MTU + 18 (Ethernet
+# header + one VLAN tag), read from facts so no size is hardcoded.
+suricata_default_packet_size: "{{ (suricata_interfaces | map('extract', ansible_facts) | map(attribute='mtu') | max) + 18 }}"
