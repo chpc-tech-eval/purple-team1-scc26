@@ -17,6 +17,7 @@
   ansible.builtin.dnf:
     name: python3-dnf-plugin-versionlock
     state: present
+  register: wazuh_agent_versionlock_plugin
 
 # A routine `dnf update` must not move wazuh-agent out of order (agents newer than
 # the manager are unsupported). An upgrade PR changes wazuh_agent_version; this
@@ -49,6 +50,8 @@
   community.general.dnf_versionlock:
     name: wazuh-agent
     state: present
+  # A first --check run on a host without the plugin cannot evaluate a lock.
+  when: not (ansible_check_mode and wazuh_agent_versionlock_plugin is changed)
 
 - name: Point the agent at the manager
   ansible.builtin.replace:

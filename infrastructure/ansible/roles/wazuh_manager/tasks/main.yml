@@ -17,6 +17,7 @@
   ansible.builtin.dnf:
     name: python3-dnf-plugin-versionlock
     state: present
+  register: wazuh_manager_versionlock_plugin
 
 # A routine `dnf update` must not move wazuh-manager out of order (agents newer than
 # the manager are unsupported). An upgrade PR changes wazuh_manager_version; this
@@ -46,6 +47,8 @@
   community.general.dnf_versionlock:
     name: wazuh-manager
     state: present
+  # A first --check run on a host without the plugin cannot evaluate a lock.
+  when: not (ansible_check_mode and wazuh_manager_versionlock_plugin is changed)
 
 - name: Read Suricata EVE JSON into the manager
   ansible.builtin.blockinfile:
