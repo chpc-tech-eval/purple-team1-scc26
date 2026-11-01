@@ -1,0 +1,25 @@
+# Week-3 Part B follow-up: the Wazuh indexer + dashboard in the cluster, so the
+# manager on edge-01 (#76) has a UI. Manifests adapted from wazuh-kubernetes
+# v4.14.8; certificates from the team CA; credentials sealed (wazuh-creds).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: wazuh
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: wazuh
+  source:
+    repoURL: https://github.com/chpc-tech-eval/purple-team1-scc26.git
+    targetRevision: dev
+    path: gitops/resources/wazuh
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

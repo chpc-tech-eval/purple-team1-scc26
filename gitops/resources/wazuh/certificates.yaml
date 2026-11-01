@@ -1,0 +1,79 @@
+# Wazuh indexer/dashboard TLS from our own team CA (pt1-internal-ca), not the
+# upstream generate_certs.sh. PKCS8 keys because OpenSearch security only reads
+# PKCS8. The subject DNs below must match plugins.security.nodes_dn/admin_dn in
+# indexer.yaml exactly (RFC 2253 order: CN first).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: indexer-node
+  namespace: wazuh
+spec:
+  secretName: indexer-node-tls
+  commonName: indexer
+  subject:
+    organizations: ["3NCRYP3D"]
+  dnsNames:
+    - indexer
+    - indexer.wazuh.svc
+    - indexer.wazuh.svc.cluster.local
+    - wazuh-indexer
+    - wazuh-indexer-0.wazuh-indexer
+    - wazuh-indexer-0.wazuh-indexer.wazuh.svc.cluster.local
+  duration: 8760h
+  renewBefore: 720h
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS8
+    rotationPolicy: Always
+  usages: [server auth, client auth, digital signature, key encipherment]
+  issuerRef:
+    kind: ClusterIssuer
+    name: pt1-internal-ca
+---
+# Admin client certificate: only used by securityadmin.sh for security-config changes.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: indexer-admin
+  namespace: wazuh
+spec:
+  secretName: indexer-admin-tls
+  commonName: admin
+  subject:
+    organizations: ["3NCRYP3D"]
+  duration: 8760h
+  renewBefore: 720h
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS8
+    rotationPolicy: Always
+  usages: [client auth, digital signature, key encipherment]
+  issuerRef:
+    kind: ClusterIssuer
+    name: pt1-internal-ca
+---
+# Dashboard client identity; its ca.crt is what the dashboard uses to verify the indexer.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dashboard
+  namespace: wazuh
+spec:
+  secretName: dashboard-tls
+  commonName: dashboard
+  subject:
+    organizations: ["3NCRYP3D"]
+  dnsNames: [wazuh-dashboard, wazuh.pt1.internal]
+  duration: 8760h
+  renewBefore: 720h
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS8
+    rotationPolicy: Always
+  usages: [server auth, client auth, digital signature, key encipherment]
+  issuerRef:
+    kind: ClusterIssuer
+    name: pt1-internal-ca

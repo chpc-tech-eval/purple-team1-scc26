@@ -1,0 +1,197 @@
+# Wazuh indexer 4.14.8 (OpenSearch), single node, adapted from the official
+# wazuh-kubernetes v4.14.8 manifests: one replica instead of three, Cinder SSD
+# instead of the wazuh-storage class, team-CA certificates, our own sealed
+# internal_users.yml (no default passwords), and no privileged init container
+# (node.store.allow_mmap: false removes the vm.max_map_count requirement).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: indexer-conf
+  namespace: wazuh
+data:
+  opensearch.yml: |
+    cluster.name: wazuh
+    node.name: ${NODE_NAME}
+    network.host: 0.0.0.0
+    discovery.type: single-node
+    node.store.allow_mmap: false
+    path.data: /var/lib/wazuh-indexer
+    path.logs: /var/log/wazuh-indexer
+    plugins.security.ssl.http.enabled: true
+    plugins.security.ssl.http.pemcert_filepath: /usr/share/wazuh-indexer/config/certs/node.pem
+    plugins.security.ssl.http.pemkey_filepath: /usr/share/wazuh-indexer/config/certs/node-key.pem
+    plugins.security.ssl.http.pemtrustedcas_filepath: /usr/share/wazuh-indexer/config/certs/root-ca.pem
+    plugins.security.ssl.transport.pemcert_filepath: /usr/share/wazuh-indexer/config/certs/node.pem
+    plugins.security.ssl.transport.pemkey_filepath: /usr/share/wazuh-indexer/config/certs/node-key.pem
+    plugins.security.ssl.transport.pemtrustedcas_filepath: /usr/share/wazuh-indexer/config/certs/root-ca.pem
+    plugins.security.ssl.transport.enforce_hostname_verification: false
+    plugins.security.ssl.transport.resolve_hostname: false
+    plugins.security.authcz.admin_dn:
+      - "CN=admin,O=3NCRYP3D"
+    plugins.security.nodes_dn:
+      - "CN=indexer,O=3NCRYP3D"
+    plugins.security.restapi.roles_enabled:
+      - all_access
+      - security_rest_api_access
+    plugins.security.check_snapshot_restore_write_privileges: true
+    plugins.security.enable_snapshot_restore_privilege: true
+    plugins.security.allow_default_init_securityindex: true
+    cluster.routing.allocation.disk.threshold_enabled: false
+    compatibility.override_main_response_version: true
+---
+# Headless service for the StatefulSet identity.
+apiVersion: v1
+kind: Service
+metadata:
+  name: wazuh-indexer
+  namespace: wazuh
+  labels: {app: wazuh-indexer}
+spec:
+  clusterIP: None
+  selector: {app: wazuh-indexer}
+  ports:
+    - name: indexer-nodes
+      port: 9300
+---
+# In-cluster REST endpoint used by the dashboard.
+apiVersion: v1
+kind: Service
+metadata:
+  name: indexer
+  namespace: wazuh
+  labels: {app: wazuh-indexer}
+spec:
+  selector: {app: wazuh-indexer}
+  ports:
+    - name: indexer-rest
+      port: 9200
+      targetPort: 9200
+---
+# Filebeat on edge-01 ships manager alerts here. Reachable only from mgmt_cidr
+# (SG row 18); TLS from the team CA plus indexer authentication on top.
+apiVersion: v1
+kind: Service
+metadata:
+  name: indexer-edge
+  namespace: wazuh
+  labels: {app: wazuh-indexer}
+spec:
+  type: NodePort
+  selector: {app: wazuh-indexer}
+  ports:
+    - name: indexer-rest
+      port: 9200
+      targetPort: 9200
+      nodePort: 30920
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: wazuh-indexer
+  namespace: wazuh
+spec:
+  replicas: 1
+  serviceName: wazuh-indexer
+  selector:
+    matchLabels: {app: wazuh-indexer}
+  template:
+    metadata:
+      labels: {app: wazuh-indexer}
+    spec:
+      securityContext:
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: indexer-certs
+          projected:
+            defaultMode: 0440
+            sources:
+              - secret:
+                  name: indexer-node-tls
+                  items:
+                    - {key: tls.crt, path: node.pem}
+                    - {key: tls.key, path: node-key.pem}
+                    - {key: ca.crt, path: root-ca.pem}
+              - secret:
+                  name: indexer-admin-tls
+                  items:
+                    - {key: tls.crt, path: admin.pem}
+                    - {key: tls.key, path: admin-key.pem}
+        - name: indexer-users
+          secret:
+            secretName: wazuh-creds
+            defaultMode: 0440
+            items:
+              - {key: internal_users.yml, path: internal_users.yml}
+        - name: indexer-conf
+          configMap:
+            name: indexer-conf
+      containers:
+        - name: wazuh-indexer
+          image: wazuh/wazuh-indexer:4.14.8
+          env:
+            - name: OPENSEARCH_JAVA_OPTS
+              value: "-Xms2g -Xmx2g -Dlog4j2.formatMsgNoLookups=true"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef: {fieldPath: metadata.name}
+            - name: DISABLE_INSTALL_DEMO_CONFIG
+              value: "true"
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              add: [SYS_CHROOT]
+          ports:
+            - containerPort: 9200
+              name: indexer-rest
+            - containerPort: 9300
+              name: indexer-nodes
+          readinessProbe:
+            tcpSocket: {port: 9200}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 500m, memory: 3Gi}
+            limits: {memory: 3Gi}
+          volumeMounts:
+            - name: wazuh-indexer
+              mountPath: /var/lib/wazuh-indexer
+            - name: indexer-certs
+              mountPath: /usr/share/wazuh-indexer/config/certs
+              readOnly: true
+            - name: indexer-conf
+              mountPath: /usr/share/wazuh-indexer/config/opensearch.yml
+              subPath: opensearch.yml
+              readOnly: true
+            - name: indexer-users
+              mountPath: /usr/share/wazuh-indexer/config/opensearch-security/internal_users.yml
+              subPath: internal_users.yml
+              readOnly: true
+  volumeClaimTemplates:
+    - metadata:
+        name: wazuh-indexer
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: cinder-ssd
+        resources:
+          requests: {storage: 10Gi}
+---
+# Transport (9300) is not needed by anyone on a single node; REST (9200) stays
+# open to the dashboard and the NodePort path (TLS + authentication).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: indexer-rest-only
+  namespace: wazuh
+spec:
+  podSelector:
+    matchLabels: {app: wazuh-indexer}
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 9200

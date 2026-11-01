@@ -1,0 +1,51 @@
+---
+# Filebeat 7.10.2 (the version Wazuh 4.x ships) reads /var/ossec/logs/alerts
+# and sends them to the in-cluster Wazuh indexer over the NodePort (SG row 18).
+- name: Install the pinned Filebeat from the Wazuh repository
+  ansible.builtin.dnf:
+    name: "filebeat-{{ wazuh_filebeat_version }}"
+    state: present
+
+- name: Wazuh alerts index template
+  ansible.builtin.get_url:
+    url: "{{ wazuh_filebeat_template_url }}"
+    dest: /etc/filebeat/wazuh-template.json
+    mode: "0644"
+  notify: Restart filebeat
+
+- name: Wazuh Filebeat module
+  ansible.builtin.unarchive:
+    src: "{{ wazuh_filebeat_module_url }}"
+    dest: /usr/share/filebeat/module
+    remote_src: true
+    creates: /usr/share/filebeat/module/wazuh/module.yml
+  notify: Restart filebeat
+
+- name: Certificate directory
+  ansible.builtin.file:
+    path: /etc/filebeat/certs
+    state: directory
+    mode: "0750"
+
+- name: Team CA that signed the indexer certificate
+  ansible.builtin.copy:
+    content: "{{ wazuh_filebeat_ca_cert }}"
+    dest: /etc/filebeat/certs/root-ca.pem
+    mode: "0644"
+  notify: Restart filebeat
+
+- name: Filebeat configuration
+  ansible.builtin.template:
+    src: filebeat.yml.j2
+    dest: /etc/filebeat/filebeat.yml
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Restart filebeat
+
+- name: Enable and start Filebeat
+  ansible.builtin.systemd_service:
+    name: filebeat
+    enabled: true
+    state: started

@@ -80,6 +80,8 @@ locals {
       "${group}-node-exporter"  = { group = group, protocol = "tcp", port = 9100, cidr = var.k8s_cidr }
       "${group}-cilium-metrics" = { group = group, protocol = "tcp", port_min = 9962, port_max = 9964, cidr = var.k8s_cidr }
     }]...),
+    # 18. Filebeat on edge-01 -> in-cluster Wazuh indexer NodePort, from mgmt_cidr only.
+    { "k8s-worker-wazuh-indexer-mgmt" = { group = "k8s-worker", protocol = "tcp", port = 30920, cidr = var.mgmt_cidr } },
   )
 
   rules = { for key, spec in local.rule_specs : key => {
