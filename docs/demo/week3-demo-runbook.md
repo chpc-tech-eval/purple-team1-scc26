@@ -1,11 +1,11 @@
 # Demo: Week-3 runbook (observability, security telemetry, Student Platform)
 
-About 40 minutes, two presenters. Every command is read-only unless marked. Evidence index: [`evidence/week3/README.md`](../../evidence/week3/README.md); diagram: [`evidence/week3/diagrams/`](../../evidence/week3/diagrams/README.md); problems we hit: [`evidence/week3/troubleshooting.md`](../../evidence/week3/troubleshooting.md).
+About 45 minutes, two presenters. Every command is read-only unless marked. Evidence index: [`evidence/week3/README.md`](../../evidence/week3/README.md); diagram: [`evidence/week3/diagrams/`](../../evidence/week3/diagrams/README.md); problems we hit: [`evidence/week3/troubleshooting.md`](../../evidence/week3/troubleshooting.md).
 
 ## Before you share your screen
 
 - VPN up; log in as **yourself** (`ssh <name>@<host>`), not `rocky`.
-- **Never show** tfvars, the private inventory, `~/.config/scc26-secrets/`, kubeconfigs, Grafana or platform passwords, or `kubectl get secret -o yaml`. Use host names, not addresses.
+- **Never show** tfvars, the private inventory, `~/.config/scc26-secrets/`, kubeconfigs, Grafana, Wazuh or platform passwords, or `kubectl get secret -o yaml`. The Wazuh dashboard's *Server APIs* page shows the manager's private address: don't open it while sharing. Use host names, not addresses.
 - Read times from the **server** clock (`date -u` on edge-01); it is NTP-synced.
 
 ## 1. The three questions (Phathutshedzo, ~3 min)
@@ -26,13 +26,23 @@ Point out: every job is `1`; the four kubeadm-localhost jobs are switched off on
 
 Open `https://grafana.pt1.internal:30443` over the VPN (team-CA certificate) → dashboard **SCC26 3NCRYP+3D overview** (UTC). Show that it comes from `gitops/resources/monitoring/dashboard-scc26-overview.yaml`, not the GUI.
 
-## 4. Wazuh: manager and agents (Olerato, ~6 min)
+## 4. Wazuh: manager, agents, indexer and dashboard (Olerato, ~8 min)
 
 ```bash
 # RUN ON: edge-01
-sudo systemctl is-active wazuh-manager
+sudo systemctl is-active wazuh-manager filebeat
+rpm -q wazuh-manager                         # 4.14.9 (installed package, not just "Ansible finished")
 sudo /var/ossec/bin/agent_control -l        # 4 agents Active + the server
+sudo filebeat test output | grep -E 'handshake|talk to server'   # Filebeat -> indexer, as the write-only 'filebeat' user
 ```
+
+```bash
+# RUN ON: k8s-cp-01   (week3 §7)
+kubectl -n wazuh get pods,svc,pvc
+kubectl -n wazuh get events --sort-by=.lastTimestamp | tail -n 10
+```
+
+Browser: `https://wazuh.pt1.internal:30443` over the VPN (team-CA certificate) → sign in → **Agents**: 5 active on v4.14.9. Point out the path: agents → manager → Filebeat → indexer in Kubernetes → dashboard, all credentials sealed, no factory passwords (troubleshooting §15).
 
 ## 5. Suricata in IDS mode (Olerato, ~5 min)
 
@@ -41,6 +51,8 @@ sudo /var/ossec/bin/agent_control -l        # 4 agents Active + the server
 sudo systemctl is-active suricata
 sudo -u suricata suricata -T -c /etc/suricata/suricata.yaml   # as the service user (troubleshooting §4)
 grep OPTIONS /etc/sysconfig/suricata           # -i <nic> -i wg0: IDS (af-packet), no inline
+sudo suricata --dump-config | grep '^default-packet-size'          # MTU + 18 (jumbo frames, troubleshooting §18)
+systemctl is-active scc26-capture-offloads && sudo ethtool -k wg0 | grep -E '^generic-receive-offload'   # off
 ```
 
 ## 6. Live security drill, end to end (Olerato + Phathutshedzo, ~8 min)
@@ -69,6 +81,8 @@ date -u +%FT%TZ
 Select alerts by **rule ID**, not by grepping for the drill text: Wazuh also logs your own `sudo grep` command line (rule 5402), which would match. Rule 86601 is Wazuh's rule for *every* Suricata alert, so also filter on our signature ID. `alerts.json` rotates daily (older alerts are in `/var/ossec/logs/alerts/<year>/<Mon>/`), so run the drill fresh on the day.
 
 Expected: Suricata `sid 9000001` → Wazuh rule **86601** within a second; the failed login → Wazuh rule **5710** from agent `api-lb-01`.
+
+Then show the **same two events in the dashboard** (they reached the indexer through Filebeat): *Threat Hunting* → *Events*, time range = your two timestamps, query `rule.id:86601 and data.alert.signature_id:9000001`, then `rule.id:5710`. Finally answer *"what was the platform health at that time?"*: in Grafana set the same time range on **SCC26 3NCRYP+3D overview** → *Student platform: available replicas* = 2, no pods failing.
 
 ## 7. Student Platform (Phathutshedzo, ~6 min)
 

@@ -129,7 +129,9 @@ Each note is a problem the team actually hit in Week 3, with its source on GitHu
 
 **Symptom:** a VPN query to Pi-hole on edge-01's **management** address timed out, while the **wg0** address answered (`platform.pt1.internal`, `grafana.pt1.internal`). Both had answered on 2026-10-16.
 
-**Effect:** none for users; VPN clients use the wg0 address. It is likely tied to the 2026-10-25 edge firewall re-render and is recorded here for the Week-5 review instead of being changed blindly.
+**Effect:** none for users; VPN clients use the wg0 address.
+
+**Re-tested (2026-11-01, Week-3 close-out):** five queries to each address over the VPN: **mgmt 4/5 answered, wg0 5/5**, with link RTT 254–490 ms at the time. The edge nftables ruleset and `terraform plan` (No changes) were also audited. **Pi-hole answers on both addresses; the original timeout was link jitter on a high-latency path, not the firewall.** The earlier guess (the 2026-10-25 firewall re-render) was wrong and is withdrawn. Nothing was changed.
 
 
 ## 15. The Wazuh API still had its factory passwords
@@ -169,5 +171,11 @@ The indexer trusts `CN=admin,O=3NCRYP3D` as its security admin, and that certifi
 2. Still 11,447 truncations on eth0 after #90: the NIC had **hardware GRO (`rx-gro-hw`) on** even though generic GRO was off, so af-packet received merged super-packets bigger than any MTU (as @Ole06 predicted). wg0 had generic GRO on too.
 
 **Fix:** the `suricata` role installs a oneshot unit `scc26-capture-offloads` that turns `gro`, `rx-gro-hw` and `lro` off on every capture interface **before Suricata starts** and **re-runs whenever `wg-quick@wg0` restarts** (wg-quick recreates wg0 with GRO on). It's also a detection fix: before, the IDS only inspected the first 1514 bytes of bulk traffic.
+
+**Trade-off, on purpose:** edge-01 is also the VPN router. With GRO off it processes every packet one by one, which costs a little more CPU on bulk transfers. That is acceptable at our scale. **Do not turn GRO/LRO back on to "optimise" the edge:** that reopens the IDS blind spot (Suricata would again see truncated super-packets).
+
+**Known limit, for Week 5:** the offload script never fails (`|| true`, the unit always succeeds), so a driver that refuses to switch a feature off would not turn anything red; only the journal line shows it. Week-5 follow-up: a check in the play that fails if `rx-gro-hw` or `gro` is still `on` on a capture interface after the handler.
+
+**Testing a VPN restart safely:** `systemctl restart wg-quick@wg0` over an SSH session that itself runs through the VPN cuts that session mid-command. Use the restricted public fallback SSH, or detach it: `sudo systemd-run --on-active=5 systemctl restart wg-quick@wg0`, then reconnect.
 
 **Rebuild order (Week 6):** `edge.yml` runs `firewall → wireguard → pihole → suricata`. The suricata role no longer needs wg0 to exist (the packet size uses the interfaces present, fallback 1500, and the offload script skips absent interfaces), but run the whole play, not `--tags suricata` alone, on a fresh edge so wg0's MTU is counted.
