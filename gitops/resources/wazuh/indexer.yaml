@@ -129,7 +129,7 @@ spec:
             name: indexer-conf
       containers:
         - name: wazuh-indexer
-          image: wazuh/wazuh-indexer:4.14.8
+          image: wazuh/wazuh-indexer:4.14.8@sha256:6a9c1e3827da627a70859213b3e9cfe43193a492e358953de332b94de33b07de
           env:
             - name: OPENSEARCH_JAVA_OPTS
               value: "-Xms2g -Xmx2g -Dlog4j2.formatMsgNoLookups=true"

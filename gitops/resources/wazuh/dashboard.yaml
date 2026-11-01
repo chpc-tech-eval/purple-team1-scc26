@@ -52,7 +52,7 @@ spec:
               - {key: ca.crt, path: root-ca.pem}
       containers:
         - name: wazuh-dashboard
-          image: wazuh/wazuh-dashboard:4.14.8
+          image: wazuh/wazuh-dashboard:4.14.8@sha256:dd338d22355e8f0cdf8cc97d5b928539d56061b83c3274a79059e60ad5b8ac14
           ports:
             - containerPort: 5601
               name: dashboard
