@@ -33,4 +33,3 @@ suricata_default_packet_size: >-
 suricata_disabled_offloads: [gro, rx-gro-hw, lro]
 # The VPN unit that creates wg0; the offload unit re-runs whenever it restarts.
 suricata_vpn_unit: wg-quick@wg0.service
-

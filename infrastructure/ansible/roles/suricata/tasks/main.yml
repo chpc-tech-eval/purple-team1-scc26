@@ -53,6 +53,8 @@
     daemon_reload: true
     enabled: true
     state: started
+  # In --check the unit file above is not really written yet.
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Interfaces to watch (IDS, af-packet)
   ansible.builtin.template:
