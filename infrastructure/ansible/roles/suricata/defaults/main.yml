@@ -22,4 +22,14 @@ suricata_drill_sid: 9000001
 # Wazuh during bulk transfers (~98k in 25 minutes on 2026-11-01) and the IDS
 # only inspected the first 1514 bytes. Largest watched MTU + 18 (Ethernet
 # header + one VLAN tag), read from facts so no size is hardcoded.
-suricata_default_packet_size: "{{ (suricata_interfaces | map('extract', ansible_facts) | map(attribute='mtu') | max) + 18 }}"
+# Only interfaces that already exist count (fallback 1500), so a from-scratch
+# rebuild does not fail if WireGuard is not up yet; edge.yml runs wireguard first.
+suricata_default_packet_size: >-
+  {{ ((suricata_interfaces | select('in', ansible_facts.interfaces) | map('extract', ansible_facts)
+      | map(attribute='mtu') | list) + [1500]) | max + 18 }}
+# Receive offloads merge packets into super-packets before af-packet sees them
+# (hardware GRO stayed on for the edge NIC even with generic GRO off), which
+# Suricata truncates. Off on every capture interface, persistently.
+suricata_disabled_offloads: [gro, rx-gro-hw, lro]
+# The VPN unit that creates wg0; the offload unit re-runs whenever it restarts.
+suricata_vpn_unit: wg-quick@wg0.service

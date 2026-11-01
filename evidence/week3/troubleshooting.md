@@ -159,3 +159,17 @@ Each note is a problem the team actually hit in Week 3, with its source on GitHu
 **When:** 2026-11-01 · **Source:** [#87 review](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/87)
 
 The indexer trusts `CN=admin,O=3NCRYP3D` as its security admin, and that certificate comes from `pt1-internal-ca`, the same ClusterIssuer every Ingress uses. Anyone allowed to create a cert-manager `Certificate` could mint an indexer-admin identity. Today only cluster admins can, so the risk is accepted; it goes on the **Week-5** review list. The fix then is a separate namespaced `Issuer` (own CA) for the indexer's node/admin certificates.
+
+## 18. Suricata flooded Wazuh with "truncated packet" alerts
+
+**When:** 2026-11-01 · **Source:** [#89](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/89), [#90](https://github.com/chpc-tech-eval/purple-team1-scc26/pull/90), this PR
+
+**Symptom:** during the Wazuh 4.14.9 upgrade downloads (16:50–17:14 UTC), ~98k Suricata decoder alerts (sid **2200122** AF-PACKET truncated, **2200003** IPv4 truncated) from edge-01 eth0 reached Wazuh.
+
+**Cause, in two layers:**
+1. edge-01's NIC runs jumbo frames (MTU 8950) but Suricata kept `default-packet-size: 1514`. Fixed in #90 (MTU + 18 = 8968).
+2. Still 11,447 truncations on eth0 after #90: the NIC had **hardware GRO (`rx-gro-hw`) on** even though generic GRO was off, so af-packet received merged super-packets bigger than any MTU (as @Ole06 predicted). wg0 had generic GRO on too.
+
+**Fix:** the `suricata` role installs a oneshot unit `scc26-capture-offloads` that turns `gro`, `rx-gro-hw` and `lro` off on every capture interface **before Suricata starts** and **re-runs whenever `wg-quick@wg0` restarts** (wg-quick recreates wg0 with GRO on). It's also a detection fix: before, the IDS only inspected the first 1514 bytes of bulk traffic.
+
+**Rebuild order (Week 6):** `edge.yml` runs `firewall → wireguard → pihole → suricata`. The suricata role no longer needs wg0 to exist (the packet size uses the interfaces present, fallback 1500, and the offload script skips absent interfaces), but run the whole play, not `--tags suricata` alone, on a fresh edge so wg0's MTU is counted.

@@ -8,6 +8,7 @@
   ansible.builtin.dnf:
     name:
       - suricata
+      - ethtool
     state: present
 
 - name: Set HOME_NET
@@ -23,6 +24,37 @@
     regexp: '^#?default-packet-size:'
     line: "default-packet-size: {{ suricata_default_packet_size }}"
   notify: Restart suricata
+
+- name: Offload helper script
+  ansible.builtin.template:
+    src: capture-offloads.sh.j2
+    dest: /usr/local/sbin/scc26-capture-offloads
+    owner: root
+    group: root
+    mode: "0755"
+  notify:
+    - Reapply capture offloads
+    - Restart suricata
+
+- name: Offload unit (before Suricata, after and bound to the VPN)
+  ansible.builtin.template:
+    src: capture-offloads.service.j2
+    dest: /etc/systemd/system/scc26-capture-offloads.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reapply capture offloads
+    - Restart suricata
+
+- name: Enable and start the offload unit
+  ansible.builtin.systemd_service:
+    name: scc26-capture-offloads
+    daemon_reload: true
+    enabled: true
+    state: started
+  # In --check the unit file above is not really written yet.
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Interfaces to watch (IDS, af-packet)
   ansible.builtin.template:
