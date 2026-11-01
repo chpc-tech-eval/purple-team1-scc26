@@ -129,7 +129,9 @@ Each note is a problem the team actually hit in Week 3, with its source on GitHu
 
 **Symptom:** a VPN query to Pi-hole on edge-01's **management** address timed out, while the **wg0** address answered (`platform.pt1.internal`, `grafana.pt1.internal`). Both had answered on 2026-10-16.
 
-**Effect:** none for users; VPN clients use the wg0 address. It is likely tied to the 2026-10-25 edge firewall re-render and is recorded here for the Week-5 review instead of being changed blindly.
+**Effect:** none for users; VPN clients use the wg0 address.
+
+**Re-tested (2026-11-01, Week-3 close-out):** five queries to each address over the VPN: **mgmt 4/5 answered, wg0 5/5**, with link RTT 254–490 ms at the time. The edge nftables ruleset and `terraform plan` (No changes) were also audited. **Pi-hole answers on both addresses; the original timeout was link jitter on a high-latency path, not the firewall.** The earlier guess (the 2026-10-25 firewall re-render) was wrong and is withdrawn. Nothing was changed.
 
 
 ## 15. The Wazuh API still had its factory passwords
