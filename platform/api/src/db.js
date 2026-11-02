@@ -61,6 +61,9 @@ export async function migrate() {
     );
     -- NULL = still on the password someone else handed out: must change it.
     ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;
+    -- Week 4: stable, opaque subject for ACP assertions (never the username or id).
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS agent_principal UUID NOT NULL DEFAULT gen_random_uuid();
+    CREATE UNIQUE INDEX IF NOT EXISTS users_agent_principal ON users (agent_principal);
   `);
 }
 

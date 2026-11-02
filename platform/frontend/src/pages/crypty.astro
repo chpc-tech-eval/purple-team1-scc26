@@ -1,0 +1,185 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base title="Crypty" wide>
+  <section class="card hero-card">
+    <div class="row">
+      <div>
+        <p class="eyebrow">// agent control plane · week 4</p>
+        <h1 class="glow">Crypty<span class="cursor" aria-hidden="true">_</span></h1>
+        <p class="muted">Runs one fixed, read-only platform health diagnostic, stores the evidence first, then asks the approved model to explain only that evidence.</p>
+      </div>
+      <div class="buttons">
+        <a class="button secondary" href="/home/">Back to team home</a>
+        <button id="run" disabled>Run diagnostic</button>
+      </div>
+    </div>
+    <p id="state" class="notice" role="status" hidden></p>
+  </section>
+
+  <section class="card terminal">
+    <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i><span>crypty-history</span></div>
+    <p class="muted">History comes from the Agent Control Plane's PostgreSQL ledger: it survives restarts of the worker. Your browser never sees ACP or any key; this app signs a short-lived request for you.</p>
+    <div id="tasks" class="crypty-list"></div>
+  </section>
+
+  <section class="card terminal" id="detail-card" hidden>
+    <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i><span id="detail-title">task</span></div>
+    <dl id="detail" class="grid"></dl>
+    <h2 class="crypty-h">Evidence <span class="muted">(deterministic, stored before any explanation)</span></h2>
+    <dl id="evidence" class="grid"></dl>
+    <h2 class="crypty-h">Crypty's explanation <span class="muted">(interpretation: check it against the evidence)</span></h2>
+    <p id="summary" class="crypty-summary"></p>
+    <h2 class="crypty-h">Events</h2>
+    <ol id="events" class="crypty-events"></ol>
+  </section>
+</Base>
+
+<style>
+  .crypty-list { display: grid; gap: 0.5rem; }
+  .crypty-item { display: grid; grid-template-columns: auto 1fr auto; gap: 0.8rem; align-items: center; text-align: left;
+    background: transparent; border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.8rem; color: var(--ink); font: 13px var(--mono); cursor: pointer; }
+  .crypty-item:hover, .crypty-item:focus-visible { border-color: var(--cyan); }
+  .crypty-status { font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.06em; }
+  .s-queued, .s-running { color: var(--amber); }
+  .s-succeeded { color: var(--green); }
+  .s-failed { color: var(--red); }
+  .crypty-h { font-size: 0.95rem; margin: 1.2rem 0 0.5rem; color: var(--cyan); }
+  .crypty-summary { white-space: pre-wrap; margin: 0; line-height: 1.5; font-family: var(--sans); }
+  .crypty-events { margin: 0; padding-left: 1.2rem; font-size: 0.85rem; display: grid; gap: 0.25rem; }
+</style>
+
+<script>
+  const $ = (id: string) => document.getElementById(id)!;
+  const ACTIVE = new Set(["queued", "running"]);
+  let selected: string | null = null;
+  let timer: number | undefined;
+
+  function show(msg: string, ok = false) {
+    const el = $("state");
+    el.textContent = msg;
+    el.className = ok ? "notice ok" : "notice";
+    el.hidden = !msg;
+  }
+  function pair(dl: HTMLElement, k: string, v: unknown) {
+    const dt = document.createElement("dt");
+    dt.textContent = k;
+    const dd = document.createElement("dd");
+    dd.textContent = v === null || v === undefined || v === "" ? "—" : typeof v === "string" ? v : JSON.stringify(v);
+    dl.append(dt, dd);
+  }
+  async function api(path: string, init: RequestInit = {}) {
+    const r = await fetch(path, { credentials: "same-origin", ...init });
+    const body = await r.json().catch(() => ({}));
+    return { r, body };
+  }
+
+  function renderList(items: any[]) {
+    const box = $("tasks");
+    box.replaceChildren();
+    if (!items.length) {
+      const p = document.createElement("p");
+      p.className = "muted";
+      p.textContent = "No diagnostics yet.";
+      box.append(p);
+      return;
+    }
+    for (const t of items) {
+      const b = document.createElement("button");
+      b.className = "crypty-item";
+      const s = document.createElement("span");
+      s.className = `crypty-status s-${t.status}`;
+      s.textContent = t.status;
+      const when = document.createElement("span");
+      when.textContent = `${new Date(t.created_at).toISOString().replace("T", " ").slice(0, 19)} UTC · ${t.task_id.slice(0, 8)}`;
+      const code = document.createElement("span");
+      code.className = "muted";
+      code.textContent = t.failure_code || t.model || "";
+      b.append(s, when, code);
+      b.addEventListener("click", () => select(t.task_id));
+      box.append(b);
+    }
+  }
+
+  function renderDetail(t: any) {
+    $("detail-card").hidden = false;
+    $("detail-title").textContent = `task ${t.task_id}`;
+    const d = $("detail");
+    d.replaceChildren();
+    pair(d, "status", t.status);
+    pair(d, "failure_code", t.failure_code);
+    pair(d, "diagnostic", t.diagnostic);
+    pair(d, "model", t.model);
+    pair(d, "runtime_revision", t.runtime_revision);
+    pair(d, "created_utc", t.created_at);
+    pair(d, "started_utc", t.started_at);
+    pair(d, "finished_utc", t.finished_at);
+    const e = $("evidence");
+    e.replaceChildren();
+    if (t.evidence) {
+      pair(e, "counts", t.evidence.counts);
+      pair(e, "query", t.evidence.query);
+      pair(e, "observed_at", t.evidence.observed_at);
+      pair(e, "limitation", t.evidence.limitation);
+    } else {
+      pair(e, "evidence", t.status === "failed" ? "none collected (see failure_code)" : "not collected yet");
+    }
+    $("summary").textContent =
+      t.summary || (t.status === "failed" ? "No explanation: the run failed. Nothing here is reported as healthy." : "Waiting for the worker…");
+    const ev = $("events");
+    ev.replaceChildren();
+    for (const x of t.events || []) {
+      const li = document.createElement("li");
+      li.textContent = `${x.occurred_at} · ${x.kind}${x.data && Object.keys(x.data).length ? " · " + JSON.stringify(x.data) : ""}`;
+      ev.append(li);
+    }
+  }
+
+  async function select(id: string) {
+    selected = id;
+    const { r, body } = await api(`/api/crypty/tasks/${id}`);
+    if (r.ok) renderDetail(body);
+    else show(body.error || "could not load the task");
+  }
+
+  async function refresh() {
+    const { r, body } = await api("/api/crypty/tasks");
+    if (!r.ok) return show(body.error || "could not load history");
+    const items = body.items || [];
+    renderList(items);
+    if (selected) await select(selected);
+    const busy = items.some((t: any) => ACTIVE.has(t.status));
+    window.clearTimeout(timer);
+    if (busy) timer = window.setTimeout(refresh, 3000);
+  }
+
+  async function load() {
+    const me = await fetch("/api/me", { credentials: "same-origin" });
+    if (!me.ok) return location.replace("/");
+    if ((await me.json()).must_change_password) return location.replace("/password/");
+    const { r, body } = await api("/api/crypty");
+    if (!r.ok) return show(body.error || "Crypty is unavailable");
+    if (!body.configured) return show("Crypty is not configured on this platform yet.");
+    if (!body.allowed) return show("Diagnostics are limited to the team's allowlist, and your account isn't on it.");
+    ($("run") as HTMLButtonElement).disabled = false;
+    await refresh();
+  }
+
+  $("run").addEventListener("click", async () => {
+    const btn = $("run") as HTMLButtonElement;
+    btn.disabled = true;
+    show("Submitting…");
+    const { r, body } = await api("/api/crypty/diagnostics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
+      body: "{}",
+    });
+    btn.disabled = false;
+    if (!r.ok) return show(body.error || "the diagnostic was not accepted");
+    show(`Accepted: task ${body.task_id} is ${body.status}. Evidence first, then the explanation.`, true);
+    selected = body.task_id;
+    await refresh();
+  });
+
+  load();
+</script>
