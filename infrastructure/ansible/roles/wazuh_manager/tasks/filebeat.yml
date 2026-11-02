@@ -1,6 +1,16 @@
 ---
 # Filebeat 7.10.2 (the version Wazuh 4.x ships) reads /var/ossec/logs/alerts
 # and sends them to the in-cluster Wazuh indexer over the NodePort (SG row 18).
+# Same bump path as the Wazuh packages: release a lock for a different version
+# first (wazuh_manager_versionlocks is read in main.yml before this file runs).
+- name: Release a Filebeat lock for a different version (bump PRs only)
+  community.general.dnf_versionlock:
+    name: filebeat
+    state: absent
+  when:
+    - "'filebeat-' in wazuh_manager_versionlocks.stdout"
+    - "('filebeat-0:' ~ wazuh_manager_filebeat_version ~ '-') not in wazuh_manager_versionlocks.stdout"
+
 - name: Install the pinned Filebeat from the Wazuh repository
   ansible.builtin.dnf:
     name: "filebeat-{{ wazuh_manager_filebeat_version }}"

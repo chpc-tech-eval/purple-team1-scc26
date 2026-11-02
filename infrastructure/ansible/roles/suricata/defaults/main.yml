@@ -4,6 +4,9 @@
 #
 # HOME_NET: RFC 1918 by default; the private inventory may narrow it to the
 # team ranges. No real addresses are committed.
+# Pinned and versionlocked (Week-3 carry-forward, Ole06 on #95). An upgrade PR
+# changes this; the role releases the old lock, installs, and locks again.
+suricata_version: "7.0.17"
 suricata_home_net: "[10.0.0.0/8,172.16.0.0/12,192.168.0.0/16]"
 # Interfaces to watch: the edge NIC (defaults to the host's default-route
 # interface) and the WireGuard interface, where VPN traffic is decrypted.

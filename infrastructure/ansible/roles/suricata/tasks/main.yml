@@ -4,12 +4,41 @@
     name: epel-release
     state: present
 
-- name: Install Suricata and suricata-update
+- name: Install the versionlock plugin
+  ansible.builtin.dnf:
+    name: python3-dnf-plugin-versionlock
+    state: present
+  register: suricata_versionlock_plugin
+
+- name: Read the current version locks
+  ansible.builtin.command: dnf versionlock list
+  register: suricata_versionlocks
+  changed_when: false
+  check_mode: false  # read-only; lets --check evaluate the release condition
+  # The plugin is missing only before its first real install (e.g. a --check run): no locks yet.
+  failed_when: suricata_versionlocks.rc != 0 and 'No such command' not in suricata_versionlocks.stderr
+
+- name: Release a Suricata lock for a different version (upgrade PRs only)
+  community.general.dnf_versionlock:
+    name: suricata
+    state: absent
+  when:
+    - "'suricata-' in suricata_versionlocks.stdout"
+    - "('suricata-0:' ~ suricata_version ~ '-') not in suricata_versionlocks.stdout"
+
+- name: Install the pinned Suricata (and ethtool)
   ansible.builtin.dnf:
     name:
-      - suricata
+      - "suricata-{{ suricata_version }}"
       - ethtool
     state: present
+
+- name: Lock Suricata to the pinned version
+  community.general.dnf_versionlock:
+    name: suricata
+    state: present
+  # A first --check run on a host without the plugin cannot evaluate a lock.
+  when: not (ansible_check_mode and suricata_versionlock_plugin is changed)
 
 - name: Set HOME_NET
   ansible.builtin.replace:
