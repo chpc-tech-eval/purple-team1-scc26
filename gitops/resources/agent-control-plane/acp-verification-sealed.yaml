@@ -1,0 +1,17 @@
+# ACP JWT verification key (public half of the Student Platform signing key), SEALED for consistency.
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+  name: acp-verification
+  namespace: agent-control-plane
+spec:
+  encryptedData:
+    public.pem: AgBO0k1JI4UvWj/gZMvga3BS1YxFsyllzm4ZnbQF7bAPA0vq7i4BNdzUfcJ/UdIOEsdHxtUaQZ4gKDNF3pTuVSgF5HOUbLtemuBYyd390yVfEEBf6HOOguvLS4SSL16GTiWv1i4WGDn1SRS5swPkDP/2yD/cYdH6H75jlvoKWzvQKBFbp56OWm+ZHnouW+uBRQE+BMJTqIwp7Si1pezTCsfeGHeSpZm4VOUAXeKnQctzrEwqG4TNmct3qIpwZghhqndWUZ5sKR/IYpyX5QgS3RuIZY2xpp/2bLq+RvqXHtFyixHcy3uWK3y2hON1RLwasQ6nbCDE3vHVxE6BuyH9EMftkhFWhtnEBzx2vmkyaWcPfcD57QcuaMiQ73H/GiqxZTXlEafGfdJB8VJMcO3KTm4HkS+YWS2KjphVIvLRnBVOZrouhSvPLnvkEMs1vbsu3bTRsxOST7VF6+Ab+xuF6yx6D8tdQl/TFUfLaZTYQ6N/E0tdHsCUg1u/Q8Xm2QSCNT2T12zhc5LRziPxNfIQNgyd7dc6jFZ4M7LpVPxZeDPkRN9MW9Z12nbrfwLgpcBTLfZ5xwScI0I9dQ3CE4489Ckt+L8TVASyE3fuV1o66zf63Wc3swyLXgjvzo7ZRnxygbpUScsGfpaBjUpx1ZX1fv0KaUfqtOpzf32CKIbw5AihU2+DoNhm4t25PlZFBcqs+kr0rKuXURf6eQT5etFhFJiUn56LM9CMOgg1XvqhQ9v9vVgAgduC+QiU7betUud7MBHbSiS/r9TSeiC0YZrvluB77NhqseFWAAYvI6nOV4c1o92Qm9/nZ8xSpDVOyUboaIevrDqpmMHCKcIyiyFs0crOvA==
+  template:
+    metadata:
+      name: acp-verification
+      namespace: agent-control-plane
+    type: Opaque
