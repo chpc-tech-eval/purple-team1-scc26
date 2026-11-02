@@ -1,0 +1,145 @@
+# Default deny; then only: DNS, platform -> API 8080, API/worker/migration -> DB, worker ->
+# Prometheus 9090. Model egress (one host only) is added with the approved endpoint (#94).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  namespace: agent-control-plane
+  name: acp-default-deny
+  annotations:
+    argocd.argoproj.io/sync-wave: '-2'
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: acp-dns
+  annotations:
+    argocd.argoproj.io/sync-wave: '-2'
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: acp-api-from-platform
+  annotations:
+    argocd.argoproj.io/sync-wave: '-2'
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: agent-control-plane
+      acp-role: api
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: student-platform
+      podSelector:
+        matchLabels:
+          app: platform
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: acp-database-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: '-2'
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: agent-control-plane
+      acp-role: postgres
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: acp-role
+          operator: In
+          values:
+          - api
+          - worker
+          - personal-worker
+          - migration
+    ports:
+    - protocol: TCP
+      port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: acp-database-egress
+  annotations:
+    argocd.argoproj.io/sync-wave: '-2'
+spec:
+  podSelector:
+    matchExpressions:
+    - key: acp-role
+      operator: In
+      values:
+      - api
+      - worker
+      - personal-worker
+      - migration
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: agent-control-plane
+          acp-role: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: acp-prometheus-egress
+  annotations:
+    argocd.argoproj.io/sync-wave: '-2'
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: agent-control-plane
+      acp-role: worker
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+          operator.prometheus.io/name: kps-prometheus
+    ports:
+    - protocol: TCP
+      port: 9090

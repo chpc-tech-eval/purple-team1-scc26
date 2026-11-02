@@ -1,0 +1,14 @@
+# Retained SSD volumes for ACP state (PostgreSQL ledger, Hermes profile): deleting a
+# claim or the app must never delete the Cinder volume (team rule: nothing is removed).
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cinder-agent-retain
+  annotations:
+    argocd.argoproj.io/sync-wave: "-4"
+provisioner: cinder.csi.openstack.org
+parameters:
+  type: SSD
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
