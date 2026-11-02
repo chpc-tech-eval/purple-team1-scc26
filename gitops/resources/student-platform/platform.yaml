@@ -18,12 +18,14 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+        # Group-readable mounted secrets (the ACP signing key) for the app user only.
+        fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: platform
-          # Immutable CI tag + digest (week3 §11), from platform-image run 41305938253 (commit 73b7141).
-          image: ghcr.io/saxs-14/scc26-student-platform:sha-73b714146e47@sha256:32e8d4511cec988122757113c09806425ca4cd39bd1312e08d4f438bcf2eb871
+          # Immutable CI tag + digest (week3 §11), from platform-image run 41403471681 (commit 00ccb01, #98 Crypty).
+          image: ghcr.io/saxs-14/scc26-student-platform:sha-00ccb01cc7f6@sha256:7c936d7ad7fe3c9e45f02f8c42e04ee3f94dba7ad0fc30355eb5c9d72dea35dd
           ports:
             - containerPort: 8080
               name: http
@@ -35,6 +37,20 @@ spec:
           env:
             - name: POSTGRES_HOST
               value: postgres
+            # Crypty (Week 4, #98): server-side ACP client. Only this backend holds the
+            # signing key; the browser never sees ACP, the key or an assertion.
+            - name: ACP_URL
+              value: http://agent-control-plane-api.agent-control-plane.svc.cluster.local:8080
+            - name: ACP_TENANT_ID
+              value: purple-team1
+            - name: ACP_ALLOWED_USERS
+              value: phathutshedzo,olerato,siyabonga,rendani
+            - name: ACP_SIGNING_KEY_FILE
+              value: /var/run/acp/private.pem
+          volumeMounts:
+            - name: acp-signing
+              mountPath: /var/run/acp
+              readOnly: true
           readinessProbe:
             httpGet: {path: /health, port: http}
             periodSeconds: 10
@@ -50,6 +66,13 @@ spec:
           resources:
             requests: {cpu: 50m, memory: 96Mi}
             limits: {memory: 256Mi}
+      volumes:
+        - name: acp-signing
+          secret:
+            secretName: acp-signing
+            defaultMode: 0440
+            items:
+              - {key: private.pem, path: private.pem}
 ---
 apiVersion: v1
 kind: Service
