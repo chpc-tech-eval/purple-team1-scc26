@@ -15,3 +15,7 @@ cd677089e3ba5955f28a5213c4d1b309ffb364df:gitops/resources/wazuh/wazuh-creds-seal
 
 # SealedSecret ciphertext (FILEBEAT_PASSWORD under spec.encryptedData), flagged by key name. PR #88.
 ca921c5f5c775c531e38a4f0b156f7b59a7f9c9b:gitops/resources/wazuh/wazuh-creds-sealed.yaml:generic-api-key:14
+
+# SealedSecret ciphertext (ACP DB credentials under spec.encryptedData), flagged by key name. PR #96.
+e53460de4a27873e931434b3bd67d5ab0dd3595c:gitops/resources/agent-control-plane/acp-db-owner-sealed.yaml:generic-api-key:13
+e53460de4a27873e931434b3bd67d5ab0dd3595c:gitops/resources/agent-control-plane/acp-db-app-sealed.yaml:generic-api-key:12

@@ -1,0 +1,8 @@
+# Week-4 Agent Control Plane (ACP) Phase-1, adapted from nyameko/infra-hpc-qc-k8s
+# argocd/resources/agent-control-plane (week4 brief: no fork, pinned upstream images).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-control-plane
+  annotations:
+    argocd.argoproj.io/sync-wave: "-4"

@@ -1,0 +1,17 @@
+# Non-secret ACP settings. The model route stays empty until the instructor names the
+# approved A100/H200 endpoint (#94); the Hermes worker is not started before that.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: acp-config
+  namespace: agent-control-plane
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+data:
+  ACP_TENANT_ID: purple-team1
+  # kube-prometheus-stack in this cluster (Week 3, #68): Service kps-prometheus:9090.
+  ACP_PROMETHEUS_URL: http://kps-prometheus.monitoring.svc.cluster.local:9090
+  ACP_MODEL: ""
+  ACP_MODEL_BASE_URL: ""
+  ACP_RUN_TIMEOUT_SECONDS: "180"
+  HERMES_HOME: /var/lib/hermes/admin-readonly
