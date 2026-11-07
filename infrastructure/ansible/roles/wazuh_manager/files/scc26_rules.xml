@@ -1,0 +1,41 @@
+<!--
+  Managed by Ansible (infrastructure/ansible/roles/wazuh_manager). Week-5 team rules.
+  Rule IDs 100100-100199 (Wazuh reserves 100000-120000 for local rules).
+  Catalogue and tests: project/detections/README.md.
+-->
+<group name="scc26,scc26_w5,">
+
+  <!-- Raise the team's Suricata detections (SIDs 9000010-9000019) above the
+       generic level-3 "Suricata: Alert" (86601) so they stand out. -->
+  <rule id="100100" level="10">
+    <if_sid>86601</if_sid>
+    <field name="alert.signature_id">^900001\d$</field>
+    <description>SCC26 W5 network detection: $(alert.signature)</description>
+    <options>no_full_log</options>
+    <group>scc26_detection,</group>
+  </rule>
+
+  <!-- Correlation: the same source keeps triggering team detections. -->
+  <rule id="100101" level="12" frequency="3" timeframe="300" ignore="300">
+    <if_matched_sid>100100</if_matched_sid>
+    <same_field>src_ip</same_field>
+    <description>SCC26 W5: repeated network detections from one source ($(src_ip))</description>
+    <options>no_full_log</options>
+    <group>scc26_detection,scc26_correlation,</group>
+  </rule>
+
+  <!-- Correlation: SSH login succeeds from a source that was just failing
+       repeatedly (brute force 5712/5720/5763 all carry authentication_failures). -->
+  <rule id="100110" level="12" timeframe="600">
+    <if_sid>5715</if_sid>
+    <if_matched_group>authentication_failures</if_matched_group>
+    <same_source_ip />
+    <description>SCC26 W5: SSH login succeeded from a source that was brute-forcing ($(srcip))</description>
+    <mitre>
+      <id>T1110</id>
+      <id>T1078</id>
+    </mitre>
+    <group>scc26_detection,scc26_correlation,authentication_success,</group>
+  </rule>
+
+</group>
