@@ -1,0 +1,40 @@
+# Week-5 run tooling: manifest validator, metrics, timeline merge and the
+# paper/poster figure generator. Credential-free; synthetic example data only.
+name: week5-tools
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "project/tools/**"
+      - "project/runs/**"
+      - ".github/workflows/week5-tools.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: week5-tools-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: run tooling unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: pip install "pyyaml==6.0.3" "matplotlib==3.10.7"
+      - run: python3 -m unittest discover -s project/tools -v
+      - name: Every committed run manifest is valid (final stage)
+        run: |
+          status=0
+          for m in project/runs/*/manifest.yaml; do
+            case "$m" in project/runs/_template/*) continue ;; esac
+            [ -e "$m" ] || continue
+            python3 project/tools/w5run.py validate "$m" --stage final || status=1
+          done
+          exit $status
