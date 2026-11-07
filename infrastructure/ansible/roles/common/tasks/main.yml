@@ -32,14 +32,10 @@
   loop_control:
     label: "{{ item.name }}"
 
-- name: Harden sshd (key-only, no root login)
-  ansible.builtin.copy:
+- name: Harden sshd (key-only, no root login, least privilege, modern crypto)
+  ansible.builtin.template:
     dest: /etc/ssh/sshd_config.d/10-scc26-hardening.conf
-    content: |
-      # Managed by Ansible (infrastructure/ansible/roles/common)
-      PasswordAuthentication no
-      KbdInteractiveAuthentication no
-      PermitRootLogin no
+    src: sshd-hardening.conf.j2
     owner: root
     group: root
     mode: "0600"
