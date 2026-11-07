@@ -24,18 +24,8 @@
     <group>scc26_detection,scc26_correlation,</group>
   </rule>
 
-  <!-- Correlation: SSH login succeeds from a source that was just failing
-       repeatedly (brute force 5712/5720/5763 all carry authentication_failures). -->
-  <rule id="100110" level="12" timeframe="600">
-    <if_sid>5715</if_sid>
-    <if_matched_group>authentication_failures</if_matched_group>
-    <same_source_ip />
-    <description>SCC26 W5: SSH login succeeded from a source that was brute-forcing ($(srcip))</description>
-    <mitre>
-      <id>T1110</id>
-      <id>T1078</id>
-    </mitre>
-    <group>scc26_detection,scc26_correlation,authentication_success,</group>
-  </rule>
+  <!-- SSH success after brute force is NOT redefined here: the built-in rule
+       40112 ("Multiple authentication failures followed by a success") already
+       catches it and wins over a team duplicate. The tests check that 40112 fires. -->
 
 </group>

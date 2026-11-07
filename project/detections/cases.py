@@ -66,14 +66,20 @@ WAZUH = {
         {"100100", "100101"}, set(),
     ),
     "ssh_bruteforce_then_success": (
-        "invalid-user brute force (5712) followed by a successful login (100110)",
+        "invalid-user brute force (5712) followed by a successful login (built-in 40112)",
         [_sshd(i, f"Invalid user admin{i} from {ATTACKER} port {50000 + i}") for i in range(10)]
         + [_sshd(20, f"Accepted password for ubuntu from {ATTACKER} port 50100 ssh2")],
-        {"5712", "100110"}, set(),
+        {"5712", "40112"}, set(),
+    ),
+    "ssh_password_bruteforce_then_success": (
+        "failed-password brute force on a real user (5763) followed by a successful login (40112)",
+        [_sshd(i, f"Failed password for ubuntu from {ATTACKER} port {51000 + i} ssh2") for i in range(10)]
+        + [_sshd(20, f"Accepted password for ubuntu from {ATTACKER} port 51100 ssh2")],
+        {"5763", "40112"}, set(),
     ),
     "ssh_success_without_bruteforce": (
         "a normal login from another source is not escalated",
         [_sshd(1, f"Accepted publickey for ubuntu from {CLIENT} port 50200 ssh2: ED25519 SHA256:abc")],
-        {"5715"}, {"100110"},
+        {"5715"}, {"40112"},
     ),
 }
