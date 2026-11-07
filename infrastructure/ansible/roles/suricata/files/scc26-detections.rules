@@ -1,0 +1,26 @@
+# Managed by Ansible (infrastructure/ansible/roles/suricata). Week-5 team detections.
+# SID range 9000010-9000019. Catalogue, false-positive notes and tests:
+# project/detections/README.md. Thresholds are starting points: tune them
+# against a recorded baseline, never during an exercise.
+#
+# Limitation: HTTP rules see plaintext HTTP only. The student platform is
+# HTTPS (TLS ends at Traefik inside the cluster), so attacks on it are not
+# visible here; that gap is recorded, not hidden.
+
+# Recon: one source opening many TCP connections quickly (port scan, sweep).
+alert tcp any any -> $HOME_NET any (msg:"SCC26 W5 possible TCP SYN scan (burst from one source)"; flow:stateless; flags:S,12; threshold:type both, track by_src, count 40, seconds 10; classtype:attempted-recon; metadata:mitre_technique T1046; sid:9000010; rev:1;)
+
+# SSH: many new connections to port 22 from one source (brute force, spraying).
+alert tcp any any -> $HOME_NET 22 (msg:"SCC26 W5 SSH connection burst from one source"; flow:stateless; flags:S,12; threshold:type both, track by_src, count 10, seconds 60; classtype:attempted-admin; metadata:mitre_technique T1110; sid:9000011; rev:1;)
+
+# Web: path traversal in the raw URI (plain or percent-encoded).
+alert http any any -> $HOME_NET any (msg:"SCC26 W5 HTTP path traversal attempt"; flow:established,to_server; http.uri.raw; pcre:"/(\.\.|%2e%2e)(\/|%2f|\x5c|%5c)/i"; classtype:web-application-attack; metadata:mitre_technique T1190; sid:9000012; rev:1;)
+
+# Web: SQL injection, UNION SELECT.
+alert http any any -> $HOME_NET any (msg:"SCC26 W5 SQL injection attempt (UNION SELECT)"; flow:established,to_server; http.uri; content:"union"; nocase; pcre:"/union[\s+]+(all[\s+]+)?select/i"; classtype:web-application-attack; metadata:mitre_technique T1190; sid:9000013; rev:1;)
+
+# Web: SQL injection, quoted tautology (' OR '1'='1).
+alert http any any -> $HOME_NET any (msg:"SCC26 W5 SQL injection attempt (tautology)"; flow:established,to_server; http.uri; content:"'"; pcre:"/'[\s+]*or[\s+]*'?(\d+)'?[\s+]*=[\s+]*'?\1/i"; classtype:web-application-attack; metadata:mitre_technique T1190; sid:9000014; rev:1;)
+
+# Web: well-known scanner user agents.
+alert http any any -> $HOME_NET any (msg:"SCC26 W5 web scanner user agent"; flow:established,to_server; http.user_agent; pcre:"/(sqlmap|nikto|nmap scripting engine|masscan|gobuster|dirbuster|wpscan|nuclei)/i"; classtype:web-application-attack; metadata:mitre_technique T1595; sid:9000015; rev:1;)
