@@ -83,7 +83,8 @@ def wazuh(a):
     failures = 0
     for name, (desc, lines, must, must_not) in WAZUH.items():
         r = run(a.cmd, input="\n".join(lines) + "\n")
-        fired = set(PHASE3.findall(r.stdout))
+        # wazuh-logtest prints its results on stderr.
+        fired = set(PHASE3.findall(r.stdout + "\n" + r.stderr))
         missing, unwanted = must - fired, must_not & fired
         ok = not missing and not unwanted
         failures += not ok
