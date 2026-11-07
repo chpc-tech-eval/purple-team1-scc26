@@ -146,5 +146,29 @@ class Timeline(unittest.TestCase):
                 w5run.merge_timeline([uncited])
 
 
+class Figures(unittest.TestCase):
+    def test_example_run_renders_figures_and_tables(self):
+        try:
+            import w5figures
+        except ImportError:  # matplotlib not installed locally
+            self.skipTest("matplotlib not installed")
+        example = pathlib.Path(__file__).parent / "testdata/example-run"
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(w5figures.main([str(example), "-o", d]), 0)
+            names = {p.name for p in pathlib.Path(d).iterdir()}
+            for n in ("phases.pdf", "phases.png", "metrics.tex", "metrics.md",
+                      "timeline-20261110T090000Z-w5-example-defend.png"):
+                self.assertIn(n, names)
+            md = (pathlib.Path(d) / "metrics.md").read_text(encoding="utf-8")
+            self.assertIn("2.5 min", md)  # T_detect 150 s
+            self.assertIn("not reached", md)  # T_recover is never imputed
+
+    def test_example_manifest_is_valid(self):
+        import yaml
+
+        raw = (pathlib.Path(__file__).parent / "testdata/example-run/manifest.yaml").read_text(encoding="utf-8")
+        self.assertEqual(w5run.validate(yaml.safe_load(raw), "final", raw), [])
+
+
 if __name__ == "__main__":
     unittest.main()

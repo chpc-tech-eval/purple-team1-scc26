@@ -1,0 +1,9 @@
+utc,source,layer,evidence_id,summary
+2026-11-10T09:00:00Z,operator,application,X0,example: scenario step 1 starts
+2026-11-10T09:02:30Z,suricata,network,E1,example: sid 9000010 SYN burst
+2026-11-10T09:03:10Z,suricata,network,E1,example: sid 9000011 SSH burst
+2026-11-10T09:05:40Z,wazuh,host,E2,example: rule 5712 brute force
+2026-11-10T09:06:05Z,wazuh,host,E2,example: rule 100101 repeated source
+2026-11-10T09:08:00Z,prometheus,platform,E3,example: no pod restarts
+2026-11-10T09:10:00Z,analyst,application,A1,example: classified as SSH brute force
+2026-11-10T09:16:00Z,analyst,host,A2,example: source blocked (containment)

@@ -12,6 +12,7 @@ The replayable procedure for [`week5/README.md`](../week5/README.md). It contain
 | [`project/tools/edge_export.sh`](../project/tools/edge_export.sh) | edge-01 (sudo) | bounded Suricata + Wazuh export for one window; raw copy stays on the server, Git gets `summary.json`, `timeline.csv`, `SHA256SUMS` with addresses replaced |
 | [`project/tools/prom_export.sh`](../project/tools/prom_export.sh) | k8s-cp-01 | bounded Prometheus export (fixed queries, aggregated by namespace) |
 | [`project/runs/_template/manifest.yaml`](../project/runs/_template/manifest.yaml) | Git | the run manifest the brief requires |
+| [`project/tools/w5figures.py`](../project/tools/w5figures.py) | laptop/CI | paper/poster figures (timeline swim-lanes, phase bars) and metrics tables (LaTeX/Markdown) |
 
 Tests: `python3 -m unittest discover -s project/tools -v`.
 
@@ -110,6 +111,15 @@ Record false positives (fired, not scenario), false negatives (scenario step, no
 python3 project/tools/w5run.py validate project/runs/<run-id>/manifest.yaml --stage final
 python3 project/tools/w5run.py metrics  project/runs/<run-id>/manifest.yaml -o project/runs/<run-id>/metrics.json
 ```
+
+## Figures and tables for the paper and poster
+
+```bash
+pip install pyyaml==6.0.3 matplotlib==3.10.7
+python3 project/tools/w5figures.py project/runs/<run-a> project/runs/<run-b> -o paper/figures/week5
+```
+
+This writes one incident-timeline swim-lane per run (`timeline-<run-id>.pdf/.png`), a detect/identify/contain/recover bar per run (`phases.pdf/.png`), and the same numbers as `metrics.tex` (booktabs, `\input` it in `paper/main.tex`) and `metrics.md`. A milestone that wasn't reached shows as "not reached", never as zero. Preview with the synthetic example: `project/tools/testdata/example-run`.
 
 ## Testing a detection rule
 
