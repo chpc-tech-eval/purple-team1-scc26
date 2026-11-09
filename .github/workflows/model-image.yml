@@ -1,0 +1,81 @@
+# CPU model-server image (#94: LiteLLM -> llama.cpp on CPU; no A100 dependency).
+# A tiny open-weight GGUF is baked in at build time -> OCI image -> GHCR immutable
+# sha-<commit> tag. Pull requests build + smoke-test only; a merge into dev also pushes.
+# The running container needs no internet egress and holds no credentials.
+#
+# Registry: the org denies package creation to this repo's GITHUB_TOKEN (#79), so the
+# image publishes under the captain's GHCR namespace with the repo secret GHCR_TOKEN.
+name: model-image
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths: ["model-serving/**", ".github/workflows/model-image.yml"]
+  push:
+    branches: [dev]
+    paths: ["model-serving/**", ".github/workflows/model-image.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/saxs-14/scc26-model-server
+  REGISTRY_USER: saxs-14
+
+jobs:
+  test-build:
+    name: model image build + smoke test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build the image (bakes the GGUF; immutable sha tag)
+        working-directory: model-serving
+        run: |
+          short="${GITHUB_SHA::12}"
+          docker build -t "${IMAGE}:sha-${short}" .
+          echo "TAG=sha-${short}" >> "$GITHUB_ENV"
+
+      - name: Smoke test — the baked model actually answers (CPU, no egress)
+        run: |
+          docker run -d --name smoke --network none -p 18080:8080 "${IMAGE}:${TAG}"
+          ok=""
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:18080/health >/dev/null 2>&1; then ok=1; break; fi
+            sleep 2
+          done
+          if [ -z "$ok" ]; then echo "::error::model server did not become healthy"; docker logs smoke; docker rm -f smoke; exit 1; fi
+          # OpenAI-compatible surface LiteLLM will route to.
+          curl -fsS http://127.0.0.1:18080/v1/models | grep -q '"object"'
+          resp="$(curl -fsS http://127.0.0.1:18080/v1/chat/completions \
+            -H 'Content-Type: application/json' \
+            -d '{"model":"qwen2.5-0.5b-instruct","messages":[{"role":"user","content":"Reply with the single word: pong"}],"max_tokens":16,"temperature":0}')"
+          echo "$resp"
+          echo "$resp" | grep -q '"content"'
+          docker rm -f smoke
+
+      - name: Push to GHCR (dev only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          if [ -z "$GHCR_TOKEN" ]; then echo "::error::repo secret GHCR_TOKEN is not set (see #79)"; exit 1; fi
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
+          docker push "${IMAGE}:${TAG}"
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "${IMAGE}:${TAG}")"
+          {
+            echo "### CPU model-server image"
+            echo ""
+            echo "- tag: \`${IMAGE}:${TAG}\`"
+            echo "- digest: \`${digest}\`"
+            echo "- commit: \`${GITHUB_SHA}\`"
+            echo ""
+            echo "Set the llama.cpp Deployment image to the digest above in a gitops PR."
+          } >> "$GITHUB_STEP_SUMMARY"
