@@ -23,7 +23,8 @@ RUN set -eux; \
 ENV MODEL_ALIAS=${MODEL_ALIAS}
 EXPOSE 8080
 
-# The :server image's entrypoint is the llama.cpp OpenAI-compatible server (/llama-server).
+# The :server image already sets the llama.cpp OpenAI-compatible server as its
+# ENTRYPOINT (documented usage: `docker run ...:server -m model.gguf --port 8080`),
+# so we only supply flags via CMD and let the base entrypoint launch it.
 # CPU-only, context 4096, 4 threads; serves /health, /v1/models, /v1/chat/completions.
-ENTRYPOINT ["/llama-server"]
 CMD ["-m", "/models/model.gguf", "--host", "0.0.0.0", "--port", "8080", "-a", "qwen2.5-0.5b-instruct", "-c", "4096", "-t", "4"]
