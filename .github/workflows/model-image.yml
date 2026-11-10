@@ -43,9 +43,12 @@ jobs:
           docker build -t "${IMAGE}:sha-${short}" .
           echo "TAG=sha-${short}" >> "$GITHUB_ENV"
 
-      - name: Smoke test — the baked model actually answers (CPU, no egress)
+      - name: Smoke test — the baked model actually answers (CPU)
         run: |
-          docker run -d --name smoke --network none -p 18080:8080 "${IMAGE}:${TAG}"
+          # No runtime model download: the GGUF is baked in at build time, so the
+          # container serves with zero outbound calls. (Default bridge network here
+          # only so the published port is reachable from the runner to curl it.)
+          docker run -d --name smoke -p 18080:8080 "${IMAGE}:${TAG}"
           ok=""
           for i in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:18080/health >/dev/null 2>&1; then ok=1; break; fi
