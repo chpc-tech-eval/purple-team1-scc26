@@ -19,7 +19,7 @@ scope:
   targets: []               # authorised logical targets, e.g. edge-01, student-platform
 time_sync:
   checked_utc: ""
-  max_skew_seconds: null    # largest skew seen by ops/w5_ready.sh; must be <= 1
+  max_skew_seconds: null    # printed by project/tools/w5_ready.sh; must be <= 1
 baseline:
   start_utc: ""             # 10-15 minutes of normal telemetry, ending before window.start_utc
   end_utc: ""

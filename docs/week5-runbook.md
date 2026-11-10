@@ -8,6 +8,7 @@ The replayable procedure for [`week5/README.md`](../week5/README.md). It contain
 
 | Tool | Runs on | Purpose |
 | --- | --- | --- |
+| [`project/tools/w5_ready.sh`](../project/tools/w5_ready.sh) | laptop (VPN) | read-only readiness check before a run: NTP sync and clock offset on every evidence host, Wazuh agents, Suricata logging with all team SIDs loaded, `/root/hostmap.csv` present, Argo CD Synced/Healthy; prints `time_sync.max_skew_seconds` |
 | [`project/tools/w5run.py`](../project/tools/w5run.py) | laptop/CI | `validate` a run manifest (`--stage plan` before, `--stage final` after), `metrics` (T_detect/T_identify/T_contain/T_recover), `timeline` (merge evidence CSVs into one incident timeline) |
 | [`project/tools/edge_export.sh`](../project/tools/edge_export.sh) | edge-01 (sudo) | bounded Suricata + Wazuh export for one window; raw copy stays on the server, Git gets `summary.json`, `timeline.csv`, `SHA256SUMS` with addresses replaced |
 | [`project/tools/prom_export.sh`](../project/tools/prom_export.sh) | k8s-cp-01 | bounded Prometheus export (fixed queries, aggregated by namespace) |
@@ -38,6 +39,15 @@ kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.st
 Every Argo CD application must be `Synced/Healthy` at the frozen revision. No merges to `dev` during the run window.
 
 ## 3. Verify time synchronisation
+
+One command checks every host at once (and the sensors and Argo CD from steps 2 and 4). Paste its output into the run log:
+
+```bash
+# RUN ON: laptop (repo, VPN up)
+bash project/tools/w5_ready.sh          # must end in READY; copy time_sync.max_skew_seconds into the manifest
+```
+
+By hand, per host:
 
 ```bash
 # RUN ON: every evidence host (edge-01, k8s-cp-01, k8s-worker-01/02, api-lb-01)
