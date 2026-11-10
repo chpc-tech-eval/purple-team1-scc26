@@ -14,23 +14,32 @@ model, not a GPU.
 
 | | |
 |---|---|
-| Base | `ghcr.io/ggml-org/llama.cpp:server` — the upstream OpenAI-compatible server |
-| Model | **Qwen2.5-0.5B-Instruct**, Q4_K_M GGUF (~0.4 GB), baked in at build time |
+| Base | `ghcr.io/ggml-org/llama.cpp:server`, pinned by digest: the upstream OpenAI-compatible server |
+| Model | **Qwen2.5-0.5B-Instruct**, Q4_K_M GGUF (~0.49 GB), baked in at build time from a pinned Hugging Face commit, SHA-256 checked |
+| User | non-root (UID 10001, like the other team workloads); the model file is read-only |
 | Runtime egress | **none** — the model is in the image; the container needs no internet |
 | Surface | `/health`, `/v1/models`, `/v1/chat/completions` on port 8080 |
 | Registry | `ghcr.io/saxs-14/scc26-model-server:sha-<commit>` (published on merge to `dev`) |
 
-The model is a build arg (`MODEL_REPO`/`MODEL_FILE`), so swapping to another tiny
-GGUF is a one-line change. Qwen2.5-0.5B-Instruct is the default: small enough to be
+The model is a set of build args (`MODEL_REPO`, `MODEL_REVISION`, `MODEL_FILE`,
+`MODEL_SHA256`, `MODEL_ALIAS`), so swapping to another tiny GGUF changes only those
+values. Server settings come from `LLAMA_ARG_*` environment variables (model path,
+alias, host, port, context, threads), so the Deployment can override them without a
+new image. Qwen2.5-0.5B-Instruct is the default: small enough to be
 fast on CPU, genuinely instruction-tuned, Apache-2.0 licensed.
 
 ## Reproducibility / pinning
 
 The published **GHCR image digest** pins the runtime and the baked model together —
 that digest is the deployable reference the gitops manifests use, exactly like the
-platform image (#79/#100). The CI `model-image` workflow builds on every PR,
-**smoke-tests that the baked model answers a prompt with no network** (`--network
-none`), and pushes + reports the digest only on merge to `dev`.
+platform image (#79/#100). The CI `model-image` workflow builds on every PR and
+**smoke-tests that the baked model answers a prompt with no network**: the container
+runs with `--network none`, the test asserts it has only a loopback interface and a
+non-root UID, and the requests are made from inside it. It pushes and reports the
+digest only on merge to `dev`.
+
+Rebuilding gives the same bytes: the base image is pinned by digest, and the model by
+Hugging Face commit and SHA-256 (the build fails if the file differs).
 
 ## How it is deployed (follows this image)
 
@@ -48,7 +57,10 @@ none`), and pushes + reports the digest only on merge to `dev`.
 
 ```sh
 docker build -t scc26-model-server model-serving/
-docker run --rm --network none -p 8080:8080 scc26-model-server
-curl -s localhost:8080/v1/chat/completions -H 'Content-Type: application/json' \
+# Offline, like CI: no network, so the request runs inside the container.
+docker run -d --name llm --network none scc26-model-server
+docker exec llm curl -s localhost:8080/v1/chat/completions -H 'Content-Type: application/json' \
   -d '{"model":"qwen2.5-0.5b-instruct","messages":[{"role":"user","content":"scary story in three words"}],"max_tokens":16}'
+docker rm -f llm
+# Or reachable from your machine (normal network): docker run --rm -p 8080:8080 scc26-model-server
 ```

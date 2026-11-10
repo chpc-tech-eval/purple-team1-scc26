@@ -43,25 +43,34 @@ jobs:
           docker build -t "${IMAGE}:sha-${short}" .
           echo "TAG=sha-${short}" >> "$GITHUB_ENV"
 
-      - name: Smoke test — the baked model actually answers (CPU)
+      - name: Smoke test — the baked model answers with no network, as non-root (CPU)
         run: |
-          # No runtime model download: the GGUF is baked in at build time, so the
-          # container serves with zero outbound calls. (Default bridge network here
-          # only so the published port is reachable from the runner to curl it.)
-          docker run -d --name smoke -p 18080:8080 "${IMAGE}:${TAG}"
+          # --network none: the container gets only a loopback interface, so a passing
+          # test proves the model is served from the image with zero egress. The
+          # requests run INSIDE the container (curl is in the image) because a
+          # container without a network can't publish a port to the runner.
+          docker run -d --name smoke --network none "${IMAGE}:${TAG}"
+          api() { docker exec smoke curl -fsS "$@"; }
           ok=""
           for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:18080/health >/dev/null 2>&1; then ok=1; break; fi
+            if api http://127.0.0.1:8080/health >/dev/null 2>&1; then ok=1; break; fi
             sleep 2
           done
           if [ -z "$ok" ]; then echo "::error::model server did not become healthy"; docker logs smoke; docker rm -f smoke; exit 1; fi
-          # OpenAI-compatible surface LiteLLM will route to.
-          curl -fsS http://127.0.0.1:18080/v1/models | grep -q '"object"'
-          resp="$(curl -fsS http://127.0.0.1:18080/v1/chat/completions \
-            -H 'Content-Type: application/json' \
-            -d '{"model":"qwen2.5-0.5b-instruct","messages":[{"role":"user","content":"Reply with the single word: pong"}],"max_tokens":16,"temperature":0}')"
+          # Offline and non-root, asserted rather than claimed.
+          nets="$(docker exec smoke ls /sys/class/net | tr '\n' ' ')"
+          [ "$nets" = "lo " ] || { echo "::error::expected only loopback, got: $nets"; exit 1; }
+          uid="$(docker exec smoke id -u)"
+          [ "$uid" != "0" ] || { echo "::error::model server runs as root"; exit 1; }
+          # OpenAI-compatible surface LiteLLM will route to; the model name is read back, not assumed.
+          model="$(api http://127.0.0.1:8080/v1/models | jq -r '.data[0].id')"
+          [ -n "$model" ] && [ "$model" != "null" ] || { echo "::error::no model listed"; exit 1; }
+          body="$(jq -nc --arg m "$model" '{model: $m, messages: [{role: "user", content: "Reply with the single word: pong"}], max_tokens: 16, temperature: 0}')"
+          resp="$(api http://127.0.0.1:8080/v1/chat/completions -H 'Content-Type: application/json' -d "$body")"
           echo "$resp"
-          echo "$resp" | grep -q '"content"'
+          echo "$resp" | jq -e '.choices[0].message.content | length > 0' >/dev/null \
+            || { echo "::error::empty completion"; exit 1; }
+          echo "ok: model=${model} uid=${uid} interfaces=${nets}"
           docker rm -f smoke
 
       - name: Push to GHCR (dev only)
