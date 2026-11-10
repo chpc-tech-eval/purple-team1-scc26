@@ -1,0 +1,22 @@
+# Week-4 model serving (#94): LiteLLM -> llama.cpp on CPU, model baked into the image
+# (#107). Sync waves: namespace (-4) -> sealed keys (-3) -> policies/config (-2) ->
+# llama.cpp (1) -> LiteLLM (2). No prune and no deletion finalizer (team rule:
+# nothing is removed by a sync).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: model-serving
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: model-serving
+  source:
+    repoURL: https://github.com/chpc-tech-eval/purple-team1-scc26.git
+    targetRevision: dev
+    path: gitops/resources/model-serving
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true

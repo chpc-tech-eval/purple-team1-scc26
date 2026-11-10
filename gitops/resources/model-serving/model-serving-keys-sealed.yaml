@@ -1,0 +1,19 @@
+# LiteLLM master key + llama.cpp API key, SEALED with the cluster controller's cert.
+# Plaintext stays in the author's ~/.config/scc26-secrets/, never in Git.
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+  name: model-serving-keys
+  namespace: model-serving
+spec:
+  encryptedData:
+    LITELLM_MASTER_KEY: AgCWYm1ubGhyvYYdii7DC/CkApXX+Ml/yLftsylCY92Op7gQAGqzNxYRSiBj4YNOchUkuoRidK85yBVwtKg2TFlx8ddt0kXkDzdhqOCN/FxrMON3yLpQ/MBAHRtfroXHr/1nho6UWNiHqR7gZueJwY9nM8VXEUyV3watpVPIIcND2kTBvyVEAvhSUaRtHWCNCUE9q9VYgkT7PeO3I9XzPS4llEI/YJcEAnSvTcmjGauoTLmTd7UL+98S/XQhcj+ZS092Fjr7SyJJaVDJIqk3Bx0Cv9NArQMky7GFX6lkp3VTfwH8NHFMum0Dvw9wLS7LPeVGylnjU931BkcgEVsS+Y2Adnp1RzQwS+as7/o7v51Qw+/469NArGqcqsbcFV+GtSP24oXrU8Sn5etszElpJkZeXzUThKUslbcNUmpnyV2KZTp+d7z80ctsssswLLhkHgbLxqfgrMM49hyNv7wMG/926zoBM/A4AdKVLRcLCzZrHrHnVd3z+srMlqOs8qvnfB+Snswj9gQPtELpLpoyU3qRoNGPmV0ylD43ZlUZWLWLx1C9LNqW/9D6SQyr5q56F2z/HcJ+6GypuuCwePQgTAIiHskwivqlZsgssRrqDyWIICbBGS853+QT+H8u2lTJXoBEJ0LqovviuaEKz2wYS8acpA11m/3O1ywL6KmLMxKyKjuIS1tMUZDmxqn750UsXW2xFVcZCbDpGo7+o30Qz981oKphBp3aZDdWCdtFpXVJ1uI1rLRsWSwI06TuH0dZgLgRv1RWXZIikbQvv3nQ+PXd4MIE
+    LLAMA_API_KEY: AgDT+YBJw35cCtj1jmXcwZ9QbikQbV2dwtPiWM/ICBrQhZof9Nh8Dr/yM2lbiDWwBKfx+aV2MboZ53qY9XgJm5HaNNKWQxwWTsuagXG09H8+Rz1u9MxYkxkGaD2SN4rvgQ0bmX4rYtcTfRHtxpf+pALyxKeRRdYz4y6GhYuwqb+dW2xLm23SvsrrMKK+h0BY642Yk2oFcmCF1HPIl7SiJnqXALnwHymR/zAHvqCy0eyAn7XuOEF39jsrkLef1ZHQsKt6o/Q1aBPinvb2REuQ5Z2N+bBkUH1fqf457vWwVJStMdnh+BBTk5wah2GypDa7OC3cffybCRpfxxIFv7berGBat4ataTlEftq+bNQ8woLN2xTT2yeWWFSw9Hl3CouH4ueBb7LaemXmfsBdvj95CjnQmjb1V4J9Osz82ITdafWENHlsGl8bC10tO0K811OKWPsO3LV6iUTS2gaYSfz0rZwWJ1pXs5IalnMm6xnwzZ1BE3UJLZlI6GFOkUhxc+ZmjHtFp8LzF8g9lY8XzWgibqBoKOzHhztytNzBkqBGnqsqkTfqAzGNt/Z7Qg+ryaT2ag8isw0evDtZaG+u1oJBqXuFsjthgalDDUjfmhplyHafPIvMeV88nAnm5Bzm7bJms7vp2DAJjMUSS6plSZHCBLI5FniHJjE5r2ZHKkwuIkFEz5Yx392coVG635F1v0Ee6R7LHmZ+1VxCE01TQV6RPaMc+qPxA+in8vBx2msmVSphZTPhdcyXubl8wpb2AuyA2DwmxYQf0GaVmKbf4ojlEyXX
+  template:
+    metadata:
+      name: model-serving-keys
+      namespace: model-serving
+    type: Opaque
