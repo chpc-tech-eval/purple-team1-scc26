@@ -19,3 +19,7 @@ ca921c5f5c775c531e38a4f0b156f7b59a7f9c9b:gitops/resources/wazuh/wazuh-creds-seal
 # SealedSecret ciphertext (ACP DB credentials under spec.encryptedData), flagged by key name. PR #96.
 e53460de4a27873e931434b3bd67d5ab0dd3595c:gitops/resources/agent-control-plane/acp-db-owner-sealed.yaml:generic-api-key:13
 e53460de4a27873e931434b3bd67d5ab0dd3595c:gitops/resources/agent-control-plane/acp-db-app-sealed.yaml:generic-api-key:12
+
+# SealedSecret ciphertext (LITELLM_MASTER_KEY, LLAMA_API_KEY under spec.encryptedData), flagged by key name. PR #111.
+4ae0c99d3fe5888388847073aba23c1ab9baf3bc:gitops/resources/model-serving/model-serving-keys-sealed.yaml:generic-api-key:13
+4ae0c99d3fe5888388847073aba23c1ab9baf3bc:gitops/resources/model-serving/model-serving-keys-sealed.yaml:generic-api-key:14
