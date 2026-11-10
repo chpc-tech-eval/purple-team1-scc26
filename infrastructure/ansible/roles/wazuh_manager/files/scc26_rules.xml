@@ -28,4 +28,62 @@
        40112 ("Multiple authentication failures followed by a success") already
        catches it and wins over a team duplicate. The tests check that 40112 fires. -->
 
+  <!-- Break-glass account (docs/access-control-policy.md): `rocky` is the one
+       shared identity, so every use must raise an alert the whole team sees.
+       sshd logs the target account as dstuser (5715 = success).
+       Failed logins to rocky are deliberately NOT overridden: a child rule of
+       5760 would take the events away from the built-in brute-force counter
+       (5763 -> 40112), so a brute force on rocky would no longer correlate.
+       The test break_glass_bruteforce_then_success guards this. -->
+  <rule id="100110" level="12">
+    <if_sid>5715</if_sid>
+    <user>^rocky$</user>
+    <description>SCC26 break-glass: SSH login as shared account rocky from $(srcip). Announce it in the team channel and rotate the key after use.</description>
+    <mitre>
+      <id>T1078</id>
+    </mitre>
+    <group>scc26_break_glass,authentication_success,</group>
+  </rule>
+
+  <!-- Switching to rocky from inside a host (su - rocky, sudo -u rocky) is also
+       a break-glass use. Both log a PAM session for user rocky (5501); sshd's
+       own PAM line is left to 100110, and rocky running sudo to root (dstuser
+       root) does not match. -->
+  <rule id="100113" level="12">
+    <if_sid>5501</if_sid>
+    <program_name>^su$|^sudo$</program_name>
+    <user>^rocky$</user>
+    <description>SCC26 break-glass: $(srcuser) switched to shared account rocky. Announce it in the team channel and rotate the key after use.</description>
+    <mitre>
+      <id>T1078</id>
+    </mitre>
+    <group>scc26_break_glass,</group>
+  </rule>
+
+  <!-- Brute force on key-only hosts. With password login off, a rejected login
+       to an EXISTING account is logged only as "Connection closed by
+       authenticating user <u> <ip> port <n> [preauth]" (5722, level 0), which
+       the built-in brute-force rules (5712/5763) never see. The stock decoder
+       extracts no srcip from this line, so the burst is counted per host
+       (same_location); the source is in the alert's full_log. No built-in rule
+       depends on 5722, so this child rule takes nothing away from them.
+       100111 must be level >= 1: Wazuh does not count level-0 events towards a
+       frequency rule (tested), so each rejected login is a low level-3 alert. -->
+  <rule id="100111" level="3">
+    <if_sid>5722</if_sid>
+    <match>Connection closed by authenticating user </match>
+    <description>SCC26: rejected SSH login to an existing account (key-only host)</description>
+    <group>scc26_detection,</group>
+  </rule>
+
+  <rule id="100112" level="10" frequency="8" timeframe="120" ignore="120">
+    <if_matched_sid>100111</if_matched_sid>
+    <same_location />
+    <description>SCC26: 8+ rejected SSH logins to existing accounts within 2 min on one host (brute force or key spraying)</description>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+    <group>scc26_detection,</group>
+  </rule>
+
 </group>
