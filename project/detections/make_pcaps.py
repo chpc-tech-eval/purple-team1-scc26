@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Write one synthetic pcap per Suricata test case (cases.SURICATA).
+"""Write one synthetic pcap per Suricata test case (cases.SURICATA and the
+known misses in cases.SURICATA_MISS).
 
   python3 make_pcaps.py <out-dir>
 
@@ -9,10 +10,10 @@ reassembles the streams and parses HTTP exactly as on the wire.
 import pathlib
 import sys
 
-from scapy.all import IP, TCP, Raw, wrpcap  # noqa: E402
+from scapy.all import IP, TCP, UDP, Raw, wrpcap  # noqa: E402
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from cases import ATTACKER, CLIENT, SURICATA, TARGET  # noqa: E402
+from cases import ATTACKER, CLIENT, SURICATA, SURICATA_MISS, TARGET  # noqa: E402
 
 T0 = 1_794_038_400.0  # 2026-11-07T08:00:00Z
 
@@ -57,6 +58,11 @@ def http_get(path, ua="Mozilla/5.0 (X11; Linux x86_64) Firefox/140.0"):
     return (f"GET {path} HTTP/1.1\r\nHost: platform.example\r\nUser-Agent: {ua}\r\nAccept: */*\r\n\r\n").encode()
 
 
+def http_post(path, body, ua="Mozilla/5.0 (X11; Linux x86_64) Firefox/140.0"):
+    return (f"POST {path} HTTP/1.1\r\nHost: platform.example\r\nUser-Agent: {ua}\r\n"
+            f"Content-Type: application/x-www-form-urlencoded\r\nContent-Length: {len(body)}\r\n\r\n{body}").encode()
+
+
 OK = b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\n\r\nok"
 NOT_FOUND = b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"
 SSH_BANNER = b"SSH-2.0-OpenSSH_9.9\r\n"
@@ -90,6 +96,31 @@ def build(name):
         for i in range(3):
             pkts += session(clock, CLIENT, TARGET, 44000 + i, 22, SSH_BANNER, SSH_BANNER)
             clock.tick(20.0)
+    # --- known misses (cases.SURICATA_MISS): expected to trigger no team SID ---
+    elif name == "slow_scan":
+        for i, port in enumerate(range(1, 61)):
+            pkts.append(stamp(IP(src=ATTACKER, dst=TARGET) / TCP(sport=41000 + i, dport=port, flags="S", seq=1), clock, 0.3))
+    elif name == "distributed_scan":
+        for i, port in enumerate(range(1, 61)):
+            src = f"198.51.100.{50 + i % 4}"
+            pkts.append(stamp(IP(src=src, dst=TARGET) / TCP(sport=41000 + i, dport=port, flags="S", seq=1), clock, 0.03))
+    elif name == "udp_scan":
+        for i, port in enumerate(range(1, 61)):
+            pkts.append(stamp(IP(src=ATTACKER, dst=TARGET) / UDP(sport=41000 + i, dport=port), clock, 0.03))
+    elif name == "slow_ssh":
+        for i in range(9):
+            pkts += session(clock, ATTACKER, TARGET, 42000 + i, 22, SSH_BANNER, SSH_BANNER)
+            clock.tick(6.0)
+    elif name == "traversal_double_encoded":
+        pkts += web(http_get("/static/%252e%252e%252f%252e%252e%252fetc%252fpasswd"))
+    elif name == "sqli_union_comment":
+        pkts += web(http_get("/api/items?id=1%20UNION/**/SELECT/**/username,password%20FROM%20users"))
+    elif name == "sqli_unquoted":
+        pkts += web(http_get("/api/items?id=1%20OR%201=1"))
+    elif name == "sqli_post_body":
+        pkts += web(http_post("/api/login", "user=a'%20OR%20'1'='1&password=x"))
+    elif name == "sqli_blind_browser_ua":
+        pkts += web(http_get("/api/items?id=1%20AND%20SLEEP(5)"))
     else:
         raise KeyError(name)
     return pkts
@@ -98,7 +129,7 @@ def build(name):
 def main(out):
     out = pathlib.Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    for name in SURICATA:
+    for name in [*SURICATA, *SURICATA_MISS]:
         wrpcap(str(out / f"{name}.pcap"), build(name))
         print(f"wrote {name}.pcap")
 
