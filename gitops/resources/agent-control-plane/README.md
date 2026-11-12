@@ -4,7 +4,7 @@ Deployed from `nyameko/infra-hpc-qc-k8s` `argocd/resources/agent-control-plane` 
 
 | Changed from upstream | Why |
 | --- | --- |
-| Images by digest in each manifest (API `sha256:b1289eab…`, Hermes `sha256:609dd6a8…`, PostgreSQL `18.4@sha256:a02db8ca…`) | immutable references; upstream used Kustomize `images:` and the floating `postgres:18` |
+| Images by digest in each manifest (API `sha256:b1289eab…` and Hermes `sha256:73fbc343…`, both built from upstream commit `dab5e4c`; PostgreSQL `18.4@sha256:a02db8ca…`) | immutable references; upstream used Kustomize `images:` and the floating `postgres:18` |
 | `ACP_TENANT_ID: purple-team1`, Prometheus `kps-prometheus:9090` | our tenant and our kube-prometheus-stack (#68) |
 | API ingress only from `student-platform` pods `app=platform` | our Student Platform replaces the Quantum Platform portal |
 | Prometheus egress matches `operator.prometheus.io/name=kps-prometheus` | the labels in our cluster |
@@ -19,7 +19,7 @@ Credentials: owner/app DB passwords and an Ed25519 key pair were generated offli
 
 **Hermes and the 64K check.** Hermes refuses models whose context window it resolves below 64K. LiteLLM reports no window, so Hermes falls back to its built-in catalogue (`qwen` → 131,072) and accepts the model, although llama.cpp serves 4,096. That is safe for this worker: one short prompt, no tools, `max_tokens` 1200. An oversize request fails at llama.cpp and the run is recorded as failed; nothing is truncated silently.
 
-Tested before merge with the pinned images only (Hermes worker `609dd6a8…`, our llama.cpp `1c05eb08…`, LiteLLM with the `model-serving` config), on a Docker network without internet, under the cluster DNS names and the pods' UIDs, read-only:
+Tested before merge with the pinned images only (Hermes worker `609dd6a8…`, same Hermes revision and runtime as the current `73fbc343…`; our llama.cpp `1c05eb08…`, LiteLLM with the `model-serving` config), on a Docker network without internet, under the cluster DNS names and the pods' UIDs, read-only:
 
 ```
 Hermes resolved context ...... 131,072 (catalogue match on 'qwen'); the 64K check passes
