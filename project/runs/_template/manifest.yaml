@@ -1,0 +1,44 @@
+---
+# Week-5 run manifest (copy to project/runs/<run-id>/manifest.yaml BEFORE the exercise).
+# Public repository: logical names only, no addresses, no secret scenario text.
+# Check it:  python3 project/tools/w5run.py validate <file> --stage plan   (before execution)
+#            python3 project/tools/w5run.py validate <file> --stage final  (after evidence export)
+schema: scc26-week5-run/1
+run_id: ""                  # <UTC start>-w5-<phase>, e.g. 20261110T090000Z-w5-phase1-defend
+scenario_id: ""             # the instructor's scenario ID only
+phase: 1                    # 1 = first role phase, 2 = after the instructor-approved swap
+team_role: ""               # attacker | defender
+authorisation:
+  roe_reference: ""         # where the RoE acknowledgement is recorded (issue/message ID), not its content
+  acknowledged_utc: ""
+frozen:
+  git_sha: ""               # accepted Week-4 commit on dev (40 hex)
+  images: {}                # name: repo@sha256:<digest>
+scope:
+  sources: []               # authorised logical sources, e.g. peer-range-host
+  targets: []               # authorised logical targets, e.g. edge-01, student-platform
+time_sync:
+  checked_utc: ""
+  max_skew_seconds: null    # printed by project/tools/w5_ready.sh; must be <= 1
+baseline:
+  start_utc: ""             # 10-15 minutes of normal telemetry, ending before window.start_utc
+  end_utc: ""
+  evidence: []              # evidence ids of the baseline captures
+window:
+  start_utc: ""
+  end_utc: ""
+expected_layers: [host, network, application]
+evidence: []                # - {id: E1, layer: network, source: suricata-eve, path: ..., sha256: ...}
+detections: []              # - {id: D1, utc: ..., source: wazuh, rule: "86601", evidence_id: E1, analyst: ...}
+milestones:
+  first_detection_utc: ""
+  identified_utc: ""        # correct interpretation
+  contained_utc: ""         # only if containment was exercised
+  recovery_started_utc: ""
+  recovered_utc: ""
+acp: []                     # - {task_id: ..., evidence_ids: [E1], status: succeeded, human_review: "..."}
+findings:
+  false_positives: []
+  false_negatives: []
+  gaps: []
+reset_replay: ""            # docs/week5-runbook.md#reset-and-replay (+ any deviation)

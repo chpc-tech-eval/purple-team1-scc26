@@ -1,0 +1,43 @@
+---
+# SYNTHETIC EXAMPLE for tests and figure previews only. Not an exercise result.
+schema: scc26-week5-run/1
+run_id: 20261110T090000Z-w5-example-defend
+scenario_id: EXAMPLE
+phase: 1
+team_role: defender
+authorisation:
+  roe_reference: example-only
+  acknowledged_utc: "2026-11-10T08:00:00Z"
+frozen:
+  git_sha: 8e013b4000000000000000000000000000000000
+  images:
+    platform: ghcr.io/example/platform@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+scope:
+  sources: [example-source]
+  targets: [edge-01]
+time_sync:
+  checked_utc: "2026-11-10T08:30:00Z"
+  max_skew_seconds: 0.02
+baseline:
+  start_utc: "2026-11-10T08:40:00Z"
+  end_utc: "2026-11-10T08:55:00Z"
+  evidence: []
+window:
+  start_utc: "2026-11-10T09:00:00Z"
+  end_utc: "2026-11-10T09:40:00Z"
+expected_layers: [host, network]
+evidence:
+  - {id: E1, layer: network, source: suricata-eve, path: example, sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb}
+detections:
+  - {id: D1, utc: "2026-11-10T09:02:30Z", source: suricata, rule: "9000010", evidence_id: E1}
+milestones:
+  first_detection_utc: "2026-11-10T09:02:30Z"
+  identified_utc: "2026-11-10T09:10:00Z"
+  contained_utc: "2026-11-10T09:16:00Z"
+  recovered_utc: ""
+acp: []
+findings:
+  false_positives: [example]
+  false_negatives: []
+  gaps: [example]
+reset_replay: docs/week5-runbook.md#reset-and-replay
