@@ -1,0 +1,68 @@
+---
+- name: Add the Docker EL repository (containerd.io only)
+  ansible.builtin.yum_repository:
+    name: docker-ce-stable
+    description: Docker CE Stable - $basearch
+    baseurl: "{{ containerd_repo_baseurl }}"
+    gpgkey: "{{ containerd_repo_gpgkey }}"
+    gpgcheck: true
+    enabled: true
+
+- name: Install the versionlock plugin
+  ansible.builtin.dnf:
+    name: python3-dnf-plugin-versionlock
+    state: present
+
+# container-selinux carries the policy that lets containers run with
+# SELinux enforcing; never disable SELinux to make the runtime work.
+- name: Install containerd and its SELinux policy, pinned to {{ containerd_version }}
+  ansible.builtin.dnf:
+    name:
+      - "containerd.io-{{ containerd_version }}"
+      - container-selinux
+    state: present
+    allow_downgrade: false
+
+- name: Lock containerd to the pinned version
+  community.general.dnf_versionlock:
+    name: containerd.io
+    state: present
+
+- name: Create the containerd configuration directory
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Read the containerd default configuration
+  ansible.builtin.command:
+    cmd: containerd config default
+  register: containerd_default_config
+  changed_when: false
+
+# kubelet uses the systemd cgroup driver on EL9, so runc must match.
+- name: Require the runc SystemdCgroup option in the default configuration
+  ansible.builtin.assert:
+    that:
+      - "'SystemdCgroup = false' in containerd_default_config.stdout"
+    fail_msg: "containerd {{ containerd_version }} default config has no 'SystemdCgroup = false' line; review the template before continuing."
+
+- name: Write config.toml with SystemdCgroup = true
+  ansible.builtin.copy:
+    dest: /etc/containerd/config.toml
+    content: "{{ containerd_default_config.stdout | regex_replace('SystemdCgroup = false', 'SystemdCgroup = true') }}\n"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart containerd
+
+- name: Enable and start containerd
+  ansible.builtin.systemd_service:
+    name: containerd
+    enabled: true
+    state: started
+
+- name: Apply a pending containerd restart before the CRI checks
+  ansible.builtin.meta: flush_handlers

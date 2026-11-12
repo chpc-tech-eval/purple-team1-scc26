@@ -1,0 +1,86 @@
+# Week-3 Part A (week3/README.md §1-3): Prometheus, Alertmanager,
+# kube-state-metrics, node-exporter and Grafana from kube-prometheus-stack.
+# Chart = controllers; our dashboards, the sealed Grafana admin credential and
+# the Grafana Ingress come from gitops/resources/monitoring (second source).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 91.9.0  # operator v0.94.1; >2 weeks old when pinned
+      helm:
+        releaseName: kps
+        valuesObject:
+          fullnameOverride: kps
+          # kubeadm binds these to 127.0.0.1, so a scrape from a pod can only
+          # ever report up=0. Not scraped on purpose (documented on #63).
+          kubeEtcd: {enabled: false}
+          kubeControllerManager: {enabled: false}
+          kubeScheduler: {enabled: false}
+          kubeProxy: {enabled: false}
+          prometheus:
+            prometheusSpec:
+              retention: 15d
+              retentionSize: 18GB
+              # pick up ServiceMonitors/PodMonitors/rules from any namespace,
+              # not only ones labelled for this Helm release
+              serviceMonitorSelectorNilUsesHelmValues: false
+              podMonitorSelectorNilUsesHelmValues: false
+              ruleSelectorNilUsesHelmValues: false
+              resources:
+                requests: {cpu: 200m, memory: 1Gi}
+                limits: {memory: 3Gi}
+              storageSpec:
+                volumeClaimTemplate:
+                  spec:
+                    storageClassName: cinder-ssd
+                    accessModes: [ReadWriteOnce]
+                    resources:
+                      requests: {storage: 20Gi}
+          alertmanager:
+            alertmanagerSpec:
+              resources:
+                requests: {cpu: 20m, memory: 64Mi}
+                limits: {memory: 256Mi}
+          grafana:
+            defaultDashboardsTimezone: utc  # Week-5 timelines are in UTC
+            admin:
+              existingSecret: grafana-admin  # SealedSecret in gitops/resources/monitoring
+              userKey: admin-user
+              passwordKey: admin-password
+            persistence:
+              enabled: true
+              storageClassName: cinder-ssd
+              size: 5Gi
+            sidecar:
+              dashboards:
+                enabled: true
+                label: grafana_dashboard
+                labelValue: "1"
+                searchNamespace: ALL
+            ingress:
+              enabled: false  # ours, with the team CA annotation, is in gitops/resources/monitoring
+          prometheus-node-exporter:
+            resources:
+              requests: {cpu: 20m, memory: 32Mi}
+              limits: {memory: 128Mi}
+    - repoURL: https://github.com/chpc-tech-eval/purple-team1-scc26.git
+      targetRevision: dev
+      path: gitops/resources/monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true  # the operator CRDs are too large for client-side apply

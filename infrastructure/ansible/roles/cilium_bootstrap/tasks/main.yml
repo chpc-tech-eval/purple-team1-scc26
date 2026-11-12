@@ -1,0 +1,54 @@
+---
+- name: Download the Cilium CLI (checksum-verified)
+  ansible.builtin.get_url:
+    url: "https://github.com/cilium/cilium-cli/releases/download/{{ cilium_bootstrap_cli_version }}/cilium-linux-amd64.tar.gz"
+    dest: "/usr/local/src/cilium-cli-{{ cilium_bootstrap_cli_version }}-linux-amd64.tar.gz"
+    checksum: "sha256:{{ cilium_bootstrap_cli_sha256 }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install the Cilium CLI on the control plane only
+  ansible.builtin.unarchive:
+    src: "/usr/local/src/cilium-cli-{{ cilium_bootstrap_cli_version }}-linux-amd64.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    include: [cilium]
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Copy the Git-tracked Cilium values to the control plane
+  ansible.builtin.copy:
+    src: "{{ cilium_bootstrap_values_file }}"
+    dest: /etc/kubernetes/cilium-values.yaml
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Check whether Cilium is already installed
+  ansible.builtin.command:
+    cmd: kubectl -n kube-system get daemonset cilium -o name
+  environment:
+    KUBECONFIG: "{{ cilium_bootstrap_kubeconfig }}"
+  register: cilium_bootstrap_ds
+  failed_when: false
+  changed_when: false
+
+- name: Install Cilium with the pinned version and Git-tracked values
+  ansible.builtin.command:
+    cmd: >-
+      /usr/local/bin/cilium install
+      --version {{ cilium_bootstrap_version }}
+      --values /etc/kubernetes/cilium-values.yaml
+  environment:
+    KUBECONFIG: "{{ cilium_bootstrap_kubeconfig }}"
+  when: cilium_bootstrap_ds.rc != 0
+  changed_when: true
+
+- name: Wait for Cilium to report healthy
+  ansible.builtin.command:
+    cmd: /usr/local/bin/cilium status --wait --wait-duration 10m
+  environment:
+    KUBECONFIG: "{{ cilium_bootstrap_kubeconfig }}"
+  changed_when: false

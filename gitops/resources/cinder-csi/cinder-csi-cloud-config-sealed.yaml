@@ -1,0 +1,14 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: cinder-csi-cloud-config
+  namespace: kube-system
+spec:
+  encryptedData:
+    cloud.conf: AgBWekApZO47sHr7I2E8NpwWz37Hy2VRcmVz32M/+EYz1uDXiRpTtzl0oMZdcLGSxRXvVa6S+q4p2o/qMw1Pk6Z8s8115Jy+xQCCnkWpYeM6RpnNfNNE1Pbi59D0cvf1nlD5yTj8XYvDxuZ81oRku3hbI8ZuSDtwQVv0EMb3Ds6/mJO2+PhlTGZFTUjcz58Ti7P3jdy86nhpiLMBknrjgHdqzUJsHchcxhbf9dIL56+Pyjl67EMUrbYfEO6eokaglffCrRitsuFy1TsRSobfVi2Bs1nMbjOP5FiWK2DZGjWNb/MJGY61zS2o9I8hR7GYh4wN6n+LCUWGdU9DBpbkhrzwaWWA+sVuUJ8zpFbBpwu8Bj0j1WOpABtkYAUPDbJgY13oGzreU7QdelZB47/L5c7UA83o9wYZB1CZIHWn/3Suh3jkwB/0eoONeGt3zMEKT+sg53CztNtfMJeWA81ai8JvFHvOnfG4VzamdeUMyIuAY9aqWqawa/Ds6FPpvSy28XKbyfHK+RsPbphpkIv6CRVZPn3nu21s1/9U0BmGrJYKsuclpNoi6Dr9SrSDm+sAI5oGhHgIsuGHLSD9L5JzRUpPOqHcq+X92p7NsZhsm75kjMbVEELoCsPCBrp13J42Pxy87J7DkSvU86hgWREZ/d8plm5UNLHqSDvlclU7wS4oTfrSSPqf0W3N/NvioWPlhW7kYFizi8zhKPBjMkntww7SEar49ACUXHtxgoKZ2115HY+r6CQDBb1EuQ+zhpURIe1Rog2XTYtx/+hpYGpoKsxQsR2jKqKbr6rzVUsNS1HjAaBq2ffrVNOi2P9v7HJ4UW6t5y3yfg9hqBcko1DVgx4KjXkADCst9nPXMj9pIIou4xo1/R3aeO6ECRibzjyAxkdjVX6wdPCEbEQ+wAcR0JEnnCzscAQ1+qiOzP2oqvjcguBeNOa3koKW+I5JOH6dCtb0Q99gpBcRluOghVR+JTVx2+YbvfPL+gfPcLnBehS+hVbU9hGYJScDBBIqQ9GSNNN5s+/ZVWnf
+  template:
+    metadata:
+      name: cinder-csi-cloud-config
+      namespace: kube-system
+    type: Opaque

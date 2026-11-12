@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "run_id": "685975df-3efb-474d-8a43-cf3afd38c48a",
+  "project": "purple-team1-scc26",
+  "experiment": "week3-part-c-postgres-persistence",
+  "status": "completed",
+  "started_at": "2026-10-18T19:03:14Z",
+  "finished_at": "2026-10-18T19:04:30Z",
+  "source": {
+    "repository": "https://github.com/chpc-tech-eval/purple-team1-scc26",
+    "commit": "95375484d200bc741a9ae49d285efa7b80920c2b",
+    "dirty": false
+  },
+  "software": {
+    "images": [
+      {
+        "name": "postgres",
+        "ref": "docker.io/library/postgres:17.11-bookworm@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826"
+      }
+    ]
+  },
+  "execution": {
+    "location": "sebowa-kubernetes",
+    "host_class": "C8.medium worker",
+    "namespace": "student-platform",
+    "requested_resources": {
+      "storage": "10Gi",
+      "storage_class": "cinder-ssd"
+    }
+  },
+  "parameters": {
+    "record_id": "persist-20261018T190314Z",
+    "action": "delete postgres-0 pod, keep PVC; StatefulSet recreates it"
+  },
+  "metrics": {
+    "record_read_back_matches": 1,
+    "networkpolicy_cross_namespace_blocked": 1
+  },
+  "artifacts": [],
+  "notes": "week3 \u00a713 proof on the #73 database. Evidence on issue #66."
+}

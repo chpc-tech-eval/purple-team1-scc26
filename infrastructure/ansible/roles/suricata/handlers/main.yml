@@ -1,0 +1,13 @@
+---
+- name: Reapply capture offloads
+  ansible.builtin.systemd_service:
+    name: scc26-capture-offloads
+    daemon_reload: true
+    state: restarted
+  # In --check the unit file is not really written yet.
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Restart suricata
+  ansible.builtin.systemd_service:
+    name: suricata
+    state: restarted

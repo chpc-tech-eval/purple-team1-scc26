@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: saxs-14
+  description: Suricata IDS (af-packet, no inline IPS) on edge-01 with ET Open rules and a team drill signature
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

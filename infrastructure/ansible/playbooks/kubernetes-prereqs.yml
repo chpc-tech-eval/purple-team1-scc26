@@ -1,0 +1,13 @@
+---
+# Week-2 Part A: container runtime + Kubernetes host prerequisites on the
+# control plane and workers (week2/README.md §2). Pinned to the instructor
+# baseline: Kubernetes 1.36.4, containerd 2.3.4.
+# Run: ansible-playbook -i inventories/private/hosts.yml playbooks/kubernetes-prereqs.yml
+- name: Kubernetes host prerequisites
+  hosts: control_plane:workers
+  become: true
+  roles:
+    - role: containerd
+      tags: [containerd]
+    - role: kube_prereqs
+      tags: [kube_prereqs]

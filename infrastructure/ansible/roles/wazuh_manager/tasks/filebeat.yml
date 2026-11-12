@@ -1,0 +1,75 @@
+---
+# Filebeat 7.10.2 (the version Wazuh 4.x ships) reads /var/ossec/logs/alerts
+# and sends them to the in-cluster Wazuh indexer over the NodePort (SG row 18).
+# Same bump path as the Wazuh packages: release a lock for a different version
+# first (wazuh_manager_versionlocks is read in main.yml before this file runs).
+- name: Release a Filebeat lock for a different version (bump PRs only)
+  community.general.dnf_versionlock:
+    name: filebeat
+    state: absent
+  when:
+    - "'filebeat-' in wazuh_manager_versionlocks.stdout"
+    - "('filebeat-0:' ~ wazuh_manager_filebeat_version ~ '-') not in wazuh_manager_versionlocks.stdout"
+
+- name: Install the pinned Filebeat from the Wazuh repository
+  ansible.builtin.dnf:
+    name: "filebeat-{{ wazuh_manager_filebeat_version }}"
+    state: present
+
+- name: Lock Filebeat to the pinned version
+  community.general.dnf_versionlock:
+    name: filebeat
+    state: present
+  when: not (ansible_check_mode and wazuh_manager_versionlock_plugin is changed)
+
+- name: Wazuh alerts index template
+  ansible.builtin.get_url:
+    url: "{{ wazuh_manager_filebeat_template_url }}"
+    checksum: "{{ wazuh_manager_filebeat_template_checksum }}"
+    dest: /etc/filebeat/wazuh-template.json
+    mode: "0644"
+  notify: Restart filebeat
+
+- name: Download the Wazuh Filebeat module (checksum verified)
+  ansible.builtin.get_url:
+    url: "{{ wazuh_manager_filebeat_module_url }}"
+    checksum: "{{ wazuh_manager_filebeat_module_checksum }}"
+    dest: /root/wazuh-filebeat-module.tar.gz
+    mode: "0600"
+
+- name: Wazuh Filebeat module
+  ansible.builtin.unarchive:
+    src: /root/wazuh-filebeat-module.tar.gz
+    dest: /usr/share/filebeat/module
+    remote_src: true
+    creates: /usr/share/filebeat/module/wazuh/module.yml
+  notify: Restart filebeat
+
+- name: Certificate directory
+  ansible.builtin.file:
+    path: /etc/filebeat/certs
+    state: directory
+    mode: "0750"
+
+- name: Team CA that signed the indexer certificate
+  ansible.builtin.copy:
+    content: "{{ wazuh_manager_filebeat_ca_cert }}"
+    dest: /etc/filebeat/certs/root-ca.pem
+    mode: "0644"
+  notify: Restart filebeat
+
+- name: Filebeat configuration
+  ansible.builtin.template:
+    src: filebeat.yml.j2
+    dest: /etc/filebeat/filebeat.yml
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Restart filebeat
+
+- name: Enable and start Filebeat
+  ansible.builtin.systemd_service:
+    name: filebeat
+    enabled: true
+    state: started

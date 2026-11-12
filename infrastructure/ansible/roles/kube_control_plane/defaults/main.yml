@@ -1,0 +1,19 @@
+---
+# Week-2 Part B (week2/README.md §4). Same baseline as kube_prereqs.
+kube_control_plane_kubernetes_version: "1.36.4"
+kube_control_plane_cluster_name: "3ncryp3d"
+
+# Stable API endpoint = HAProxy on api-lb-01 (Week 1, #14). Derived from the
+# inventory so no address is committed.
+kube_control_plane_api_lb_group: api_lb
+kube_control_plane_api_port: 6443
+
+# The pod network is a private team range: set it in the private inventory
+# (group_vars). It must match the Cilium values in Part C.
+kube_control_plane_pod_cidr: ""
+kube_control_plane_service_cidr: "10.96.0.0/12"
+
+# Join material is temporary runtime data: short-lived and never logged.
+kube_control_plane_token_ttl: "30m"
+
+kube_control_plane_admin_user: "{{ ansible_user | default('rocky') }}"

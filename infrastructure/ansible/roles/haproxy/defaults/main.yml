@@ -1,0 +1,7 @@
+---
+# Stable Kubernetes API endpoint on api-lb-01 (week1/README.md Part G, #14).
+# Backends are the hosts in this inventory group (their ansible_host, i.e.
+# private addresses from the private inventory); nothing is hard-coded.
+haproxy_backend_group: control_plane
+haproxy_api_port: 6443
+haproxy_bind_address: "*"

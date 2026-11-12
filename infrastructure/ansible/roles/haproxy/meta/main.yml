@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: Rendani-Anele
+  description: HAProxy stable Kubernetes API endpoint on api-lb-01 (SELinux enforcing)
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

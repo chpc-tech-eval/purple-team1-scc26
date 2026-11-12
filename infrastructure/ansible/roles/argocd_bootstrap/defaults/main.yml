@@ -1,0 +1,12 @@
+---
+# Argo CD bootstrap (week2/README.md Part D). Instructor reference pin,
+# checksum-verified so a changed upstream manifest cannot slip in.
+argocd_bootstrap_version: "v3.5.0"
+argocd_bootstrap_manifest_sha256: "a32bf36a437071a1f563ebf9e81c8a39fba9057c17db7d5d041afb7b6e3f4afe"
+argocd_bootstrap_namespace: argocd
+
+# Runs as the admin user with the kubeconfig kube_control_plane installed on
+# k8s-cp-01; the workstation never has a kubeconfig.
+argocd_bootstrap_kubeconfig: "/home/{{ ansible_user | default('rocky') }}/.kube/config"
+
+argocd_bootstrap_root_application: "{{ playbook_dir }}/../../../gitops/bootstrap/root-application.yaml"

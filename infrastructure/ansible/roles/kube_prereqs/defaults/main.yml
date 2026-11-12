@@ -1,0 +1,24 @@
+---
+# Instructor-pinned weekly baseline (week2/README.md §2). All nodes get the
+# same version and the packages are versionlocked.
+kube_prereqs_kubernetes_version: "1.36.4"
+kube_prereqs_kubernetes_minor: "{{ kube_prereqs_kubernetes_version.split('.')[:2] | join('.') }}"
+
+# Command-location rule (week2/README.md): kubectl lives on the control
+# plane only. Workers get kubelet + kubeadm, never an admin CLI.
+kube_prereqs_install_kubectl: "{{ inventory_hostname in groups['control_plane'] | default([]) }}"
+
+kube_prereqs_packages:
+  - conntrack-tools
+  - socat
+  - ethtool
+  - iproute-tc
+
+kube_prereqs_modules:
+  - overlay
+  - br_netfilter
+
+kube_prereqs_sysctl:
+  net.bridge.bridge-nf-call-iptables: "1"
+  net.bridge.bridge-nf-call-ip6tables: "1"
+  net.ipv4.ip_forward: "1"

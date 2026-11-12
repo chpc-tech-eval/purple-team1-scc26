@@ -1,0 +1,20 @@
+# Repo gitleaks config: full default ruleset PLUS a narrow allowlist for Bitnami
+# SealedSecret manifests.
+#
+# A SealedSecret's `encryptedData` is ciphertext sealed with the cluster
+# SealedSecrets controller's public cert. It can only be decrypted by the
+# controller's private key inside the cluster, so it is SAFE to commit by design
+# (that is the entire point of Sealed Secrets). gitleaks otherwise flags the
+# base64 ciphertext as a generic API key (false positive).
+#
+# The allowlist is path-scoped to sealed manifests under gitops/, so a plaintext
+# secret committed ANYWHERE else is still detected. `useDefault = true` keeps the
+# complete upstream gitleaks ruleset active.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Bitnami SealedSecrets (encryptedData) are encrypted and safe to commit"
+paths = [
+  '''gitops/.*sealed.*\.ya?ml$''',
+]

@@ -1,0 +1,32 @@
+# Managed by Ansible (roles/haproxy). Kubernetes API load balancer.
+# Before kubeadm (Week 2) the backend is expected to be DOWN; the listener
+# itself should still be up on :{{ haproxy_api_port }}.
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    daemon
+    maxconn 4096
+
+defaults
+    log global
+    mode tcp
+    option tcplog
+    option dontlognull
+    timeout connect 5s
+    timeout client 30s
+    timeout server 30s
+    # Long-lived streams (kubectl watch/logs -f/exec) once established.
+    timeout tunnel 1h
+
+frontend kubernetes-api
+    bind {{ haproxy_bind_address }}:{{ haproxy_api_port }}
+    default_backend kubernetes-control-plane
+
+backend kubernetes-control-plane
+    # kubeadm HA guidance: probe /healthz over TLS, do not verify the cert here.
+    option httpchk GET /healthz
+    http-check expect status 200
+    balance roundrobin
+{% for host in groups[haproxy_backend_group] %}
+    server {{ host }} {{ hostvars[host].ansible_host }}:{{ haproxy_api_port }} check check-ssl verify none
+{% endfor %}

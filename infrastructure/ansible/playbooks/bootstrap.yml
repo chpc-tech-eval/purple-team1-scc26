@@ -1,0 +1,7 @@
+---
+# Week-1 base bootstrap for all five hosts (week1/README.md Part E, #12).
+- name: Bootstrap host fundamentals
+  hosts: all
+  become: true
+  roles:
+    - role: common

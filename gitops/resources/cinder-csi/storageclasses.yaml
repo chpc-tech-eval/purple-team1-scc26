@@ -1,0 +1,36 @@
+# Only the volume types that exist in our Sebowa project: SSD, HDD and the
+# provider default (`openstack volume type list`, 2026-10-15). One AZ (nova).
+# Volume quota is 50 GB in total, so keep claims small.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cinder-ssd
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: cinder.csi.openstack.org
+parameters:
+  type: SSD
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cinder-hdd
+provisioner: cinder.csi.openstack.org
+parameters:
+  type: HDD
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cinder-default
+provisioner: cinder.csi.openstack.org
+parameters: {}
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer

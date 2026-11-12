@@ -1,0 +1,9 @@
+---
+# Instructor-pinned weekly baseline (week2/README.md §2). Every Kubernetes
+# node gets the same version; the versionlock stops a stray `dnf upgrade`
+# from moving one node on its own.
+containerd_version: "2.3.4"
+
+# Docker's EL repository ships the upstream containerd.io build.
+containerd_repo_baseurl: "https://download.docker.com/linux/centos/$releasever/$basearch/stable"
+containerd_repo_gpgkey: "https://download.docker.com/linux/centos/gpg"

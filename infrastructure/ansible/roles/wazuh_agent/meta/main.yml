@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: saxs-14
+  description: Wazuh agent (pinned) enrolling to the edge-01 manager over its private address
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

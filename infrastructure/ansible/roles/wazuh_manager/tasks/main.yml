@@ -1,0 +1,121 @@
+---
+- name: Wazuh signing key
+  ansible.builtin.rpm_key:
+    key: "{{ wazuh_manager_gpg_key }}"
+    state: present
+
+- name: Wazuh 4.x repository
+  ansible.builtin.yum_repository:
+    name: wazuh
+    description: Wazuh repository
+    baseurl: "{{ wazuh_manager_repo }}"
+    gpgcheck: true
+    gpgkey: "{{ wazuh_manager_gpg_key }}"
+    enabled: true
+
+- name: Install the versionlock plugin
+  ansible.builtin.dnf:
+    name: python3-dnf-plugin-versionlock
+    state: present
+  register: wazuh_manager_versionlock_plugin
+
+# A routine `dnf update` must not move wazuh-manager out of order (agents newer than
+# the manager are unsupported). An upgrade PR changes wazuh_manager_version; this
+# releases the old lock first, then the pinned version is installed and locked.
+- name: Read the current version locks
+  ansible.builtin.command: dnf versionlock list
+  register: wazuh_manager_versionlocks
+  changed_when: false
+  check_mode: false  # read-only; lets --check evaluate the release condition
+  # The plugin is missing only before its first real install (e.g. a --check run): no locks yet.
+  failed_when: wazuh_manager_versionlocks.rc != 0 and 'No such command' not in wazuh_manager_versionlocks.stderr
+
+- name: Release a wazuh-manager lock for a different version (upgrade PRs only)
+  community.general.dnf_versionlock:
+    name: wazuh-manager
+    state: absent
+  when:
+    - "'wazuh-manager-' in wazuh_manager_versionlocks.stdout"
+    - "('wazuh-manager-0:' ~ wazuh_manager_version ~ '-') not in wazuh_manager_versionlocks.stdout"
+
+- name: Install the pinned Wazuh manager
+  ansible.builtin.dnf:
+    name: "wazuh-manager-{{ wazuh_manager_version }}"
+    state: present
+
+- name: Lock wazuh-manager to the pinned version
+  community.general.dnf_versionlock:
+    name: wazuh-manager
+    state: present
+  # A first --check run on a host without the plugin cannot evaluate a lock.
+  when: not (ansible_check_mode and wazuh_manager_versionlock_plugin is changed)
+
+- name: Read Suricata EVE JSON into the manager
+  ansible.builtin.blockinfile:
+    path: /var/ossec/etc/ossec.conf
+    marker: "<!-- {mark} SCC26 suricata eve (Ansible) -->"
+    insertbefore: "</ossec_config>"
+    block: |
+        <localfile>
+          <log_format>json</log_format>
+          <location>{{ wazuh_manager_suricata_eve }}</location>
+        </localfile>
+  notify: Restart wazuh-manager
+
+# Week 5: team rules (IDs 100100-100199), tested in CI with wazuh-logtest
+# (project/detections). A rule file that breaks analysisd is rolled back
+# before the manager is restarted, so the running manager is never left broken.
+- name: Team-owned Week-5 detection rules
+  block:
+    - name: Install the team rule file
+      ansible.builtin.copy:
+        src: scc26_rules.xml
+        dest: /var/ossec/etc/rules/scc26_rules.xml
+        owner: root
+        group: wazuh
+        mode: "0660"
+        backup: true
+      register: wazuh_manager_team_rules
+      notify: Restart wazuh-manager
+
+    - name: Check the whole ruleset with analysisd
+      ansible.builtin.command: /var/ossec/bin/wazuh-analysisd -t
+      when: wazuh_manager_team_rules is changed and not ansible_check_mode
+      changed_when: false
+  rescue:
+    - name: Restore the previous team rule file
+      ansible.builtin.copy:
+        src: "{{ wazuh_manager_team_rules.backup_file }}"
+        dest: /var/ossec/etc/rules/scc26_rules.xml
+        remote_src: true
+        owner: root
+        group: wazuh
+        mode: "0660"
+      when: wazuh_manager_team_rules.backup_file is defined
+
+    - name: Take out a first-time rule file that failed the check
+      ansible.builtin.file:
+        path: /var/ossec/etc/rules/scc26_rules.xml
+        state: absent
+      when: wazuh_manager_team_rules.backup_file is not defined
+
+    - name: Stop here (the manager keeps its previous rules)
+      ansible.builtin.fail:
+        msg: "scc26_rules.xml failed wazuh-analysisd -t; previous rules restored, manager not restarted"
+
+- name: Enable and start the manager
+  ansible.builtin.systemd_service:
+    name: wazuh-manager
+    enabled: true
+    state: started
+
+- name: Replace the default Wazuh API passwords
+  ansible.builtin.include_tasks: api_passwords.yml
+  when: wazuh_api_password is defined and wazuh_wui_password is defined
+
+- name: Ship alerts to the in-cluster Wazuh indexer
+  ansible.builtin.include_tasks: filebeat.yml
+  when:
+    - wazuh_manager_indexer_hosts | length > 0
+    - wazuh_filebeat_indexer_password is defined
+    - wazuh_manager_filebeat_ca_cert is defined

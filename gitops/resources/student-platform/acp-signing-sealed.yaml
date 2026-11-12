@@ -1,0 +1,15 @@
+# Student Platform ACP signing key (Ed25519 private). Only the platform backend mounts it; SEALED.
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: acp-signing
+  namespace: student-platform
+spec:
+  encryptedData:
+    private.pem: AgAA2Qxuiu+WFjZdLDjxagjc4+zyYbG7dXfJ77JpvlaFZesdb9qdXgx7FIXDhzsDRTQPGajLF2TMXNtiOThm5vcnSs6/29yWikBlVPe0Lplmnw4ElV4KbZdRcVvCD2j9GodjzqpQnBOyZq0gT+gg+VsxhmMD9w/YyBWIDFHDu21lUDSLjOzywyEQ1abhK3b5XOa6Aztm23vl6+Omdy4qVuwNigntRGqZRr0iqY/23rIUdDPPCmOIkn13A0I2a0SecsnIlO7GIXHV/3kWGNmhf9cjYAeyTwOoqvNENX7oNQvDgWOo07anUoaiB5n6BZv6HiG++3P7SRsUj3VbOgT0ICqiz4iCLKL0hx8ks8u671JGLcGh7zvHFc/zjER/dYQQ6Be+z4nh6/bJ4OxX+qfiCvELfqQvWpo6lJhNtzo150nqhIeIHq2Sq8Di79ilqx+QcHgyQtMfAo++W96Qm/aiB3LPVeaLSyILXIlAagY06ZZZaGsQmrH/4Yzu24I4PE2cXJt/+vOm6JJUkbUrL6AoMfokuu9S0uAuqvezHUaLCnpCmsYbQGWL1s21gh9av3MtpswfB0KfHhQkH1sKd4IQaCRMN77U1fZ/poGlGClpBm/2OQeG03hZzPITa4PVxvSEmKB94tSsAzVhUI8uvo7zU7wRbglIKJTAw77A6UYOwFvhXcWX5G7sEfrPzGYew5SxQIzU+xIJTk0CA+DAFmkFo4vCAQyHDQyDZUFH9gFmkv9BMknOEUuiDiuV3ywu4EACT7MRfwtqRbFaHVIwAh20GtRa1rfiRayjxJfVR+n83hE+GTCJIetgYH8S1nBFWtW66eMvNTw48UjDVJO50d8Ex1oABANNtLk+qw==
+  template:
+    metadata:
+      name: acp-signing
+      namespace: student-platform
+    type: Opaque

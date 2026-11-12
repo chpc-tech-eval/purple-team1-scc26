@@ -1,0 +1,6 @@
+---
+# reload keeps established API connections (kubectl watches) alive.
+- name: Reload HAProxy
+  ansible.builtin.systemd_service:
+    name: haproxy
+    state: reloaded

@@ -1,0 +1,18 @@
+# ACP schema-owner credential (migration job + PostgreSQL init), SEALED. Plaintext only in the captain's private dir.
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+  name: acp-db-owner
+  namespace: agent-control-plane
+spec:
+  encryptedData:
+    ACP_MIGRATION_DATABASE_URL: AgB7GM+4zJOkQxFUK2ISIzsVBDc9jBNwTa6UR7Ez5TIBPXPG/P71qtY5DGYc0/isUNFluQg7jlTfOSQOXmVrHOkAu4+sUiS0S5Fqin4E9AnND2u0TBHw11qmYYg8tcrF16pH1hN5fkMYczCEvRScYtPWKgEe69KNU0x1Td82CSJb66GYo1z7L7kM1PdAduHF4VFQxZiStkRTK05GXz8lkhg7fLj+vstulGaS4h+sXBjdXWEuyD0x9q/XrHxNNmWgL0/Idb0hw5TFS0QtIgv16wuUWeeEpHWmujxStiT2v57Q2GXvxlLguABronZ0j0uIEXBJpxtoY9qE46ZVzYszA5zf0/qWNVc6HA75u4NQTEHeIXYQUx3IpSSZPT8FV/85y+dryrGDLMN+jqWlzCB3/i08KfQia67U6vY6y84zLg4wdSAruKm4aujCp0PgRlOM0bd+u+x+edmrEjcFqbmrmajHwcCIz51dk1KfHJHiENL23ZUtq6C14IP4TuBjzyPlaCOrjCecPSMlIAFeS6vrDn+4dZL6vc3AEcz349f1UUPWgPAenHg7I4QR5kMnyy1QBSfeGd8FE2+QUJeFCnDg1fW/pGmiKPb++YEeUuxScOABCgKFN5cAFeiECIkEHY90tsKPcssSRIbgOBasfhh1FjAPTWEMhp8KMy7TwIL0fYdFs8F0EqKeBOj5Nfmo7xpMrVH+q1yUrbR/kJvswIMKPpFnDSz4Q5kHpv246dbUXjfQFdodSVcdPx6PdKFt3toX3ZrWiEex/ecCG+LjF8nQr9MGqKg4IPTTK5tCxwymNAE6GdLKHSF9c74OE/HsBXwnllV7J1xSCJs2sGvlqC0J38z0jkdedrRsSNWxPTGFSRcfqFTnkLNKAifUo/iAFWcdTLaRI0D5fxO7B6VxD7osW5ZADf92
+    POSTGRES_PASSWORD: AgDcSLfGOUbv3XSPsi5rLO5zC1yywHJmyWbcXSiPUFfpNIF1zYrdFyKX9D7g/+8xqqR5yS6mV1pICD537+46M79W5icaWip4LfP/cNprkBQS5feGChUTgGTu2blKb3sI1cwDVMDCjzbN53U3WesIo87lTg2hNW+zsnVYTw+SavnxQjcD/qnMj2iHe/1PghpoLTNTyo2OYrm1QQgYyyV0nuEvKz0ww+r2lO4eQr5/F7TviHOBalNC5vcX4KTlSZXLILmzjRjNcM882vW8vmal6x2mSMeT2pn1nwgvrB24ZhUTo02mgaQzPhYJVh5CwqC5VB+Xj+3cVDoKz+E/Rw9xAC2QeZscZ/INJx+DYX12zapTZDUFV80j3s8NzGbjsnj7qbD4hjOQ8Kj++XTcMJPXzNPcQgjLJSy8iIWcB4yJbZxy8nP3Fkrtnyk6r8vMOqdY6vOgJ0WIlkjjadsrJsziqxUl/Vae928yxUgnEiqG1g3H2/VGAZjgl4q/Hz8LNYbgmTQ6MKMdUEXxi/NQullqGfr6a4AcmgNW4Eed35FkQQcyT5/XsxiawIfFCbFuw/ONYC1pTJ4bzr71+1GP3FrMKSt+1DaSnDqRdtvQC4ZyOe9XRdxn3LpKkFWAC72oM4LBpeiYo+54GQTK1FLtG/f/ZjQY/HgkZrMNdtQAm+YUjbqmF5GH8FKSA4ncKt4bhVzrsrBlvwdyoQhGYbRejMHLVuyxfCnpkMVvggVKD938FUl5Jg923PcQxUtK5knoBPwl+TE=
+  template:
+    metadata:
+      name: acp-db-owner
+      namespace: agent-control-plane
+    type: Opaque

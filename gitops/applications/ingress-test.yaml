@@ -1,0 +1,32 @@
+# Part F proof: a tiny whoami app behind Traefik with a cert-manager
+# certificate from the team CA. Kept permanently (team rule: nothing that
+# ran on the servers is removed).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-test
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ingress-test
+  source:
+    repoURL: https://github.com/chpc-tech-eval/purple-team1-scc26.git
+    targetRevision: dev
+    path: gitops/resources/ingress-test
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

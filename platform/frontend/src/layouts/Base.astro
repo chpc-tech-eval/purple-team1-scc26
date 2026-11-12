@@ -1,0 +1,28 @@
+---
+const { title, wide = false } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="SCC26 Student Project Platform built by team 3NCRYP+3D, University of Mpumalanga" />
+    <title>{title} · 3NCRYP+3D</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/" aria-label="3NCRYP+3D home">
+        <span class="logo" aria-hidden="true">⟨/⟩</span>
+        <span class="brand-text">3NCRYP<span class="plus">+</span>3D</span>
+      </a>
+      <span class="tag">UMP · CHPC SCC26</span>
+    </header>
+    <main class={wide ? "wrap wide" : "wrap"}>
+      <slot />
+    </main>
+    <footer class="foot">
+      <span class="prompt">$</span> engineered by <strong>3NCRYP+3D</strong> · University of Mpumalanga (UMP) · CHPC Student Cluster Competition 2026
+    </footer>
+  </body>
+</html>

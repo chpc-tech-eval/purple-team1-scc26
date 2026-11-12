@@ -1,0 +1,24 @@
+# Root Application (app-of-apps). Argo CD follows this team repository's
+# protected `dev` branch; `main` stays the reviewed release (week2/README.md §11).
+# Applied once by playbooks/argocd.yml; everything under gitops/applications/
+# is then reconciled by Argo CD.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/chpc-tech-eval/purple-team1-scc26.git
+    targetRevision: dev
+    path: gitops/applications
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

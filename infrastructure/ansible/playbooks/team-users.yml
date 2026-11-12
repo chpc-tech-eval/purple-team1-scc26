@@ -1,0 +1,15 @@
+---
+# Per-member access (team decision 2026-10-16): Linux accounts on all hosts, personal
+# kubeconfigs on k8s-cp-01. Needs gitops/resources/cluster-rbac synced by Argo
+# for the kubeconfigs to have rights.
+- name: Member accounts on every host
+  hosts: all
+  become: true
+  roles:
+    - role: team_users
+
+- name: Personal kubeconfigs on the control plane
+  hosts: control_plane
+  become: true
+  roles:
+    - role: kube_user_credentials

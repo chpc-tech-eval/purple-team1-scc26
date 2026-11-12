@@ -1,0 +1,8 @@
+---
+# Load our file directly: the nftables.service reload runs "flush ruleset",
+# which would also wipe tables we do not own. The service is only used to
+# load the ruleset at boot.
+- name: Reload nftables
+  ansible.builtin.command:
+    cmd: /usr/sbin/nft -f {{ firewall_ruleset_path }}
+  changed_when: true

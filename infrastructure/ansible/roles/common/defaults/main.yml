@@ -1,0 +1,40 @@
+---
+# Timezone is presentation; chrony keeps the clock correct. Both matter for
+# Week-3 incident timelines (week1/README.md §18).
+common_timezone: Africa/Johannesburg
+
+common_packages:
+  - chrony
+  - curl
+  - jq
+  - rsync
+  - tar
+  - python3-libselinux
+  - policycoreutils-python-utils
+
+# Members' PUBLIC SSH keys for the bootstrap user, set in the private
+# inventory (group_vars/all.yml): [{name: <member>, key: "ssh-ed25519 ..."}].
+# Additive only: the Terraform keypair stays, so nobody is locked out.
+common_authorized_keys: []
+
+# Keys to actively REMOVE from the bootstrap user on every run. Because the add
+# task above is additive (exclusive: false), a key rotated OUT of
+# common_authorized_keys lingers on the hosts until it is listed here. Set in the
+# private inventory; the entry stays as a record (access revoked, history kept),
+# mirroring the team-users off-boarding pattern. Same shape as
+# common_authorized_keys: [{name: "<who/why>", key: "ssh-ed25519 ..."}].
+common_revoked_keys: []
+
+# sshd hardening (roles/common/templates/sshd-hardening.conf.j2). AllowGroups
+# restricts login to the admin group and the break-glass account's group; the
+# bootstrap user inherits the break-glass group so Ansible never locks itself out.
+common_ssh_allow_group: scc26-admins
+common_ssh_break_glass_user: rocky
+common_ssh_break_glass_group: rocky
+common_ssh_max_auth_tries: 3
+common_ssh_max_sessions: 6
+common_ssh_login_grace: 20s
+common_ssh_client_alive_interval: 300
+common_ssh_client_alive_count: 2
+# wg0/control-plane tunnels ride WireGuard, not SSH, so forwarding is off by default.
+common_ssh_allow_tcp_forwarding: "no"

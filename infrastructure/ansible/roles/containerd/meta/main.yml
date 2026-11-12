@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: saxs-14
+  description: Pinned containerd runtime with the systemd cgroup driver (SELinux enforcing)
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

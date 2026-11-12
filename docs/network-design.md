@@ -1,0 +1,196 @@
+# Network and trust-boundary design (Week 1)
+
+Owner: Olerato (`Ole06`) · Reviewer: Phathutshedzo (`saxs-14`) · Issue #9
+
+**Status: agreed design (merged in #18).** The instructor answered #16 and approved the team's private CIDRs in #21. Per the instructor's rule on #23, real addresses (CIDRs, fixed IPs, floating IP, SSH sources) are **never** written on GitHub: they live only in the private `terraform.tfvars` and the team's private Discord channel. Terraform state stays local on the private workstation of whoever applies, and the Rocky 9 bootstrap user is `rocky`. edge-01 uses flavor `large` (team decision, #22); WireGuard is UDP 51820 from anywhere (`docs/DECISIONS.md`). Every environment value is a Terraform variable with **no default**; nothing below invents a value.
+
+**Built and verified (Week 1):** applied in #11 (5 hosts, 1 floating IP, 17 rules, no drift); edge services in #13; two members proved private SSH over WireGuard, after which rule 1 (bootstrap SSH) was **removed** through Terraform (`0 to add, 0 to change, 1 to destroy`); HAProxy in #14.
+
+Sources: `week1/README.md` §4–5 and §22, issue #8 (Sebowa discovery), and the reference design in `nyameko/infra-hpc-qc-k8s` @ `c493703` (`docs/tutorials/02-networking-and-security.md`, `terraform/modules/{network,security}`), reduced to the five-node POC.
+
+## 1. Topology
+
+```mermaid
+flowchart TB
+    ws["Team workstations<br/>(WireGuard clients, vpn_cidr)"]
+    inet(("Sebowa external network<br/>&quot;Public Internet&quot;"))
+    ws -- "WireGuard UDP (wireguard_port)<br/>+ temporary bootstrap SSH" --> inet
+    inet -- "1 floating IP" --> edge
+
+    subgraph router["Router  (SNAT to Public Internet)<br/>static route: vpn_cidr → edge-01 mgmt IP"]
+    end
+
+    subgraph mgmt["mgmt network  (mgmt_cidr)"]
+        edge["edge-01<br/>WireGuard · Pi-hole DNS · nftables"]
+    end
+
+    subgraph k8s["k8s network  (k8s_cidr)"]
+        lb["api-lb-01<br/>HAProxy :6443"]
+        cp["k8s-cp-01"]
+        w1["k8s-worker-01"]
+        w2["k8s-worker-02"]
+    end
+
+    edge --- router
+    router --- lb & cp & w1 & w2
+    lb -- "6443" --> cp
+```
+
+| Object | Name (prefix = `name_prefix`) | Value |
+| --- | --- | --- |
+| External network | data source | `Public Internet` (issue #8) |
+| Management network/subnet | `<prefix>-mgmt` | `mgmt_cidr`, gateway, pool: team choice, proposed in #21 |
+| Kubernetes network/subnet | `<prefix>-k8s` | `k8s_cidr`, gateway, pool: team choice, proposed in #21 |
+| Router | `<prefix>-router` | gateway on `Public Internet`, interfaces on both subnets |
+| Static route | on the router | `vpn_cidr` → `edge-01` fixed mgmt IP (VPN return path) |
+| Floating IP | 1, on `edge-01` only | quota is exactly 1 (issue #8) |
+| WireGuard client subnet | not a Neutron network | `vpn_cidr`: team choice, proposed in #21 |
+
+### Host placement
+
+| Host | Network | Fixed IP | Security group | Public? |
+| --- | --- | --- | --- | --- |
+| `edge-01` | mgmt | `node_fixed_ips.edge_01` | `<prefix>-edge` | yes, the only floating IP |
+| `api-lb-01` | k8s | `node_fixed_ips.api_lb_01` | `<prefix>-api-lb` | no |
+| `k8s-cp-01` | k8s | `node_fixed_ips.k8s_cp_01` | `<prefix>-k8s-control-plane` | no |
+| `k8s-worker-01` | k8s | `node_fixed_ips.k8s_worker_01` | `<prefix>-k8s-worker` | no |
+| `k8s-worker-02` | k8s | `node_fixed_ips.k8s_worker_02` | `<prefix>-k8s-worker` | no |
+
+Fixed IPs are required, not cosmetic: the router's static route needs the edge address as `next_hop`, and HAProxy needs a stable `k8s-cp-01` backend.
+
+## 2. Trust zones
+
+| Zone | Who is in it | Trusted for |
+| --- | --- | --- |
+| Internet | everyone | nothing, except WireGuard to edge and the temporary bootstrap SSH |
+| VPN (`vpn_cidr`) | team workstations with an approved WireGuard peer | admin SSH (then `kubectl` on `k8s-cp-01`), DNS |
+| mgmt (`mgmt_cidr`) | `edge-01` | SSH jump to private hosts during bootstrap, DNS service |
+| k8s (`k8s_cidr`) | api-lb, control plane, workers | node-to-node Kubernetes traffic only |
+
+Rules of thumb:
+
+- Only `edge-01` is reachable from the Internet. Nothing in the k8s network ever gets a floating IP.
+- The Kubernetes API is reached through `api-lb-01`, never directly from the VPN to `k8s-cp-01` (reference repo removed that rule deliberately).
+- Security groups (OpenStack, before the VM) and nftables (inside edge) are separate layers. This doc owns the security groups; the nftables rules on edge are Rendani's Ansible work and should mirror the edge column below.
+
+## 3. VPN return path (decided: option A)
+
+A workstation packet arrives on `edge-01` over WireGuard and leaves edge towards the k8s network with source address in `vpn_cidr`. Two ways to make that work:
+
+| Option | How | Effect |
+| --- | --- | --- |
+| **A. Routed (recommended)** | router static route `vpn_cidr → edge` **and** `allowed_address_pairs = [vpn_cidr]` on the edge port; edge forwards without NAT | private hosts see the real VPN client IP, so security-group rules can say "from `vpn_cidr`" and Wazuh/Suricata evidence shows which member did what |
+| B. NAT on edge | edge masquerades VPN traffic to its own mgmt IP | no route or address pair needed, but every VPN action looks like it came from edge; `vpn_cidr` rules on private hosts would never match |
+
+Option A keeps attribution, which the Week-5 forensics work depends on. Without the `allowed_address_pairs` entry Neutron's port security drops the forwarded packets as spoofed; the reference template has the static route but not the address pair, so this is a deliberate addition to verify at apply time. Rendani's edge role enables IP forwarding and does **not** masquerade traffic to the private networks. **Verified on #13:** with the tunnel up, every private host sees the member's own VPN address as the SSH source, for both members tested.
+
+## 4. Security-group matrix
+
+All rules are IPv4 ingress. OpenStack adds an allow-all egress rule to every new group; egress is left open in Week 1. Source values are variables.
+
+### Week 1 (required for the Week-1 exit gate)
+
+| # | Target group | Port / proto | Source | Purpose | Lifecycle |
+| --- | --- | --- | --- | --- | --- |
+| 1 | edge | 22/tcp | `bootstrap_ssh_cidrs` | bootstrap/recovery SSH | **removed** (#13): `bootstrap_ssh_cidrs = []` after two members proved WireGuard access; edge nftables dropped it too |
+| 2 | edge | `wireguard_port`/udp | `wireguard_allowed_cidrs` | WireGuard | permanent |
+| 3 | edge | 22/tcp | `vpn_cidr` | admin SSH over VPN | permanent |
+| 4 | edge | 53/udp + 53/tcp | `mgmt_cidr`, `k8s_cidr`, `vpn_cidr` | Pi-hole DNS | permanent |
+| 5 | api-lb, control-plane, worker | 22/tcp | `mgmt_cidr` | SSH `ProxyJump` via edge during bootstrap | permanent |
+| 6 | api-lb, control-plane, worker | 22/tcp | `vpn_cidr` | direct private SSH over VPN (`week1/README.md` §22) | permanent |
+| 7 | api-lb | 6443/tcp | `k8s_cidr` | nodes and `k8s-cp-01` admins → stable API endpoint | permanent |
+| 8 | control-plane | 6443/tcp | `k8s_cidr` | HAProxy → kube-apiserver | permanent |
+
+There is deliberately **no** 6443 rule from `vpn_cidr` to anything. The reference repo allows `vpn_cidr → api-lb:6443`, but this course forbids `kubectl` on workstations (`docs/COMMAND-LOCATIONS.md`): admins SSH to `k8s-cp-01` over the VPN and run `kubectl` there, which rule 7 covers.
+
+**Rules 3 and 4 with source `vpn_cidr` never match at the Neutron layer.** A VPN client reaches edge-01 *inside* the WireGuard UDP tunnel (rule 2); once decrypted on `wg0`, that traffic is filtered by edge's nftables, not by the security group. The rules are kept because they are harmless, but if VPN-to-edge SSH or DNS fails, debug nftables on edge, not the security group. (VPN traffic that edge forwards to the *private* hosts does pass their security groups; that is what rule 6 is for.)
+
+### Week 2 (Kubernetes + Cilium; add before kubeadm)
+
+In Terraform (`modules/security`) since the Week-2 security-group PR; applied by whoever holds the state, before `kubeadm init/join`. Only adds; no Week-1 rule changes.
+
+| # | Target group | Port / proto | Source | Purpose |
+| --- | --- | --- | --- | --- |
+| 9 | control-plane | 2379-2380/tcp | `k8s_cidr` | etcd |
+| 10 | control-plane, worker | 10250/tcp | `k8s_cidr` | kubelet |
+| 11 | control-plane, worker | 8472/udp | `k8s_cidr` | Cilium VXLAN |
+| 12 | control-plane, worker | 4240/tcp | `k8s_cidr` | Cilium health |
+| 13 | control-plane, worker | ICMP | `k8s_cidr` | node/Cilium health |
+| 14 | control-plane, worker | 30000-32767/tcp+udp | `k8s_cidr` | NodePort |
+| 14a | api-lb, control-plane, worker | ICMP | `mgmt_cidr` | path debugging from edge-01 (review on #18) |
+| 14b | worker | 30080/tcp, 30443/tcp | `vpn_cidr` | Traefik web/websecure NodePorts, the Part F ingress path for VPN clients (edge routes without NAT, so the source is the VPN address) |
+
+### Week 3 (observability/security)
+
+In Terraform (`modules/security`) since #64's PR; adds only. Rows 15–16 also have matching edge nftables input rules in the firewall role, rendered only once `firewall_wazuh_agent_cidrs` / `firewall_wazuh_api_cidrs` are set in the private inventory (Wazuh, Week-3 Part B). Row 17 needs no edge rule: the scrapes stay inside `k8s_cidr`.
+
+| # | Target group | Port / proto | Source | Purpose |
+| --- | --- | --- | --- | --- |
+| 15 | edge | 1514-1515/tcp | `mgmt_cidr`, `k8s_cidr` | Wazuh agents → manager |
+| 16 | edge | 55000/tcp | `k8s_cidr` | Wazuh API |
+| 17 | control-plane, worker | 9100/tcp, 9962-9964/tcp | `k8s_cidr` | node-exporter, Cilium metrics |
+| 18 | worker | 30920/tcp | `mgmt_cidr` | Filebeat on edge-01 -> Wazuh indexer NodePort |
+
+Not carried over from the reference (outside the five-node POC): Slurm, NFS, Hermes VM, Cloudflare HTTP/HTTPS on edge, Octavia.
+
+### Week 4 (Agent Control Plane + Hermes): proposal, not yet applied
+
+Source: `week4/README.md` (mental model, Part D §9, Part F). Week 4 adds no new **ingress** from outside the cluster: the browser keeps using the platform's existing path (row 14b → Traefik). What is new is **in-cluster traffic** and **one outbound path** to a remote GPU model, so the work is mostly Kubernetes `NetworkPolicy`, not security groups.
+
+| # | From | To | Port | Enforced by | Notes |
+| --- | --- | --- | --- | --- | --- |
+| W4-1 | `student-platform` (platform pods) | ACP API | API port from the starter manifests | NetworkPolicy, ingress on the ACP API | only the platform backend calls ACP, with a short-lived signed assertion; the browser never reaches ACP |
+| W4-2 | ACP API, migration Job, Hermes (as the starter requires) | ACP PostgreSQL | 5432/tcp | NetworkPolicy, namespace-only | the same pattern as the platform DB (#73); a separate database, not the platform's |
+| W4-3 | Hermes (fixed diagnostic) | Prometheus in `monitoring` | 9090/tcp | NetworkPolicy, egress from Hermes + ingress on Prometheus | read-only queries; the only telemetry source |
+| W4-4 | Hermes | the **one** approved A100/H200 endpoint | the approved HTTPS port | Cilium egress policy (`toFQDNs` on the approved hostname, plus the DNS rule it needs) | **one host, one port**: never a GPU subnet (§9). A hostname keeps addresses out of Git |
+| W4-5 | every pod in the ACP namespace | kube-dns | 53/udp+tcp | NetworkPolicy egress | needed for W4-4's FQDN rule |
+| W4-6 | every pod in the ACP namespace | **anything else** | all | **default-deny egress** in the namespace | blocks the Kubernetes API, OpenStack/metadata (`169.254.169.254`), edge-01, the platform DB and the Internet: the Part F "no broad credentials" boundary, enforced on the network as well |
+
+**Security groups:** none expected. Neutron egress is still allow-all (§4), and the GPU traffic leaves a worker via the router, so it needs no inbound rule here. A security-group row is needed only if the GPU service has to call **back** into the cluster, which the Phase-1 design does not do. If the approved endpoint only accepts listed sources, the source it sees is the router's external SNAT address: that is shared on Discord, never in Git.
+
+**Observability caveat for Weeks 4–5:** the k8s nodes' default route is the Neutron router, **not** edge-01. Hermes → GPU traffic therefore never crosses edge, so **Suricata and the edge nftables do not see it**. Evidence for W4-4 comes from Cilium/Hubble flow logs and the ACP event ledger (and Wazuh agents on the workers), not from the edge IDS.
+
+**Questions for the instructor (before W4-4 can be written):**
+
+1. The approved endpoint's hostname and port, whether it is HTTPS with a public or a CHPC CA, and how Hermes authenticates (API key as a SealedSecret?).
+2. Is it reachable from Sebowa through the router's SNAT, or does it need a route or a peering?
+3. Does the GPU side allowlist callers by source address? If so, which address will it see?
+
+**Verification once applied (from `k8s-cp-01`):** a debug pod in the ACP namespace can reach the endpoint and Prometheus, but **cannot** reach the Kubernetes API, `169.254.169.254`, edge-01 or an Internet host. Hubble shows the drops (`hubble observe --namespace <acp-ns> --verdict DROPPED`).
+
+## 5. Variables (no invented defaults)
+
+| Variable | Meaning | Value |
+| --- | --- | --- |
+| `mgmt_cidr`, `mgmt_gateway_ip`, `mgmt_pool_start`, `mgmt_pool_end` | management subnet | team choice; proposal in #21 |
+| `k8s_cidr`, `k8s_gateway_ip`, `k8s_pool_start`, `k8s_pool_end` | Kubernetes subnet | team choice; proposal in #21 |
+| `vpn_cidr` | WireGuard client subnet | team choice; proposal in #21 |
+| `node_fixed_ips` | map of the five fixed IPs | chosen inside the CIDRs, outside the DHCP pools |
+| `wireguard_port` | edge WireGuard UDP port | decided: 51820 |
+| `wireguard_allowed_cidrs` | who may reach WireGuard | decided: anywhere (WireGuard drops unauthenticated packets) |
+| `bootstrap_ssh_cidrs` | who may reach edge SSH from the Internet | members' known public /32s only: the break-glass fallback restored on #13 after step 3 (`docs/DECISIONS.md`, 2026-10-10); Terraform rejects `0.0.0.0/0` |
+| `dns_nameservers` | resolvers handed out by Neutron DHCP | see open item 3 |
+| `external_network_name` | provider network | `Public Internet` (issue #8) |
+
+Must not overlap each other **or** the Kubernetes pod/service CIDRs Rendani chooses in Week 2.
+
+## 6. Open items
+
+1. ~~CIDRs~~ **Settled** in #21 (values private). The Week-2 pod network must not overlap mgmt, k8s or VPN.
+2. ~~WireGuard port and sources; bootstrap SSH sources~~ **Decided** (`docs/DECISIONS.md`): UDP 51820 from anywhere; bootstrap SSH from a single applier /32, now removed (#13).
+3. **DNS during bootstrap:** Pi-hole on edge does not exist until Ansible runs, so pointing `dns_nameservers` at edge from day one breaks package installs. Proposal: start with `dns_nameservers = []` so Neutron's DHCP hands out its default resolver (verify after apply with `cat /etc/resolv.conf` on a host), then switch the subnets to the edge IP through Terraform once Pi-hole is validated. **Verified:** `dns_nameservers = []` worked for bootstrap; Pi-hole on edge-01 now answers `pt1.internal` names and forwards to **edge-01's own** Neutron resolver (a resolver seen from the k8s subnet only serves that subnet), end to end from k8s-cp-01 (#13). Pointing the subnets at Pi-hole is still to do (a Terraform change).
+4. ~~VPN return path~~ **Settled**: option A, confirmed by Rendani's edge role and verified end to end on #13.
+5. ~~Internal DNS domain~~ **Decided**: `pt1.internal` (#13).
+
+## 7. How this will be verified (issue #11)
+
+```bash
+# RUN ON: WORKSTATION, after a reviewed apply
+openstack network list; openstack subnet list
+openstack router show <prefix>-router -c routes -c interfaces_info
+openstack floating ip list              # exactly one, attached to edge-01's port
+openstack port show <edge-01-port> -c allowed_address_pairs
+openstack security group rule list <prefix>-edge
+```
+
+Then the path tests from `week1/README.md` §12 and §22: SSH to edge, ProxyJump to private hosts, and private SSH over WireGuard before rule 1 is removed.

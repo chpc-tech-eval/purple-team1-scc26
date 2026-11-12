@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "run_id": "57a303c0-6da7-4749-9d61-97aa72a54e32",
+  "project": "purple-team1-scc26",
+  "experiment": "week2-part-e-persistence-retest",
+  "status": "completed",
+  "started_at": "2026-10-18T18:39:13Z",
+  "finished_at": "2026-10-18T18:40:30Z",
+  "source": {
+    "repository": "https://github.com/chpc-tech-eval/purple-team1-scc26",
+    "commit": "61d1e5dd2a5535ed41450b0e47e7360ead3606e5",
+    "dirty": false
+  },
+  "software": {
+    "images": [
+      {
+        "name": "busybox",
+        "ref": "docker.io/library/busybox:1.37.0@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e"
+      }
+    ]
+  },
+  "execution": {
+    "location": "sebowa-kubernetes",
+    "host_class": "C8.medium worker",
+    "namespace": "storage-test",
+    "requested_resources": {
+      "storage": "1Gi",
+      "storage_class": "cinder-ssd"
+    }
+  },
+  "parameters": {
+    "marker": "persist-20261018T183913Z",
+    "action": "delete pod, keep PVC; Argo self-heal recreates the pod"
+  },
+  "metrics": {
+    "marker_read_back_matches": 1
+  },
+  "artifacts": [],
+  "notes": "Re-run on the storage-test app restored by #70 (new Cinder volume; the original was deleted with #52). Evidence on PR #70."
+}

@@ -1,0 +1,73 @@
+---
+- name: Read the cluster's kubeadm ClusterConfiguration
+  ansible.builtin.command:
+    cmd: >-
+      kubectl --kubeconfig {{ kube_user_credentials_admin_kubeconfig }}
+      -n kube-system get configmap kubeadm-config
+      -o jsonpath={.data.ClusterConfiguration}
+  register: kube_user_credentials_clusterconfig
+  changed_when: false
+
+- name: Write it for kubeadm kubeconfig user
+  ansible.builtin.copy:
+    dest: /etc/kubernetes/scc26-user-kubeconfig.yaml
+    content: "{{ kube_user_credentials_clusterconfig.stdout }}\n"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Check each member's kubeconfig exists and is not close to expiry
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      kubectl config view --raw --kubeconfig /home/{{ item.name }}/.kube/config
+      -o jsonpath='{.users[0].user.client-certificate-data}'
+      | base64 -d
+      | openssl x509 -noout -checkend {{ kube_user_credentials_renew_before }}
+    executable: /bin/bash
+  loop: "{{ kube_user_credentials_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: kube_user_credentials_existing
+  changed_when: false
+  failed_when: false
+
+- name: Create ~/.kube for each member
+  ansible.builtin.file:
+    path: "/home/{{ item.name }}/.kube"
+    state: directory
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    mode: "0700"
+  loop: "{{ kube_user_credentials_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Issue a personal kubeconfig when missing or expiring (key never logged)
+  ansible.builtin.shell:
+    cmd: >-
+      umask 077 &&
+      kubeadm kubeconfig user
+      --config /etc/kubernetes/scc26-user-kubeconfig.yaml
+      --client-name {{ item.item.name }}
+      --org {{ kube_user_credentials_group }}
+      --validity-period {{ kube_user_credentials_validity }}
+      > /home/{{ item.item.name }}/.kube/config.new
+      && mv /home/{{ item.item.name }}/.kube/config.new /home/{{ item.item.name }}/.kube/config
+    executable: /bin/bash
+  loop: "{{ kube_user_credentials_existing.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.rc != 0
+  changed_when: true
+  no_log: true
+
+- name: Kubeconfigs belong to their member only
+  ansible.builtin.file:
+    path: "/home/{{ item.name }}/.kube/config"
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    mode: "0600"
+  loop: "{{ kube_user_credentials_users }}"
+  loop_control:
+    label: "{{ item.name }}"

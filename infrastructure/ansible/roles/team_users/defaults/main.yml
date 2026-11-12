@@ -1,0 +1,13 @@
+---
+# One Linux account per member (team decision 2026-10-16), so actions are attributable
+# instead of everyone being "rocky". rocky stays as the break-glass account.
+# Set in the private inventory (group_vars/all.yml); keys are PUBLIC keys only:
+#   team_users_members:
+#     - {name: olerato, github: Ole06, key: "ssh-ed25519 AAAA... Ole06"}
+#     - {name: rendani, github: Rendani-Anele, key: "...", state: absent}  # off-boarding
+team_users_members: []
+
+# Members administer the hosts, so the group gets sudo. Accounts have no
+# password (SSH keys only), hence NOPASSWD; sshd already refuses passwords.
+team_users_group: scc26-admins
+team_users_shell: /bin/bash

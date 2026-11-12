@@ -1,0 +1,82 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base title="Team home" wide>
+  <p id="changed" class="notice ok" hidden>Password updated. Your other sessions were signed out.</p>
+  <section class="card hero-card">
+    <div class="row">
+      <div>
+        <p class="eyebrow">// authenticated</p>
+        <h1 id="hello" class="glow">Loading…</h1>
+        <p class="muted" id="team"></p>
+      </div>
+      <div class="buttons">
+        <a class="button" href="/crypty/">Crypty</a>
+        <a class="button secondary" href="/password/">Change password</a>
+        <button id="logout" class="secondary">Sign out</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tiles" id="tiles" aria-label="Platform metrics"></section>
+
+  <section class="card terminal">
+    <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i><span>platform-status</span></div>
+    <p class="muted">Read from the backend only: the browser never sees database or cluster credentials.</p>
+    <dl id="status" class="grid"></dl>
+  </section>
+
+  <section class="card stack">
+    <h2>Under the hood</h2>
+    <ul class="chips">
+      <li>Kubernetes 1.36</li><li>Cilium 1.20</li><li>Argo CD GitOps</li><li>Sealed Secrets</li>
+      <li>PostgreSQL 17 · Cinder</li><li>Traefik · team CA TLS</li><li>Prometheus + Grafana</li>
+      <li>Wazuh + Suricata</li><li>GitHub Actions → GHCR</li><li>Crypty · ACP + Hermes</li>
+    </ul>
+  </section>
+</Base>
+
+<script>
+  const $ = (id: string) => document.getElementById(id)!;
+  if (new URLSearchParams(location.search).has("changed")) $("changed").hidden = false;
+  function item(dl: HTMLElement, k: string, v: unknown) {
+    const dt = document.createElement("dt");
+    dt.textContent = k;
+    const dd = document.createElement("dd");
+    dd.textContent = v === null || v === undefined ? "—" : String(v);
+    dl.append(dt, dd);
+  }
+  function tile(label: string, value: unknown) {
+    const t = document.createElement("div");
+    t.className = "tile";
+    const v = document.createElement("strong");
+    v.textContent = String(value);
+    const l = document.createElement("span");
+    l.textContent = label;
+    t.append(v, l);
+    $("tiles").append(t);
+  }
+  async function load() {
+    const me = await fetch("/api/me", { credentials: "same-origin" });
+    if (!me.ok) return location.replace("/");
+    const user = await me.json();
+    if (user.must_change_password) return location.replace("/password/");
+    $("hello").textContent = `Welcome, ${user.display_name}`;
+    $("team").textContent = `@${user.username} · ${user.team} · ${user.project_slug}`;
+    const s = await (await fetch("/api/status", { credentials: "same-origin" })).json();
+    tile("team members", s.database.users);
+    tile("sign-ins recorded", s.database.logins);
+    tile("uptime (min)", Math.round(s.uptime_seconds / 60));
+    tile("PostgreSQL", String(s.database.server_version).split(" ")[0]);
+    const dl = $("status");
+    item(dl, "app_version", s.app_version);
+    item(dl, "git_commit", s.git_sha);
+    item(dl, "started_utc", s.started_at);
+    item(dl, "last_login_utc", s.database.last_login);
+  }
+  $("logout").addEventListener("click", async () => {
+    await fetch("/api/logout", { method: "POST", credentials: "same-origin" });
+    location.replace("/");
+  });
+  load();
+</script>

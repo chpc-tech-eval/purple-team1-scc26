@@ -1,0 +1,15 @@
+# Platform login accounts, SEALED for this cluster. Plaintext only in the captain's private dir.
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: platform-seed
+  namespace: student-platform
+spec:
+  encryptedData:
+    PLATFORM_SEED_USERS: AgAjGKkyc/gdHu42BzI87sGkv1fRvV21I9QTr5yjP5fEfuL6xNA1DuitgJpE6JAqCrB2nYk+8/vMNXhnZHKvXVlU4h/2OMDE+Dy80BVQbB5VpvXy7U0TqzUOrfCxNEMpnGtquotmjUc+PgfEypfIpF+3a7/q8cWmGBRvA8+UrLK2pBFt2o/R8Hw7ZYZ8Uy6vVGMQPFMeQ7NIOpaER862vQBuMVeLd8FgzG5Ov78ReWuLQiC5fDKiRuCKWPmAZcadOUe1SzmV/gML5Q8x5vHtn56kOTMJUG2kotidGMIfsAKJ8V15gEk4NMcuRP97mKLSc6RpuoYxBZh2rPD6preTXcfoH/m7lvCx0E5znxwbQKduPyGaAXDs5bU1CFbcHXLlaRjNU1161vCLbrB4UAjpjG5xfn0NuZdxZnvUxQn2JlxhkoMCz3lyOasdItGUeYQx5hNNsc0g3yVbC6m4c+4konNrsHM2ErgXMWBk6N1yUWybUyc5vtWfJE/3Exed1SYuiuNIB0RBk+HFwNqjh13QeWWCz7dPUs5D+Ffpl6hZOsgCEh7RhFeZUdHcl3Ca2rtMjKLgVjpXnm9js2sMGzRIW1ez5Pf6BFHUKaAI5dMudHdI3ez14GsHIV9mvOODgNROYPntHHch0JvhwgF296/UvVESBXssVop2HVi9up5pj3K7xrJHYaBTMU1l5fHAROAKsp8TmygXucxxzSDLT9lRZi63oF+rJmC6lnZhfahCfYd2u71j/gIXH647xP3p96QX122/mkeiI0toGKhfFoG0Gslos/9eExbyH5rX2qigLAMHzO8POL0B1rhh4jIgY85WOAjemaw2sD+9nuyhWWi/H60o27syeg+Le1KKE3dgqhuICxWpBIFYJes7e+xh63XiNZCzXNMsYEXdM3c=
+  template:
+    metadata:
+      name: platform-seed
+      namespace: student-platform
+    type: Opaque

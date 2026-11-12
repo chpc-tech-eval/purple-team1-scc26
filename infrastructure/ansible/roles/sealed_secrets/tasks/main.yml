@@ -1,0 +1,55 @@
+---
+- name: Download the pinned Sealed Secrets controller manifest (checksum-verified)
+  ansible.builtin.get_url:
+    url: "https://github.com/bitnami-labs/sealed-secrets/releases/download/{{ sealed_secrets_version }}/controller.yaml"
+    dest: "{{ ansible_env.HOME }}/sealed-secrets-{{ sealed_secrets_version }}-controller.yaml"
+    checksum: "sha256:{{ sealed_secrets_manifest_sha256 }}"
+    mode: "0644"
+
+# `kubectl apply` reports the Deployment as "configured" on every run even
+# when nothing differs, so let `kubectl diff` decide (exit 1 = real drift).
+- name: Compare the cluster with the pinned controller manifest
+  ansible.builtin.command:
+    cmd: >-
+      kubectl --kubeconfig {{ sealed_secrets_kubeconfig }}
+      diff -f {{ ansible_env.HOME }}/sealed-secrets-{{ sealed_secrets_version }}-controller.yaml
+  register: sealed_secrets_diff
+  failed_when: sealed_secrets_diff.rc > 1
+  changed_when: false
+
+- name: Install or update the Sealed Secrets controller (only on drift)
+  ansible.builtin.command:
+    cmd: >-
+      kubectl --kubeconfig {{ sealed_secrets_kubeconfig }}
+      apply -f {{ ansible_env.HOME }}/sealed-secrets-{{ sealed_secrets_version }}-controller.yaml
+  when: sealed_secrets_diff.rc == 1
+  changed_when: true
+
+- name: Wait for the Sealed Secrets controller
+  ansible.builtin.command:
+    cmd: >-
+      kubectl --kubeconfig {{ sealed_secrets_kubeconfig }}
+      -n kube-system rollout status deployment/sealed-secrets-controller --timeout=5m
+  changed_when: false
+
+- name: Read only the public sealing certificate (tls.crt, never tls.key)
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      kubectl --kubeconfig {{ sealed_secrets_kubeconfig }}
+      -n kube-system get secret -l sealedsecrets.bitnami.com/sealed-secrets-key=active
+      -o jsonpath='{.items[0].data.tls\.crt}' | base64 -d
+    executable: /bin/bash
+  register: sealed_secrets_cert
+  retries: 12
+  delay: 5
+  until: sealed_secrets_cert.stdout is search('BEGIN CERTIFICATE')
+  changed_when: false
+
+- name: Save the public certificate on the workstation
+  ansible.builtin.copy:
+    content: "{{ sealed_secrets_cert.stdout }}\n"
+    dest: "{{ sealed_secrets_cert_dest }}"
+    mode: "0644"
+  delegate_to: localhost
+  become: false

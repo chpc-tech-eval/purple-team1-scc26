@@ -1,0 +1,12 @@
+---
+# Instructor-pinned Cilium baseline (week2/README.md §8).
+cilium_bootstrap_version: "1.20.1"
+
+# Cilium CLI, pinned by version and checksum (cilium/cilium-cli v0.20.1).
+cilium_bootstrap_cli_version: "v0.20.1"
+cilium_bootstrap_cli_sha256: "24e817dcfcc8a12e325ce7547617bcbcf171c5b0b335bb24d2bb1207ba047f61"
+
+# Values file kept in Git so Argo CD can own it after Part D.
+cilium_bootstrap_values_file: "{{ playbook_dir }}/../../../gitops/resources/cilium/values.yaml"
+
+cilium_bootstrap_kubeconfig: /etc/kubernetes/admin.conf

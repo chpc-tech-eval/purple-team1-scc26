@@ -1,0 +1,32 @@
+# Managed by Ansible (infrastructure/ansible/roles/common). Remote-administration
+# hardening (DICT 432 L9): key-only, least-privilege, modern crypto, bounded
+# sessions. Only members in {{ common_ssh_allow_group }} (plus break-glass
+# {{ common_ssh_break_glass_user }}) may log in, so access is named and auditable.
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+PermitRootLogin no
+PermitEmptyPasswords no
+
+# Who may log in at all: the admin group and the break-glass account, nobody else.
+AllowGroups {{ common_ssh_allow_group }} {{ common_ssh_break_glass_group }}
+
+# Slow down and bound each attempt (defence in depth with fail2ban + Wazuh 5712/5763).
+MaxAuthTries {{ common_ssh_max_auth_tries }}
+MaxSessions {{ common_ssh_max_sessions }}
+LoginGraceTime {{ common_ssh_login_grace }}
+
+# Drop idle sessions so a walked-away shell is not a standing door.
+ClientAliveInterval {{ common_ssh_client_alive_interval }}
+ClientAliveCountMax {{ common_ssh_client_alive_count }}
+
+# Reduce pivot surface: no agent/X11 forwarding; TCP forwarding only if a role needs it.
+AllowAgentForwarding no
+X11Forwarding no
+AllowTcpForwarding {{ common_ssh_allow_tcp_forwarding }}
+PermitTunnel no
+
+# Modern algorithms only (drop legacy KEX/ciphers/MACs).
+KexAlgorithms sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com

@@ -1,0 +1,19 @@
+{
+  "name": "scc26-student-platform-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Small authenticated API for the SCC26 Student Project Platform (Week 3)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test ../tests/*.test.js"
+  },
+  "engines": { "node": ">=24" },
+  "dependencies": {
+    "bcryptjs": "3.0.3",
+    "express": "5.3.0",
+    "pg": "8.23.1",
+    "prom-client": "15.1.3"
+  }
+}

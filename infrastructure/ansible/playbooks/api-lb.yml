@@ -1,0 +1,9 @@
+---
+# Stable Kubernetes API endpoint: HAProxy on :6443 (week1/README.md Part G, #14).
+# Run: ansible-playbook -i inventories/private/hosts.yml playbooks/api-lb.yml
+- name: Configure the API load balancer
+  hosts: api_lb
+  become: true
+  roles:
+    - role: haproxy
+      tags: [haproxy]

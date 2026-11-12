@@ -1,0 +1,111 @@
+---
+- name: Require SELinux enforcing (never disabled to make Kubernetes work)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.selinux.status == 'enabled'
+      - ansible_facts.selinux.mode == 'enforcing'
+    fail_msg: "SELinux is {{ ansible_facts.selinux.status }}/{{ ansible_facts.selinux.mode | default('n/a') }}; fix the cause, do not disable it."
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+# The OpenStack security groups are the network boundary for the K8s
+# nodes; a host firewalld would silently drop kubelet/Cilium traffic.
+- name: Require firewalld to be inactive on Kubernetes nodes
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.services['firewalld.service'] is not defined or
+        ansible_facts.services['firewalld.service'].state != 'running'
+    fail_msg: "firewalld is running on {{ inventory_hostname }}; decide on host-firewall rules for kubelet/Cilium first (raise an issue)."
+
+- name: Install Kubernetes host dependencies
+  ansible.builtin.dnf:
+    name: "{{ kube_prereqs_packages }}"
+    state: present
+
+# kubelet refuses to start with swap on unless explicitly configured.
+- name: Turn swap off now
+  ansible.builtin.command:
+    cmd: swapoff -a
+  when: ansible_facts.swaptotal_mb | int > 0
+  changed_when: true
+
+- name: Keep swap off after a reboot
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#\s]+\s+\S+\s+swap\s+.*)$'
+    replace: '# \1'
+
+- name: Load kernel modules at boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/kubernetes.conf
+    content: "{{ kube_prereqs_modules | join('\n') }}\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Load kernel modules now
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ kube_prereqs_modules }}"
+
+- name: Set bridge netfilter and IP forwarding sysctls
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/99-kubernetes.conf
+    state: present
+    reload: true
+  loop: "{{ kube_prereqs_sysctl | dict2items }}"
+
+- name: Add the Kubernetes package repository for v{{ kube_prereqs_kubernetes_minor }}
+  ansible.builtin.yum_repository:
+    name: kubernetes
+    description: Kubernetes v{{ kube_prereqs_kubernetes_minor }}
+    baseurl: "https://pkgs.k8s.io/core:/stable:/v{{ kube_prereqs_kubernetes_minor }}/rpm/"
+    gpgkey: "https://pkgs.k8s.io/core:/stable:/v{{ kube_prereqs_kubernetes_minor }}/rpm/repodata/repomd.xml.key"
+    gpgcheck: true
+    enabled: true
+    exclude:
+      - kubelet
+      - kubeadm
+      - kubectl
+      - cri-tools
+      - kubernetes-cni
+
+- name: Install kubelet, kubeadm (and kubectl on the control plane), pinned to {{ kube_prereqs_kubernetes_version }}
+  ansible.builtin.dnf:
+    name: "{{ ['kubelet-' ~ kube_prereqs_kubernetes_version, 'kubeadm-' ~ kube_prereqs_kubernetes_version, 'cri-tools']
+              + (['kubectl-' ~ kube_prereqs_kubernetes_version] if kube_prereqs_install_kubectl | bool else []) }}"
+    state: present
+    disable_excludes: kubernetes
+    allow_downgrade: false
+
+- name: Lock the Kubernetes packages to the pinned version
+  community.general.dnf_versionlock:
+    name: "{{ ['kubelet', 'kubeadm'] + (['kubectl'] if kube_prereqs_install_kubectl | bool else []) }}"
+    state: present
+
+# kubelet restarts in a loop until kubeadm init/join; that is expected.
+- name: Enable kubelet
+  ansible.builtin.systemd_service:
+    name: kubelet
+    enabled: true
+
+- name: Point crictl at containerd
+  ansible.builtin.copy:
+    dest: /etc/crictl.yaml
+    content: |
+      runtime-endpoint: unix:///run/containerd/containerd.sock
+      image-endpoint: unix:///run/containerd/containerd.sock
+      timeout: 10
+      debug: false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Check the CRI answers through crictl
+  ansible.builtin.command:
+    cmd: crictl info
+  changed_when: false

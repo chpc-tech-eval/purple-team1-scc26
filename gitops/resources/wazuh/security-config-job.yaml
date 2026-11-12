@@ -1,0 +1,78 @@
+# Least-privilege indexer user for Filebeat on edge-01 (#87 review, follow-up 2).
+# Filebeat used the indexer admin before; if edge-01 were compromised, so was the
+# whole indexer. This Job (re)applies a role that can only write Wazuh alert and
+# archive indices plus their template/pipeline, a `filebeat` user with the sealed
+# password, and the mapping. Every PUT is idempotent; it runs after each Argo sync.
+# The finished Job is kept (BeforeHookCreation) as a record of the last run.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wazuh-security-config
+  namespace: wazuh
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels: {app: wazuh-security-config}
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: ca
+          secret:
+            secretName: dashboard-tls
+            items:
+              - {key: ca.crt, path: root-ca.pem}
+      containers:
+        - name: apply
+          # Same pinned image as the indexer (it already carries curl).
+          image: wazuh/wazuh-indexer:4.14.9@sha256:615465315b560d974100ea55bbe67efa72afc6490ef563d4d1bef127df0e98f6
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              U=https://indexer:9200
+              call() {
+                code=$(curl -s -o /dev/null -w '%{http_code}' --cacert /ca/root-ca.pem \
+                  -u "admin:$INDEXER_PASSWORD" -H 'Content-Type: application/json' -X "$1" "$U$2" ${3:+-d "$3"})
+                echo "$1 $2 -> $code"
+                case "$code" in 200|201) ;; *) return 1 ;; esac
+              }
+              until call GET /_cluster/health; do sleep 10; done
+              call PUT /_plugins/_security/api/roles/wazuh_filebeat '{
+                "description": "Filebeat on edge-01: write Wazuh alerts/archives only",
+                "cluster_permissions": ["cluster_monitor", "cluster_composite_ops",
+                  "indices:admin/template/get", "indices:admin/template/put",
+                  "indices:admin/index_template/get", "indices:admin/index_template/put",
+                  "cluster:admin/ingest/pipeline/get", "cluster:admin/ingest/pipeline/put"],
+                "index_permissions": [{
+                  "index_patterns": ["wazuh-alerts-4.x-*", "wazuh-archives-4.x-*"],
+                  "allowed_actions": ["crud", "create_index", "indices:admin/mapping/put"]}]}'
+              call PUT /_plugins/_security/api/internalusers/filebeat \
+                "{\"password\": \"$FILEBEAT_PASSWORD\", \"description\": \"Filebeat on edge-01 (sealed)\"}"
+              call PUT /_plugins/_security/api/rolesmapping/wazuh_filebeat '{"users": ["filebeat"]}'
+              echo "security config applied"
+          env:
+            - name: INDEXER_PASSWORD
+              valueFrom: {secretKeyRef: {name: wazuh-creds, key: INDEXER_PASSWORD}}
+            - name: FILEBEAT_PASSWORD
+              valueFrom: {secretKeyRef: {name: wazuh-creds, key: FILEBEAT_PASSWORD}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          volumeMounts:
+            - name: ca
+              mountPath: /ca
+              readOnly: true

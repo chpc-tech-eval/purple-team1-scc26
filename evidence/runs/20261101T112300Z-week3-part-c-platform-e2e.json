@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "run_id": "8da44060-6091-4ae8-b517-e8e6ee868d0a",
+  "project": "purple-team1-scc26",
+  "experiment": "week3-part-c-platform-e2e",
+  "status": "completed",
+  "started_at": "2026-11-01T11:23:00Z",
+  "finished_at": "2026-11-01T11:26:30Z",
+  "source": {
+    "repository": "https://github.com/chpc-tech-eval/purple-team1-scc26",
+    "commit": "959da468d510b5b4bf84b3344f8fa3baed142ac5",
+    "dirty": false
+  },
+  "software": {
+    "images": [
+      {
+        "name": "platform",
+        "ref": "ghcr.io/saxs-14/scc26-student-platform:sha-d01e5adc4a1a@sha256:b8123524a47cb4efa982ce08772b43d5024b41c012b10efb1ce8ea9b5bde9e62"
+      },
+      {
+        "name": "postgres",
+        "ref": "docker.io/library/postgres:17.11-bookworm@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826"
+      }
+    ]
+  },
+  "execution": {
+    "location": "sebowa-kubernetes",
+    "host_class": "2 x C8.medium workers",
+    "namespace": "student-platform",
+    "requested_resources": {
+      "platform_replicas": 2,
+      "postgres_storage": "10Gi"
+    }
+  },
+  "parameters": {
+    "path": "VPN -> Pi-hole platform.pt1.internal -> TLS pt1-internal-ca -> Traefik 30443 -> app -> PostgreSQL",
+    "checks": "wrong-password 401, login 200, me, status, logout, me 401; delete postgres-0; login again"
+  },
+  "metrics": {
+    "login_wrong_password_status": 401,
+    "login_status": 200,
+    "me_after_logout_status": 401,
+    "users_before_after": 2,
+    "logins_after_relogin": 2,
+    "platform_pod_restarts_during_db_replacement": 3
+  },
+  "artifacts": [],
+  "notes": "Week-3 \u00a713/\u00a714 on the live platform. The pod restarts were a bug fixed in #82. Evidence on issue #66."
+}
