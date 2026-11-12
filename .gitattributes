@@ -1,0 +1,5 @@
+# Shell scripts must keep LF line endings, even in a Windows checkout with
+# core.autocrlf=true: with CRLF, bash fails on the first line (`set: pipefail:
+# invalid option name`, `$'': command not found`), e.g. project/tools/w5_ready.sh
+# run from WSL. The files in Git are already LF; this only fixes working copies.
+*.sh text eol=lf
