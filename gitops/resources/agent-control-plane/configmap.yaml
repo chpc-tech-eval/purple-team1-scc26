@@ -1,5 +1,6 @@
-# Non-secret ACP settings. The model route stays empty until the instructor names the
-# approved A100/H200 endpoint (#94); the Hermes worker is not started before that.
+# Non-secret ACP settings. Model route (#94, resolved 2026-11-09: LiteLLM -> llama.cpp on
+# CPU): the in-cluster LiteLLM in model-serving. Hermes uses the OpenAI client, so the
+# base URL ends in /v1. ACP_MODEL is the real model name (Crypty is display-only).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -11,7 +12,7 @@ data:
   ACP_TENANT_ID: purple-team1
   # kube-prometheus-stack in this cluster (Week 3, #68): Service kps-prometheus:9090.
   ACP_PROMETHEUS_URL: http://kps-prometheus.monitoring.svc.cluster.local:9090
-  ACP_MODEL: ""
-  ACP_MODEL_BASE_URL: ""
+  ACP_MODEL: qwen2.5-0.5b-instruct
+  ACP_MODEL_BASE_URL: http://litellm.model-serving.svc.cluster.local:4000/v1
   ACP_RUN_TIMEOUT_SECONDS: "180"
   HERMES_HOME: /var/lib/hermes/admin-readonly

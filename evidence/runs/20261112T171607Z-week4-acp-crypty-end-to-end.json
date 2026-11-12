@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0",
+  "run_id": "2954aba9-37a0-49b0-a5df-68a698d1b576",
+  "project": "purple-team1-scc26",
+  "experiment": "week4-acp-crypty-end-to-end",
+  "status": "completed",
+  "started_at": "2026-11-12T17:16:07Z",
+  "finished_at": "2026-11-12T17:16:23Z",
+  "source": {
+    "repository": "https://github.com/chpc-tech-eval/purple-team1-scc26",
+    "commit": "6c7b0aae95c5a8c9880166ab10cfc91b09a4b32f",
+    "dirty": false
+  },
+  "software": {
+    "images": [
+      {
+        "name": "acp_api",
+        "ref": "ghcr.io/nyameko/agent-control-plane@sha256:b1289eab095fae443979d10ca1d5a27e8111a7689ddb346cb76ea7217e945bc4"
+      },
+      {
+        "name": "hermes_worker",
+        "ref": "ghcr.io/nyameko/agent-control-plane-hermes@sha256:73fbc34301e9cd700e6fbb5cb6ba1f46018e1a9c22a439fdda5f81c56433f9c5"
+      },
+      {
+        "name": "llama_cpp",
+        "ref": "ghcr.io/saxs-14/scc26-model-server:sha-537c5c0de2f6@sha256:1c05eb08dfc16bdb05e0eef5e3cef630259e9dadffe48ac1bcf93154145d394a"
+      },
+      {
+        "name": "litellm",
+        "ref": "ghcr.io/berriai/litellm-non_root:main-v1.83.14-stable@sha256:5bb1d45eefe9b8bdc8d1b34617b8112d03bfc78fc247bea62d7ebd89918c875c"
+      }
+    ]
+  },
+  "execution": {
+    "location": "sebowa-kubernetes",
+    "host_class": "Kubernetes workers (CPU only)",
+    "namespace": "agent-control-plane",
+    "requested_resources": {}
+  },
+  "parameters": {
+    "path": "browser -> Student Platform /crypty/ (server-side signed request) -> ACP API -> PostgreSQL ledger -> Hermes worker -> fixed diagnostic (Prometheus) -> Hermes -> LiteLLM -> llama.cpp",
+    "model": "qwen2.5-0.5b-instruct",
+    "diagnostic": "quantum-platform-pod-readiness",
+    "diagnostic_query": "sum by (condition) (kube_pod_status_ready{namespace=\"student-platform\"})",
+    "worker_launcher": "worker-patch.yaml (#117 namespace, #119 HERMES_DISABLE_LAZY_INSTALLS=1)"
+  },
+  "metrics": {
+    "run_1": "task 0469840a / run 069ab093: succeeded 14:20:21 -> 14:20:39 UTC (18 s), evidence true=3 false=0 unknown=0, explanation 1206 chars",
+    "run_2": "task 3014a02b / run 61898af2: succeeded 17:16:07 -> 17:16:23 UTC (16 s), evidence true=3 false=0 unknown=0, explanation 1021 chars",
+    "evidence_before_explanation": "diagnostic_completed 17:16:08.372, succeeded 17:16:23.399",
+    "llama_cpp_run_1": "993 prompt+output tokens of 4096 context, truncated=0",
+    "litellm_chat_completions_http": 200,
+    "earlier_failures": "tasks dec468e2, 8825823b: failed hermes_timeout before #119, evidence kept, no summary",
+    "explanation_quality": "on topic, reads the counts; run 2 also says '3 out of 3 pods are not ready' (contradiction) and invents a 'user default profile'. 0.5B model limit; the UI labels it 'check it against the evidence'"
+  },
+  "artifacts": [
+    {
+      "path": "evidence/week4/screenshots/crypty-1-history-and-accepted-task.png",
+      "sha256": "26b0ab64dfeeba086818a2e455bcf4f027094844cc5720cacae8e9d56c144a56"
+    },
+    {
+      "path": "evidence/week4/screenshots/crypty-2-run-status-and-evidence.png",
+      "sha256": "dd79da7e9b15e69ffcd24ac2e31df4d1f9a4049d0b1598a8224f38789fe22824"
+    },
+    {
+      "path": "evidence/week4/screenshots/crypty-3-explanation.png",
+      "sha256": "a5cc39ceb026bc7974d1740836cb9c77bea3e54571a60072cdf9f02f10698bfb"
+    },
+    {
+      "path": "evidence/week4/screenshots/crypty-4-explanation-end-and-events.png",
+      "sha256": "5168be1456a104f2f3ad5fa346b28735720f8e5a56a5bc5056b756575d741859"
+    }
+  ],
+  "notes": "Week-4 UI, Inference and Evidence gates. Run 2 started by Siyabonga from the browser; state checked read-only in acp1.task/run/event. Config: dev at the #119 merge (no ACP changes since)."
+}

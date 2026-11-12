@@ -1,0 +1,77 @@
+# Two fixes to the pinned upstream ACP worker, applied at start-up instead of rebuilding
+# its image. The worker starts through this launcher, which makes the changes below and
+# then runs the normal worker module unchanged.
+#
+# 1. Diagnostic namespace (#94: the instructor said "change the namespace to student
+#    platform and continue"). The image hard-codes
+#      kube_pod_status_ready{namespace="quantum-platform"}
+#    and this cluster has no such namespace, so every run would end as
+#    diagnostic_no_data. The launcher changes that one constant (and the evidence's
+#    namespace label). The query stays fixed in Git: neither the caller nor the model can
+#    supply PromQL, as upstream intends. The diagnostic's ID
+#    (quantum-platform-pod-readiness) is the API contract the platform calls, so it stays.
+#
+# 2. No runtime package installs in Hermes. When Hermes builds its client it imports
+#    its Bedrock adapter, which runs `pip install boto3` at runtime. The worker has no
+#    internet (NetworkPolicy drops it), so pip hangs until the run's 180 s budget is
+#    spent and every run fails as hermes_timeout before the model is called.
+#    HERMES_DISABLE_LAZY_INSTALLS=1 is Hermes' own switch for immutable deployments; the
+#    worker starts Hermes with an environment it builds itself, so the launcher adds the
+#    variable to that environment. Tested in the pod: the run completes in ~11 s.
+#
+# Tied to the pinned image in hermes.yaml: if upstream's query differs from EXPECTED,
+# the launcher refuses to start rather than guessing. Re-check it on any image bump.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: acp-worker-patch
+  namespace: agent-control-plane
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+data:
+  run_worker.py: |
+    """Start the ACP worker: diagnostic -> student-platform, no runtime installs in Hermes."""
+
+    import runpy
+    import subprocess
+
+    import agent_control_plane.diagnostic as diagnostic
+
+    EXPECTED = 'sum by (condition) (kube_pod_status_ready{namespace="quantum-platform"})'
+    NAMESPACE = "student-platform"
+    QUERY = f'sum by (condition) (kube_pod_status_ready{{namespace="{NAMESPACE}"}})'
+    HERMES_MODULE = "agent_control_plane.hermes_runtime"
+    HERMES_ENV = {"HERMES_DISABLE_LAZY_INSTALLS": "1"}
+
+
+    def apply():
+        if diagnostic.QUERY != EXPECTED:
+            raise SystemExit(
+                "acp-worker-patch: the image's diagnostic query is not the one this "
+                "patch was written for; re-check worker-patch.yaml before starting"
+            )
+        diagnostic.QUERY = QUERY  # read at call time by pod_readiness()
+        upstream = diagnostic.pod_readiness
+
+        def pod_readiness(base_url, *, transport=None):
+            evidence = upstream(base_url, transport=transport)
+            evidence["namespace"] = NAMESPACE
+            return evidence
+
+        diagnostic.pod_readiness = pod_readiness
+
+        class Popen(subprocess.Popen):
+            """Adds HERMES_ENV only to the worker's Hermes subprocess."""
+
+            def __init__(self, args, *a, env=None, **k):
+                if env is not None and HERMES_MODULE in list(map(str, args)):
+                    env = {**env, **HERMES_ENV}
+                super().__init__(args, *a, env=env, **k)
+
+        subprocess.Popen = Popen  # the worker calls subprocess.Popen at run time
+
+
+    if __name__ == "__main__":
+        apply()
+        # The worker module imports pod_readiness from the (now patched) module.
+        runpy.run_module("agent_control_plane.worker", run_name="__main__", alter_sys=True)

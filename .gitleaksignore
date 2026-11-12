@@ -24,3 +24,6 @@ e53460de4a27873e931434b3bd67d5ab0dd3595c:gitops/resources/agent-control-plane/ac
 # Also on dev ahead of #111: CI scans every branch (fetch-depth 0 + gitleaks --all), so the unmerged branch fails all PRs.
 4ae0c99d3fe5888388847073aba23c1ab9baf3bc:gitops/resources/model-serving/model-serving-keys-sealed.yaml:generic-api-key:13
 4ae0c99d3fe5888388847073aba23c1ab9baf3bc:gitops/resources/model-serving/model-serving-keys-sealed.yaml:generic-api-key:14
+
+# SealedSecret ciphertext (ACP_MODEL_API_KEY under spec.encryptedData), flagged by key name. Week-4 step 3 (ACP -> LiteLLM).
+5daa6a4747c54212380003b939d1730d5652214f:gitops/resources/agent-control-plane/acp-model-sealed.yaml:generic-api-key:14

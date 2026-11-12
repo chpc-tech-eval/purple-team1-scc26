@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "run_id": "a97fd2bb-fb61-4c65-bb1b-7f4d715e5506",
+  "project": "purple-team1-scc26",
+  "experiment": "week4-acp-worker-security-checks",
+  "status": "completed",
+  "started_at": "2026-11-12T18:08:40Z",
+  "finished_at": "2026-11-12T18:08:40Z",
+  "source": {
+    "repository": "https://github.com/chpc-tech-eval/purple-team1-scc26",
+    "commit": "6c7b0aae95c5a8c9880166ab10cfc91b09a4b32f",
+    "dirty": false
+  },
+  "software": {
+    "images": [
+      {
+        "name": "hermes_worker",
+        "ref": "ghcr.io/nyameko/agent-control-plane-hermes@sha256:73fbc34301e9cd700e6fbb5cb6ba1f46018e1a9c22a439fdda5f81c56433f9c5"
+      }
+    ]
+  },
+  "execution": {
+    "location": "sebowa-kubernetes",
+    "host_class": "Kubernetes workers (CPU only)",
+    "namespace": "agent-control-plane",
+    "requested_resources": {}
+  },
+  "parameters": {
+    "method": "read-only: live pod spec, kubectl auth can-i as the pod's service account, and a Python TCP probe (4 s timeout) run in agent-control-plane-hermes-0; no secret values printed"
+  },
+  "metrics": {
+    "service_account_credentials": "none mounted: automountServiceAccountToken is false and /var/run/secrets/kubernetes.io does not exist in the pod",
+    "rbac": "service account 'default': no RoleBinding/ClusterRoleBinding; can-i get secrets / list pods / create pods / get nodes = no (only the built-in self-review and discovery rules)",
+    "pod_security": "runAsNonRoot uid/gid 10001, seccomp RuntimeDefault, allowPrivilegeEscalation false, capabilities drop ALL, readOnlyRootFilesystem true, no hostNetwork/hostPID/hostIPC",
+    "writable_paths": "only the profile PVC (/var/lib/hermes) and /tmp emptyDir; site-packages, /etc and the launcher mount (/opt/acp-patch, read-only) denied",
+    "credentials_in_pod": "2 secret env vars, ACP_DATABASE_URL (acp-db-app, RLS app role) and ACP_MODEL_API_KEY (acp-model); no cloud/kube CLIs (kubectl, aws, gcloud, az, openstack, curl, wget, nc, ssh absent); profile has 10 files, none named like a credential",
+    "egress_allowed": "ACP postgres 5432, LiteLLM 4000, Prometheus 9090: open",
+    "egress_blocked": "Kubernetes API 443, cloud metadata 169.254.169.254 port 80, Internet by IP and by name (pypi.org 443), llama.cpp direct 8080 (no LiteLLM bypass), platform DB 5432, platform web 80, ACP API 8080: all timed out",
+    "unexpected_results": 0,
+    "residual_risks": "the worker's model key is the LiteLLM master key (LiteLLM runs without a DB, so no scoped virtual keys yet); pod uses the namespace 'default' service account (unbound, no credentials mounted) rather than a dedicated one; memory limit 2Gi but no CPU limit; pip present in the image (no egress, read-only site-packages, lazy installs off)"
+  },
+  "artifacts": [],
+  "notes": "Week-4 Security gate, worker part (#94); complements the API-pod checks in #96. Run after the restart gate on the new pod."
+}

@@ -24,9 +24,9 @@ metadata:
     argocd.argoproj.io/sync-wave: '2'
 spec:
   serviceName: agent-control-plane-hermes
-  # Singleton by design (week4 §8). 0 until the approved model endpoint and its sealed
-  # credential exist (#94): the worker refuses to start without a model route.
-  replicas: 0
+  # Singleton by design (week4 §8; the worker also takes a DB advisory lock). Started
+  # now that the model route (acp-config) and its sealed key (acp-model) exist.
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/part-of: agent-control-plane
@@ -36,6 +36,10 @@ spec:
     whenScaled: Retain
   template:
     metadata:
+      annotations:
+        # Bump when worker-patch.yaml changes: a ConfigMap edit alone doesn't restart
+        # the worker, and the launcher is only read at start-up.
+        purple-team1/worker-patch-revision: "2"
       labels:
         app.kubernetes.io/part-of: agent-control-plane
         acp-role: worker
@@ -51,11 +55,16 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: hermes-worker
-        image: ghcr.io/nyameko/agent-control-plane-hermes@sha256:609dd6a8c14fa9182a0fe6962873fde2a53e1b2efd6bd0eaaccce115692d4b7a
+        # Built from the same upstream commit as the API image (dab5e4c, tag sha-dab5e4c…):
+        # the API's migration takes the DB to schema 4, and this build accepts {3, 4}.
+        # (609dd6a8, the earlier pin, accepted exactly 3 and crash-looped.) Keep the two
+        # images on the same upstream commit when bumping either.
+        image: ghcr.io/nyameko/agent-control-plane-hermes@sha256:73fbc34301e9cd700e6fbb5cb6ba1f46018e1a9c22a439fdda5f81c56433f9c5
+        # Upstream runs `python -m agent_control_plane.worker`; the launcher from
+        # worker-patch.yaml points its diagnostic at student-platform, then runs it.
         command:
         - python
-        - -m
-        - agent_control_plane.worker
+        - /opt/acp-patch/run_worker.py
         envFrom:
         - configMapRef:
             name: acp-config
@@ -81,6 +90,9 @@ spec:
           mountPath: /var/lib/hermes
         - name: tmp
           mountPath: /tmp
+        - name: worker-patch
+          mountPath: /opt/acp-patch
+          readOnly: true
         readinessProbe:
           exec:
             command:
@@ -108,6 +120,9 @@ spec:
       - name: tmp
         emptyDir:
           sizeLimit: 256Mi
+      - name: worker-patch
+        configMap:
+          name: acp-worker-patch
   volumeClaimTemplates:
   - metadata:
       name: profile
