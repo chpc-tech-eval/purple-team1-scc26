@@ -1,0 +1,55 @@
+# Points the ACP's one fixed diagnostic at our Student Platform namespace (#94: the
+# instructor said "change the namespace to student platform and continue").
+#
+# The pinned upstream worker image hard-codes
+#   kube_pod_status_ready{namespace="quantum-platform"}
+# and this cluster has no such namespace, so every run would end as diagnostic_no_data.
+# Rather than rebuild the image, the worker starts through this launcher: it changes that
+# one constant (and the namespace label in the evidence record), then runs the normal
+# worker module unchanged. The query stays fixed in Git: neither the caller nor the
+# model can supply PromQL, as upstream intends. The diagnostic's ID
+# (quantum-platform-pod-readiness) is the API contract the platform calls, so it stays.
+#
+# Tied to the pinned image in hermes.yaml: if upstream's query differs from EXPECTED,
+# the launcher refuses to start rather than guessing. Re-check it on any image bump.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: acp-worker-patch
+  namespace: agent-control-plane
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+data:
+  run_worker.py: |
+    """Start the ACP worker with its diagnostic pointed at student-platform."""
+
+    import runpy
+
+    import agent_control_plane.diagnostic as diagnostic
+
+    EXPECTED = 'sum by (condition) (kube_pod_status_ready{namespace="quantum-platform"})'
+    NAMESPACE = "student-platform"
+    QUERY = f'sum by (condition) (kube_pod_status_ready{{namespace="{NAMESPACE}"}})'
+
+
+    def apply():
+        if diagnostic.QUERY != EXPECTED:
+            raise SystemExit(
+                "acp-worker-patch: the image's diagnostic query is not the one this "
+                "patch was written for; re-check worker-patch.yaml before starting"
+            )
+        diagnostic.QUERY = QUERY  # read at call time by pod_readiness()
+        upstream = diagnostic.pod_readiness
+
+        def pod_readiness(base_url, *, transport=None):
+            evidence = upstream(base_url, transport=transport)
+            evidence["namespace"] = NAMESPACE
+            return evidence
+
+        diagnostic.pod_readiness = pod_readiness
+
+
+    if __name__ == "__main__":
+        apply()
+        # The worker module imports pod_readiness from the (now patched) module.
+        runpy.run_module("agent_control_plane.worker", run_name="__main__", alter_sys=True)
