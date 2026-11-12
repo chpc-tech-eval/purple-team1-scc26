@@ -16,3 +16,17 @@ common_packages:
 # inventory (group_vars/all.yml): [{name: <member>, key: "ssh-ed25519 ..."}].
 # Additive only: the Terraform keypair stays, so nobody is locked out.
 common_authorized_keys: []
+
+# sshd hardening (roles/common/templates/sshd-hardening.conf.j2). AllowGroups
+# restricts login to the admin group and the break-glass account's group; the
+# bootstrap user inherits the break-glass group so Ansible never locks itself out.
+common_ssh_allow_group: scc26-admins
+common_ssh_break_glass_user: rocky
+common_ssh_break_glass_group: rocky
+common_ssh_max_auth_tries: 3
+common_ssh_max_sessions: 6
+common_ssh_login_grace: 20s
+common_ssh_client_alive_interval: 300
+common_ssh_client_alive_count: 2
+# wg0/control-plane tunnels ride WireGuard, not SSH, so forwarding is off by default.
+common_ssh_allow_tcp_forwarding: "no"
