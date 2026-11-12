@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "run_id": "0d5e4e2f-439d-4207-a66c-4bc275fdc62c",
+  "project": "purple-team1-scc26",
+  "experiment": "week4-acp-worker-restart",
+  "status": "completed",
+  "started_at": "2026-11-12T17:51:03Z",
+  "finished_at": "2026-11-12T17:51:18Z",
+  "source": {
+    "repository": "https://github.com/chpc-tech-eval/purple-team1-scc26",
+    "commit": "6c7b0aae95c5a8c9880166ab10cfc91b09a4b32f",
+    "dirty": false
+  },
+  "software": {
+    "images": [
+      {
+        "name": "hermes_worker",
+        "ref": "ghcr.io/nyameko/agent-control-plane-hermes@sha256:73fbc34301e9cd700e6fbb5cb6ba1f46018e1a9c22a439fdda5f81c56433f9c5"
+      },
+      {
+        "name": "postgres",
+        "ref": "postgres:18.4@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636"
+      }
+    ]
+  },
+  "execution": {
+    "location": "sebowa-kubernetes",
+    "host_class": "Kubernetes workers (CPU only)",
+    "namespace": "agent-control-plane",
+    "requested_resources": {}
+  },
+  "parameters": {
+    "action": "kubectl delete pod agent-control-plane-hermes-0 (worker only; DB and API untouched)"
+  },
+  "metrics": {
+    "old_pod_created": "2026-11-12T13:18:35Z",
+    "new_pod_created": "2026-11-12T17:51:03Z",
+    "new_pod_ready": "2026-11-12T17:51:18Z",
+    "new_pod_ready_seconds": 15,
+    "new_pod_restarts": 0,
+    "runs_before": 4,
+    "runs_after": 4,
+    "history_after": "3014a02b succeeded, 0469840a succeeded, 8825823b failed hermes_timeout, dec468e2 failed hermes_timeout; evidence and summaries unchanged (lengths 1021, 1206)",
+    "profile_pvc": "profile-agent-control-plane-hermes-0 Bound, cinder-agent-retain, re-attached",
+    "db_pvc": "data-agent-control-plane-postgres-0 Bound, cinder-agent-retain"
+  },
+  "artifacts": [],
+  "notes": "Week-4 Restart gate (week4 section 13): canonical history lives in ACP PostgreSQL, not the worker pod. Pod deleted by Siyabonga; checks read-only."
+}
