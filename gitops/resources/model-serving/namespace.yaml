@@ -1,0 +1,15 @@
+# Week-4 model serving (#94): LiteLLM -> llama.cpp on CPU. Own namespace so it gets its
+# own default-deny policies and the strictest Pod Security level: every pod here must
+# run non-root, drop all capabilities, use the RuntimeDefault seccomp profile and
+# disallow privilege escalation, or the API server rejects it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: model-serving
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+  annotations:
+    argocd.argoproj.io/sync-wave: "-4"
