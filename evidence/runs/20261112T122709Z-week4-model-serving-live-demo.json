@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0",
+  "run_id": "8781a80f-9b54-45e9-8304-76fced6015ca",
+  "project": "purple-team1-scc26",
+  "experiment": "week4-model-serving-live-demo",
+  "status": "completed",
+  "started_at": "2026-11-12T12:27:09Z",
+  "finished_at": "2026-11-12T12:27:23Z",
+  "source": {
+    "repository": "https://github.com/chpc-tech-eval/purple-team1-scc26",
+    "commit": "dd47233ef1a2fb3692488b8cb4e44a2992c7cd5d",
+    "dirty": false
+  },
+  "software": {
+    "images": [
+      {
+        "name": "llama_cpp",
+        "ref": "ghcr.io/saxs-14/scc26-model-server:sha-537c5c0de2f6@sha256:1c05eb08dfc16bdb05e0eef5e3cef630259e9dadffe48ac1bcf93154145d394a"
+      },
+      {
+        "name": "litellm",
+        "ref": "ghcr.io/berriai/litellm-non_root:main-v1.83.14-stable@sha256:5bb1d45eefe9b8bdc8d1b34617b8112d03bfc78fc247bea62d7ebd89918c875c"
+      }
+    ]
+  },
+  "execution": {
+    "location": "sebowa-kubernetes",
+    "host_class": "Kubernetes workers (CPU only)",
+    "namespace": "model-serving",
+    "requested_resources": {
+      "llama_cpp_cpu": "1-4",
+      "llama_cpp_memory": "512Mi-1Gi",
+      "litellm_cpu": "200m-1",
+      "litellm_memory": "1Gi-1536Mi"
+    }
+  },
+  "parameters": {
+    "model": "qwen2.5-0.5b-instruct",
+    "quantisation": "Q4_K_M",
+    "context_tokens": 4096,
+    "path": "kubectl port-forward svc/litellm -> LiteLLM (master key) -> llama.cpp (LLAMA_API_KEY), no NetworkPolicy exception",
+    "prompt": "Write a scary story using only three words.",
+    "max_tokens": 40,
+    "temperature": 0.8,
+    "argo_app": "model-serving Synced Healthy at dd47233"
+  },
+  "metrics": {
+    "pods_ready": 2,
+    "pod_restarts": 0,
+    "llama_cpp_uid": 10001,
+    "litellm_uid": 65534,
+    "http_readiness_no_key": 200,
+    "http_models_no_key": 401,
+    "http_models_wrong_key": 400,
+    "http_models_master_key": 200,
+    "story_1": "The cat walked into the room, its eyes glowing with fear. (14 tokens, 3.05 s)",
+    "story_2": "The shadow walked, creeping, through the night, ... (40 tokens = max_tokens, 1.58 s)",
+    "story_3": "The shadow of the ghost walked. (8 tokens, 0.69 s)",
+    "three_word_constraint_followed": "0/3"
+  },
+  "artifacts": [],
+  "notes": "Instructor's success test for #94 (tiny model on CPU via LiteLLM). On topic and fast, but the 0.5B model doesn't keep to three words; expected for its size. Deployed by #111 + #114 (image from #107)."
+}

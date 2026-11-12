@@ -22,3 +22,4 @@ Manifests are never deleted (team rule: everything stays).
 | Week-3 Part C: platform browser path, auth and data persistence (#66) | [`20261101T112300Z-week3-part-c-platform-e2e.json`](20261101T112300Z-week3-part-c-platform-e2e.json) |
 | Week-3 Part C: platform v2 (forced password change, throttling, 0 restarts on DB replacement) (#84, #85) | [`20261101T123000Z-week3-part-c-platform-v2-verify.json`](20261101T123000Z-week3-part-c-platform-v2-verify.json) |
 | Week-3 close-out: fresh drill through the whole chain (Suricata → Wazuh → Filebeat → indexer/dashboard) with platform health, after #87–#91 | [`20261101T193548Z-week3-closeout-full-chain-drill.json`](20261101T193548Z-week3-closeout-full-chain-drill.json) |
+| Week-4: model serving live demo, LiteLLM → llama.cpp on CPU, keys enforced, instructor's three-word test (#94, #111, #114) | [`20261112T122709Z-week4-model-serving-live-demo.json`](20261112T122709Z-week4-model-serving-live-demo.json) |
