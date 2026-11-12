@@ -32,6 +32,15 @@
   loop_control:
     label: "{{ item.name }}"
 
+- name: Remove revoked SSH keys from the bootstrap user (prune additive-mgmt drift)
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user }}"
+    key: "{{ item.key }}"
+    state: absent
+  loop: "{{ common_revoked_keys | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+
 - name: Harden sshd (key-only, no root login, least privilege, modern crypto)
   ansible.builtin.template:
     dest: /etc/ssh/sshd_config.d/10-scc26-hardening.conf

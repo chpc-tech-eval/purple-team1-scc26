@@ -17,6 +17,14 @@ common_packages:
 # Additive only: the Terraform keypair stays, so nobody is locked out.
 common_authorized_keys: []
 
+# Keys to actively REMOVE from the bootstrap user on every run. Because the add
+# task above is additive (exclusive: false), a key rotated OUT of
+# common_authorized_keys lingers on the hosts until it is listed here. Set in the
+# private inventory; the entry stays as a record (access revoked, history kept),
+# mirroring the team-users off-boarding pattern. Same shape as
+# common_authorized_keys: [{name: "<who/why>", key: "ssh-ed25519 ..."}].
+common_revoked_keys: []
+
 # sshd hardening (roles/common/templates/sshd-hardening.conf.j2). AllowGroups
 # restricts login to the admin group and the break-glass account's group; the
 # bootstrap user inherits the break-glass group so Ansible never locks itself out.

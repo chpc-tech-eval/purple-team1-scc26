@@ -50,6 +50,17 @@ common_authorized_keys:
   - {name: "<member>", key: "ssh-ed25519 AAAA... <comment>"}
 ```
 
+Key rotation / revocation: the add task is additive, so a key removed from
+`common_authorized_keys` still lingers on the hosts. To actually pull it, add it to
+`common_revoked_keys` (same shape) and re-run the bootstrap — the entry is kept as a
+record while access is removed, mirroring the off-boarding pattern below.
+
+```yaml
+# inventories/private/group_vars/all.yml  (gitignored)
+common_revoked_keys:
+  - {name: "<member>-old (revoked <date>, reason)", key: "ssh-ed25519 AAAA... <comment>"}
+```
+
 ### Private inventory: per-member accounts
 
 `playbooks/team-users.yml` gives each member their own Linux account on every host (SSH key only, sudo through the `scc26-admins` group) and a personal kubeconfig on `k8s-cp-01`. That kubeconfig is a 30-day client certificate (CN = the member's name), renewed by re-running the playbook. Its rights come only from that member's own ClusterRoleBinding in `gitops/resources/cluster-rbac/members.yaml`. `rocky` stays as the break-glass account.
