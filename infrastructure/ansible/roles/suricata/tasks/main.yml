@@ -104,6 +104,18 @@
   register: suricata_local_rules
   notify: Restart suricata
 
+# Week 5: team detections (SIDs 9000010-9000019), tested in CI against
+# generated traffic (project/detections). Same merge path as the drill rule.
+- name: Team-owned Week-5 detection rules
+  ansible.builtin.copy:
+    src: scc26-detections.rules
+    dest: /etc/suricata/rules/scc26-detections.rules
+    owner: root
+    group: root
+    mode: "0644"
+  register: suricata_detection_rules
+  notify: Restart suricata
+
 - name: Check whether the merged rules file exists
   ansible.builtin.stat:
     path: /var/lib/suricata/rules/suricata.rules
@@ -111,10 +123,23 @@
 
 - name: Fetch ET Open rules and merge our local rules
   ansible.builtin.command:
-    cmd: suricata-update --no-test --local /etc/suricata/rules/local.rules
-  when: suricata_update_enabled and (suricata_local_rules.changed or not suricata_rules_file.stat.exists)
+    cmd: >-
+      suricata-update --no-test
+      --local /etc/suricata/rules/local.rules
+      --local /etc/suricata/rules/scc26-detections.rules
+  when: >-
+    suricata_update_enabled and (suricata_local_rules.changed or suricata_detection_rules.changed
+    or not suricata_rules_file.stat.exists)
+  register: suricata_rules_merged
   changed_when: true
   notify: Restart suricata
+
+# Fail here (old Suricata keeps running) rather than restart into a bad rule set.
+- name: Test the configuration with the merged rules before restarting
+  ansible.builtin.command:
+    cmd: suricata -T -c /etc/suricata/suricata.yaml
+  when: suricata_rules_merged is changed and not ansible_check_mode
+  changed_when: false
 
 - name: Log files belong to the suricata user (the service drops privileges)
   ansible.builtin.file:

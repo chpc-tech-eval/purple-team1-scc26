@@ -1,0 +1,76 @@
+# Week-5 detection tests: the team Suricata and Wazuh rules are run through the
+# real engines (pinned container images) against generated traffic and log
+# lines. Credential-free; RFC 5737 addresses only; nothing leaves the runner.
+name: detections
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "project/detections/**"
+      - "infrastructure/ansible/roles/suricata/**"
+      - "infrastructure/ansible/roles/wazuh_manager/files/**"
+      - ".github/workflows/detections.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: detections-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Same versions as edge-01 (roles/suricata, roles/wazuh_manager), pinned by digest.
+  SURICATA_IMAGE: docker.io/jasonish/suricata:7.0.17@sha256:6f915ca62512c9859e888648765515b73b209dfa8a03a65edf1607f17e11fa51
+  WAZUH_IMAGE: docker.io/wazuh/wazuh-manager:4.14.9@sha256:9d07740f780024600101d759ddab9a4413bdcb3412ccb81dccc143b3cdc702a2
+  SCAPY_VERSION: "2.6.1"
+
+jobs:
+  suricata:
+    name: suricata rules vs generated traffic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: pip install "scapy==${SCAPY_VERSION}"
+      - run: docker pull "$SURICATA_IMAGE"
+      - name: Generate test traffic
+        run: python3 project/detections/make_pcaps.py "$RUNNER_TEMP/w"
+      - name: Replay through Suricata 7.0.17
+        run: |
+          chmod 777 "$RUNNER_TEMP/w"
+          python3 project/detections/run_tests.py suricata --work "$RUNNER_TEMP/w" --mount /w \
+            --cmd "docker run --rm -v $RUNNER_TEMP/w:/w --entrypoint suricata $SURICATA_IMAGE"
+
+  wazuh:
+    name: wazuh rules vs logtest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Start Wazuh manager 4.14.9
+        run: |
+          docker run -d --name wazuh "$WAZUH_IMAGE"
+          for i in $(seq 1 60); do
+            docker exec wazuh /var/ossec/bin/wazuh-control status 2>/dev/null | grep -q 'wazuh-analysisd is running' && exit 0
+            sleep 5
+          done
+          docker logs wazuh | tail -50; exit 1
+      - name: Install the team rules exactly as Ansible does, check, restart
+        run: |
+          docker cp infrastructure/ansible/roles/wazuh_manager/files/scc26_rules.xml wazuh:/var/ossec/etc/rules/scc26_rules.xml
+          docker exec wazuh sh -c 'chown root:wazuh /var/ossec/etc/rules/scc26_rules.xml && chmod 0660 /var/ossec/etc/rules/scc26_rules.xml'
+          docker exec wazuh /var/ossec/bin/wazuh-analysisd -t
+          docker exec wazuh /var/ossec/bin/wazuh-control restart
+          for i in $(seq 1 60); do
+            docker exec wazuh /var/ossec/bin/wazuh-control status 2>/dev/null | grep -q 'wazuh-analysisd is running' && exit 0
+            sleep 5
+          done
+          exit 1
+      - name: Feed the test log lines through wazuh-logtest
+        run: python3 project/detections/run_tests.py wazuh -v --cmd "docker exec -i wazuh /var/ossec/bin/wazuh-logtest"

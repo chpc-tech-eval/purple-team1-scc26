@@ -62,6 +62,47 @@
         </localfile>
   notify: Restart wazuh-manager
 
+# Week 5: team rules (IDs 100100-100199), tested in CI with wazuh-logtest
+# (project/detections). A rule file that breaks analysisd is rolled back
+# before the manager is restarted, so the running manager is never left broken.
+- name: Team-owned Week-5 detection rules
+  block:
+    - name: Install the team rule file
+      ansible.builtin.copy:
+        src: scc26_rules.xml
+        dest: /var/ossec/etc/rules/scc26_rules.xml
+        owner: root
+        group: wazuh
+        mode: "0660"
+        backup: true
+      register: wazuh_manager_team_rules
+      notify: Restart wazuh-manager
+
+    - name: Check the whole ruleset with analysisd
+      ansible.builtin.command: /var/ossec/bin/wazuh-analysisd -t
+      when: wazuh_manager_team_rules is changed and not ansible_check_mode
+      changed_when: false
+  rescue:
+    - name: Restore the previous team rule file
+      ansible.builtin.copy:
+        src: "{{ wazuh_manager_team_rules.backup_file }}"
+        dest: /var/ossec/etc/rules/scc26_rules.xml
+        remote_src: true
+        owner: root
+        group: wazuh
+        mode: "0660"
+      when: wazuh_manager_team_rules.backup_file is defined
+
+    - name: Take out a first-time rule file that failed the check
+      ansible.builtin.file:
+        path: /var/ossec/etc/rules/scc26_rules.xml
+        state: absent
+      when: wazuh_manager_team_rules.backup_file is not defined
+
+    - name: Stop here (the manager keeps its previous rules)
+      ansible.builtin.fail:
+        msg: "scc26_rules.xml failed wazuh-analysisd -t; previous rules restored, manager not restarted"
+
 - name: Enable and start the manager
   ansible.builtin.systemd_service:
     name: wazuh-manager
