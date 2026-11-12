@@ -24,9 +24,9 @@ metadata:
     argocd.argoproj.io/sync-wave: '2'
 spec:
   serviceName: agent-control-plane-hermes
-  # Singleton by design (week4 §8). 0 until the approved model endpoint and its sealed
-  # credential exist (#94): the worker refuses to start without a model route.
-  replicas: 0
+  # Singleton by design (week4 §8; the worker also takes a DB advisory lock). Started
+  # now that the model route (acp-config) and its sealed key (acp-model) exist.
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/part-of: agent-control-plane
