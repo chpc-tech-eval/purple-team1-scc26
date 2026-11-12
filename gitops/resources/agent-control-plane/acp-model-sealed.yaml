@@ -1,0 +1,18 @@
+# Hermes worker -> LiteLLM credential (ACP_MODEL_API_KEY = the model-serving LiteLLM
+# master key; no per-client keys without a LiteLLM database). SEALED; plaintext stays in
+# the member's ~/.config/scc26-secrets, never in Git.
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+  name: acp-model
+  namespace: agent-control-plane
+spec:
+  encryptedData:
+    ACP_MODEL_API_KEY: AgB6swZZO5xV0pslN5Hfp6sTgFtKozJ06b1O4cuRrlLSqBVYa+TkmJ2bGfoAPyXPlss9FNzt2x8QeEqgZVquPB4Y7uNIT3ahzfIiiFsslEbBPE+rv6HXd+8Kbck/T6utM2sSTHT2PZnzYqh2vFyyfR4EubLSxyPaJN8+zsIQO+txCPwmNxLQnAVpIysiSBfQbaQtE1hf6BoWI3PbrJg5VssiJOUZrC8sK9Fy5HwgH1qyxqPwcxtQpq1oOrk+fSEG8X9GxLgJ+0DNTDiUXx5+NfAKXYl05Z6ZMBIUklDhL6P3y0kD9TU2tTd2ZI9Hg/yWILVRRX0XF23Ae7EODDgyF76KEvxMSDj7QNfn77GcxYTKu6czCn//5jzDdwccnYYBhAcd76ngxfgUeT626ziGpYien+rnGZoLewQcG74S9A+6fhoI2qCcbWkvVkGyzE4PrCkwTeDQm3VrOl3Era9mMphLKj9DAEFeXXThVRhwzD22M0hRU3OHDG3sXp6S9FhBNfskCXhFsPAjzraLc/0uydi6w2nKy1ZY246lDQ0fJn7cFHhMqr7DzRZgx4Fm93aFbFF5eoPy0CjMEKo5Ma7OOMh7ZCnQa5S2YEbYte0RTAEr99phDVl6vamqCu+upsKFDDk+MD8STFzwNq41H7DNp08boF2RBQyd2obt/cUx2TE4T0p2QFw5Xs6b8ZbO7Noq1HOb8KkOKLes4xUJP8HqxLpC/wUREP1i79ESZdbSmjNj3R3bhoPMy1fJT7Kc2Bf0MPHMEJiirlpDrRuf4YYZiWjabj+Z
+  template:
+    metadata:
+      name: acp-model
+      namespace: agent-control-plane

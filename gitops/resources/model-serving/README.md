@@ -78,8 +78,4 @@ kubeseal --cert $D/3ncryp3d-sealed-secrets.cert --format yaml \
 
 ## What follows
 
-**Step 3 (separate PR): wire the ACP.**
-- Set `ACP_MODEL=qwen2.5-0.5b-instruct` and `ACP_MODEL_BASE_URL` to `http://litellm.model-serving.svc.cluster.local:4000` (with or without `/v1`, per what Hermes expects).
-- Seal `acp-model` (`ACP_MODEL_API_KEY` = the LiteLLM master key).
-- Add the ACP egress rule worker → LiteLLM :4000.
-- Scale Hermes `0 → 1`.
+**Step 3: the ACP is wired** (`gitops/resources/agent-control-plane`): `ACP_MODEL_BASE_URL=http://litellm.model-serving.svc.cluster.local:4000/v1`, key sealed as `acp-model` (the master key), egress rule `acp-model-egress`, Hermes at 1 replica. Hermes accepts the 4K model through LiteLLM; see that README for why.

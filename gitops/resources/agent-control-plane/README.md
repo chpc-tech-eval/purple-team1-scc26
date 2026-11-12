@@ -10,8 +10,20 @@ Deployed from `nyameko/infra-hpc-qc-k8s` `argocd/resources/agent-control-plane` 
 | Prometheus egress matches `operator.prometheus.io/name=kps-prometheus` | the labels in our cluster |
 | Migration hook keeps its last Job (`BeforeHookCreation` only) | team rule: nothing that ran is removed |
 | PostgreSQL 10Gi (was 20Gi) | student sizing; retained class, claim never pruned |
-| Hermes `replicas: 0`, no model route, no model egress | the approved A100/H200 endpoint and its credential aren't known yet (#94) |
+| Hermes model route: `ACP_MODEL=qwen2.5-0.5b-instruct`, `ACP_MODEL_BASE_URL` = our LiteLLM (`model-serving`, `/v1`), key sealed as `acp-model`, egress only to LiteLLM :4000 (`acp-model-egress`), `replicas: 1` | #94 resolved 2026-11-09: LiteLLM → llama.cpp on CPU now, A100/vLLM later as a second LiteLLM backend. See `gitops/resources/model-serving/README.md` |
 
 Credentials: owner/app DB passwords and an Ed25519 key pair were generated offline (mirroring upstream `scripts/create_secrets.py`) and sealed with our controller certificate. ACP receives only the **public** key (`acp-verification`); the **private** key is sealed into `student-platform` (`acp-signing`) and is mounted only by the platform backend. Plaintext stays in the captain's private directory, never in Git.
 
-The fixed diagnostic in the pinned image queries `namespace="quantum-platform"`; how to point it at `student-platform` is asked in #94.
+The fixed diagnostic in the pinned image queries `namespace="quantum-platform"`. The instructor's answer on #94 was to point it at `student-platform`, but the query is a constant in the image (still so upstream), and this cluster has no `quantum-platform` namespace. Until a follow-up changes it, every run ends as `diagnostic_no_data` **before** the model is called; the run is recorded as failed, honestly, and nothing else is affected.
+
+**Hermes and the 64K check.** Hermes refuses models whose context window it resolves below 64K. LiteLLM reports no window, so Hermes falls back to its built-in catalogue (`qwen` → 131,072) and accepts the model, although llama.cpp serves 4,096. That is safe for this worker: one short prompt, no tools, `max_tokens` 1200. An oversize request fails at llama.cpp and the run is recorded as failed; nothing is truncated silently.
+
+Tested before merge with the pinned images only (Hermes worker `609dd6a8…`, our llama.cpp `1c05eb08…`, LiteLLM with the `model-serving` config), on a Docker network without internet, under the cluster DNS names and the pods' UIDs, read-only:
+
+```
+Hermes resolved context ...... 131,072 (catalogue match on 'qwen'); the 64K check passes
+agent_control_plane.hermes_runtime with a readiness sample (3 true, 1 false) ... exit 0 in 46 s
+llama.cpp ................... largest request 760 prompt + 242 completion = 1,001 of 4,096 tokens, truncated = 0
+```
+
+The answer is on topic and states the metric's limits, but adds generic advice beyond the evidence; that's the 0.5B model.
