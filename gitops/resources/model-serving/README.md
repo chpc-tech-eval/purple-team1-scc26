@@ -39,6 +39,31 @@ Two things the tests caught, now noted in the manifests:
 - llama-server reads its key from **`LLAMA_API_KEY`**. The `LLAMA_ARG_API_KEY` spelling is silently ignored and leaves the server open.
 - `DISABLE_ADMIN_UI` has no effect in this LiteLLM version, so it isn't set. The UI pages are reachable only from Hermes, and every API call needs the master key.
 
+## Demo: the instructor's success test
+
+"Squeeze a tiny model on, show you understand how it's deployed, and have it answer *write a scary story using only three words*." After Argo has synced:
+
+```bash
+# RUN ON: workstation (WSL), kubectl tunnel up. port-forward enters the pod directly,
+# so no NetworkPolicy exception is needed and nothing is exposed.
+kubectl -n model-serving port-forward svc/litellm 4000:4000 &
+KEY=$(grep LITELLM_MASTER_KEY ~/.config/scc26-secrets/model-serving-keys-secret.yaml | cut -d'"' -f2)
+curl -s localhost:4000/v1/chat/completions -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' \
+  -d '{"model":"qwen2.5-0.5b-instruct","messages":[{"role":"user","content":"Write a scary story using only three words."}],"max_tokens":40}' \
+  | jq -r '.choices[0].message.content'
+kill %1
+```
+
+The same path ran locally before merge (LiteLLM → llama.cpp, no internet, temperature 0.8, three runs):
+
+```
+'A ghost walked, carrying a lantern.'
+'The ghost of the lost letter.'
+'The night was dark and pitch-black. A figure, cloaked and shadowy, crept towards the moonlit street, ...'
+```
+
+That's an honest picture of a 0.5B model: it answers quickly and on topic, but it doesn't reliably follow the "three words" constraint. That's the expected trade-off of the tiny-model choice; a larger model on the A100 (vLLM, as a second LiteLLM backend) is the planned upgrade.
+
 ## Rotating a key
 
 ```bash
