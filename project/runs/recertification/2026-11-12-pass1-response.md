@@ -15,16 +15,14 @@ Status key: ✅ resolved · ❓ pending captain/team input · 🛠️ remediatio
 - Verified against the private inventory: the four peers map one-to-one to the current members (Ole, Rendani, Phathu, Siya); the member who replaced a machine carries only the new key.
 - **Correction to pass 1:** two peer owners were transposed in the pass-1 reading. The inventory is authoritative and the mapping is corrected here. Actual addresses stay only in the private inventory.
 
-## C1 — two public /32 break-glass SSH sources (confirm) ❓
-- The two public `/32` entries in `firewall_ssh_cidrs` (private inventory) are pending captain attribution to current members. _[captain: confirm each /32 → member; addresses stay out of Git]_
+## C1 — two public /32 break-glass SSH sources (confirm) ✅
+- Captain confirmed (2026-11-12): both public `/32` entries in `firewall_ssh_cidrs` (private inventory) are current members' break-glass source IPs. Retained as break-glass fallback. Addresses stay out of Git; re-attribute at the next pass if a member's IP changes.
 
-## C3 — `rocky` NOPASSWD rule in `/etc/sudoers` (confirm) ❓
-- Assessment: almost certainly the OpenStack Rocky cloud-image default (cloud-init), consistent with the `90-cloud-init-users` unit already present.
-- _[captain: confirm image default; keep as break-glass (recommended short-term) or move under Ansible-managed `sudoers.d` as part of #106]_
+## C3 — `rocky` NOPASSWD rule in `/etc/sudoers` (confirm) ✅
+- Captain confirmed (2026-11-12): accepted as the OpenStack Rocky cloud-image default (cloud-init), consistent with the `90-cloud-init-users` unit already present. **Kept as break-glass** — `rocky` remains the break-glass account. Recorded as an accepted item; not moved under Ansible for now.
 
-## D1 — all members `cluster-admin` (decision) ❓
-- Recommendation: **accept with expiry** for the competition window — a four-person team needs operational agility and every member is already break-glass-capable. Re-review at competition end; narrow per role afterwards if retained.
-- _[team: accept-with-expiry / narrow now]_
+## D1 — all members `cluster-admin` (decision) ✅
+- Decision (2026-11-12): **accepted with expiry** for the competition window — a four-person team needs operational agility and every member is already break-glass-capable. Recorded as an accepted risk; **re-review at competition close** and narrow to per-role RBAC if `cluster-admin` is retained afterwards.
 
 ## Passed (no action)
 `scc26-admins` = exactly the four members; each personal account holds only its owner's key; member kubeconfigs within 30 days; no unexpected sudoers, keys, CIDRs, units or cron beyond the documented `scc26-capture-offloads.service` on edge-01.
