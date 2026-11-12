@@ -4,10 +4,11 @@ Response to [`2026-11-12-pass1.md`](./2026-11-12-pass1.md) (Rendani, `Rendani-An
 
 Status key: ✅ resolved · ❓ pending captain/team input · 🛠️ remediation staged
 
-## F1 — retired key on `rocky` (fix) 🛠️
+## F1 — retired key on `rocky` (fix) ✅ RESOLVED (2026-11-12)
 - Prune mechanism merged in #113 (`common_revoked_keys` in `roles/common`), live on `main`.
-- The retired key is still present on all 5 hosts; `common_revoked_keys` is **not yet populated** in the private inventory, so the prune is a no-op until it is.
-- **To complete:** add the retired key's text to `common_revoked_keys` (private inventory), then an approved `bootstrap.yml` run across all hosts. The same run also rolls the #106 sshd hardening to the four hosts that still lack it.
+- The retired Swaetc key (`SHA256:s2iR3fOl…`) was added to `common_revoked_keys` in the private inventory, then `bootstrap.yml` was run across all 5 hosts (approved by the captain).
+- **Result:** the "Remove revoked SSH keys" task reported `changed` on all 5 hosts; re-verification (`ssh-keygen -lf` over each `rocky` `authorized_keys`) returns **REVOKED-OK on all 5** — the key is gone. No lockout (key-auth sessions kept working through the sshd reload). The same run also rolled the #106 sshd hardening to the four hosts that previously lacked it (edge-01 already had it).
+- The revoked entry is retained in the private inventory as a record (access revoked, history kept).
 - **"Rotate `rocky` entirely" (policy suggestion): deferred.** A retired machine key is not a confirmed compromise, and rotating the shared break-glass account mid-competition is disruptive. Recorded as a deferred decision; revisit only on evidence of misuse.
 
 ## C2 — WireGuard peer owners (confirm) ✅
