@@ -111,7 +111,9 @@ The merge refuses rows without an evidence ID and any real address.
 
 Give Crypty curated evidence only (evidence IDs from the manifest), never shell or Kubernetes access. Record each `task_id`, the evidence IDs it was given, and in `acp[].human_review` what the analyst checked and corrected.
 
-> **Current limit (Week 4):** ACP Phase 1 accepts only the fixed `quantum-platform-pod-readiness` diagnostic, and the Hermes worker waits on the approved model (#94). Until the instructor confirms how curated incident evidence may be submitted, step 10 is recorded as an evidence gap, never simulated.
+> **Current limit:** Crypty works end to end since Week 4: Student Platform → ACP → Hermes → LiteLLM → `qwen2.5-0.5b-instruct`, with restart and worker security checks ([Week-4 evidence](../evidence/week4/README.md)). But ACP Phase 1 accepts only the fixed `quantum-platform-pod-readiness` diagnostic (pointed at `student-platform`), so **curated incident evidence cannot be submitted yet**. Until the instructor answers how it may be (#103, question 5), step 10 is recorded as an evidence gap in `findings.gaps`, never simulated.
+>
+> What Crypty *can* add now is operational context: a pod-readiness run during the window shows whether the Student Platform stayed healthy. If you use it, record it in `acp[]` like any other task (its `task_id`, the evidence it stored, and the analyst's `human_review`), and say in the review that it is platform health, not an explanation of the incident. The 0.5B model can misread its own evidence (Week-4 run `61898af2`), so check every sentence against the stored counts.
 
 ## 12. Findings
 
