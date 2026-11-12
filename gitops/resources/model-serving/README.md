@@ -79,3 +79,5 @@ kubeseal --cert $D/3ncryp3d-sealed-secrets.cert --format yaml \
 ## What follows
 
 **Step 3: the ACP is wired** (`gitops/resources/agent-control-plane`): `ACP_MODEL_BASE_URL=http://litellm.model-serving.svc.cluster.local:4000/v1`, key sealed as `acp-model` (the master key), egress rule `acp-model-egress`, Hermes at 1 replica. Hermes accepts the 4K model through LiteLLM; see that README for why.
+
+**Optional, later: a stronger model.** [`gitops/optional/model-qwen2.5-1.5b/`](../../optional/model-qwen2.5-1.5b/README.md) prepares Qwen2.5-1.5B to run next to the 0.5B, behind the same LiteLLM endpoint. It is **not built or deployed** (Argo does not read that folder); the README there lists the steps if the team decides to step up.
