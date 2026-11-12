@@ -1,6 +1,6 @@
 # llama.cpp server with the model baked into the image (model-serving/Dockerfile, #107).
 # Only LiteLLM may call it (NetworkPolicy + API key). The image digest comes from the
-# model-image CI run on dev; until then the placeholder below keeps this PR in draft.
+# model-image CI run on dev after #107 merged (dev 537c5c0; smoke test: no network, uid 10001).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -33,7 +33,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: llama-cpp
-        image: ghcr.io/saxs-14/scc26-model-server:sha-REPLACE_AFTER_107@sha256:REPLACE_WITH_DIGEST_FROM_MODEL_IMAGE_CI
+        image: ghcr.io/saxs-14/scc26-model-server:sha-537c5c0de2f6@sha256:1c05eb08dfc16bdb05e0eef5e3cef630259e9dadffe48ac1bcf93154145d394a
         ports:
         - name: http
           containerPort: 8080
