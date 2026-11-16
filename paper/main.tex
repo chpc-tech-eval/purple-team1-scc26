@@ -114,14 +114,101 @@ positives/negatives; Gaps: evidence gaps. ``not reached'' means the milestone di
   \label{fig:week5-phases}
 \end{figure*}
 
+\subsection{Week-5 Security Observability: Self-Range Detection Validation}
+To exercise the detection and response pipeline before the graded inter-team
+engagement, we ran two defender-role \emph{self-range} rehearsals on our own
+infrastructure. These are controlled dry-runs against the team's own
+\texttt{student-platform}, not the assessed exercise, whose rules of engagement
+were still pending at the time of writing; each run records its authorisation and
+logical scope in a \texttt{SELF-RANGE-AUTH.md} under its run directory. The purpose
+was to confirm that the deployed Wazuh and Suricata rule set fires end-to-end and
+produces correlated host- and network-layer evidence on a single reproducible
+timeline. Measured detection and response times for both runs are given in
+Table~\ref{tab:week5-metrics}; the per-phase breakdown is shown in
+Fig.~\ref{fig:week5-phases}, and the correlated event timelines in
+Fig.~\ref{fig:week5-timeline-dryrun} and Fig.~\ref{fig:week5-timeline-http}.
+
+The first run exercised host authentication and network reconnaissance signatures:
+a SYN scan (Suricata SID~9000010) and an SSH connection burst (SID~9000011),
+correlated on the host side by the Wazuh break-glass login rule (100110), the
+rejected-login and brute-force rules (100111/100112) and the network-to-host
+escalation rule (100100). Every signature fired, with the first detection recorded
+at scenario start (\mbox{$T_\text{detect}=0$\,s}) and the source identified within
+17\,s. The run also surfaced two concrete gaps, which we treat as useful negative
+results rather than hide: the Prometheus context exporter failed because its query
+path invoked \texttt{wget} inside a distroless pod that has no such binary, and the
+HTTP application-layer signatures were not yet exercised. Both gaps were closed in
+follow-up work --- the exporter now queries Prometheus through the API-server pod
+proxy and was verified to return all five series, and the HTTP signatures were
+validated in the second run.
+
+The second run drove four benign, marked HTTP requests from the range host to the
+team platform through the Traefik web entrypoint (plaintext, so Suricata parses the
+request URI and User-Agent). All four application-layer signatures fired live ---
+path traversal (SID~9000012), SQL-injection \texttt{UNION SELECT} and tautology
+(SID~9000013/9000014) and a scanner User-Agent (SID~9000015) --- each escalated into
+Wazuh (100100) and correlated as repeated detections from a single source (100101),
+with no false negatives and a first detection at 7\,s. This run also produced a
+measurement lesson that we fed back into the runbook: Suricata stamps each alert with
+the flow-start time, roughly two to three seconds before the HTTP transaction, so an
+initial un-padded evidence window pushed two early alerts outside the scenario window
+and they appeared, incorrectly, as misses. Padding the window by at least ten seconds
+after the scenario start, with no gap at the baseline boundary, captured all four.
+
+In both runs the only false positives were informational and cleanly separable from
+the scenario signal: an \mbox{ET INFO} alert on our own sshd version banner
+(CVE-2024-6409), which we record as a real exposure to track and suppress, and ambient
+in-cluster DNS alerts present in the pre-scenario baseline. No team signature or host
+authentication rule fired during either baseline window, so the injected attack signal
+is unambiguous.
+
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/week5/timeline-20261116T100522Z-w5-phase1-dryrun.pdf}{%
+    \includegraphics[width=\columnwidth]{figures/week5/timeline-20261116T100522Z-w5-phase1-dryrun.pdf}%
+  }{\fbox{\parbox[c][18mm][c]{0.9\columnwidth}{\centering Timeline figure pending}}}
+  \caption{Correlated host and network detection timeline for the first self-range
+  dry-run (network reconnaissance and host authentication signatures).}
+  \label{fig:week5-timeline-dryrun}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/week5/timeline-20261116T112654Z-w5-phase1-httpsids.pdf}{%
+    \includegraphics[width=\columnwidth]{figures/week5/timeline-20261116T112654Z-w5-phase1-httpsids.pdf}%
+  }{\fbox{\parbox[c][18mm][c]{0.9\columnwidth}{\centering Timeline figure pending}}}
+  \caption{Correlated detection timeline for the second self-range dry-run (HTTP
+  application-layer signatures, escalation and single-source correlation).}
+  \label{fig:week5-timeline-http}
+\end{figure}
+
 \section{Discussion and Limitations}
 % Explain why results behaved as observed; relate to architecture/resource constraints;
 % discuss measurement uncertainty, failed tests, threats to validity and what cannot be
 % concluded from this small POC.
+These self-range dry-runs validate that the detection pipeline functions and that
+host and network evidence can be correlated on a common timeline, but they are
+rehearsals on friendly infrastructure, not an adversarial engagement: the containment
+and recovery milestones were deliberately not exercised, so $T_\text{contain}$ and
+$T_\text{recover}$ are reported as ``not reached'' rather than estimated. The detection
+times are lower bounds obtained against known, benign, pre-marked traffic and should
+not be read as expected performance under an unannounced attack. The flow-start
+timestamping effect described above is a threat to the validity of any tightly
+windowed measurement and is the main reason the evidence-window guidance now mandates
+padding. Generalisation is further limited by the small five-node range and by the
+graded scenario and peer range not yet being defined.
 
 \section{Reproducibility}
 % Short but explicit: repository revision, image digests, protected inputs, rebuild test,
 % what was automated, what remained manual, and whether the key result was reproduced.
+Each Week-5 run is self-contained under \texttt{project/runs/<run-id>/}: a validated
+\texttt{manifest.yaml} (schema \texttt{scc26-week5-run/1}), the authorisation and scope,
+a human-readable report, and the sanitised evidence summaries. Raw captures remain on
+the hosts and are never committed; the repository holds only aggregated summaries with
+logical host names, a SHA-256 digest of each raw file, the incident timeline and the
+computed metrics. All figures and tables in the Week-5 results are regenerated from the
+committed run directories by \texttt{project/tools/w5paper.sh}, so the reported numbers
+trace directly to the manifests rather than to hand-edited values.
 
 \section{Conclusion and Future Work}
 % 1 short paragraph: answer the research question at the level supported by evidence.
