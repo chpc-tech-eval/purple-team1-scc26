@@ -1,0 +1,35 @@
+{
+  "run_id": "20261116T100522Z-w5-phase1-dryrun",
+  "label": "scenario",
+  "start_utc": "2026-11-16T10:21:07Z",
+  "end_utc": "2026-11-16T10:23:04Z",
+  "suricata_event_types": {
+    "dns": 56,
+    "alert": 56,
+    "stats": 15,
+    "flow": 173,
+    "ssh": 26
+  },
+  "suricata_alert_signatures": {
+    "2054407 ET INFO Server Responded with Vulnerable OpenSSH Version (CVE-2024-6409)": 54,
+    "9000010 SCC26 W5 possible TCP SYN scan (burst from one source)": 1,
+    "9000011 SCC26 W5 SSH connection burst from one source": 1
+  },
+  "wazuh_rules": {
+    "86601 L3 Suricata: Alert - ET INFO Server Responded with Vulnerable OpenSSH Version (CVE-2024-6409)": 54,
+    "100111 L3 SCC26: rejected SSH login to an existing account (key-only host)": 11,
+    "5501 L3 PAM: Login session opened.": 2,
+    "5502 L3 PAM: Login session closed.": 2,
+    "100110 L12 SCC26 break-glass: SSH login as shared account rocky from self-range-host. Announce it in the team channel and rotate the key after use.": 1,
+    "100100 L10 SCC26 W5 network detection: SCC26 W5 possible TCP SYN scan (burst from one source)": 1,
+    "100100 L10 SCC26 W5 network detection: SCC26 W5 SSH connection burst from one source": 1,
+    "100112 L10 SCC26: 8+ rejected SSH logins to existing accounts within 2 min on one host (brute force or key spraying)": 1
+  },
+  "wazuh_alerts_by_agent": {
+    "api-lb-01": 16,
+    "edge-01.novalocal": 56,
+    "k8s-cp-01": 1
+  },
+  "timeline_rows": 60,
+  "note": "raw files stay on edge-01; addresses replaced in this summary and the timeline"
+}

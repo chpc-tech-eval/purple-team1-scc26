@@ -1,0 +1,71 @@
+---
+# Week-5 SELF-RANGE DRY-RUN manifest (tooling + detection validation, not the graded exercise).
+# Authorisation: see SELF-RANGE-AUTH.md in this directory.
+# Public repository: logical names only, no addresses, no secret scenario text.
+schema: scc26-week5-run/1
+run_id: "20261116T100522Z-w5-phase1-dryrun"
+scenario_id: "self-range-dryrun"
+phase: 1
+team_role: "defender"
+authorisation:
+  roe_reference: "project/runs/20261116T100522Z-w5-phase1-dryrun/SELF-RANGE-AUTH.md"
+  acknowledged_utc: "2026-11-16T10:05:00Z"
+frozen:
+  git_sha: "bdb61ccfa71e6a8487bdbc0a2914b289acdabd67"
+  images:
+    agent-control-plane-postgres: "docker.io/library/postgres@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636"
+    agent-control-plane-hermes: "ghcr.io/nyameko/agent-control-plane-hermes@sha256:73fbc34301e9cd700e6fbb5cb6ba1f46018e1a9c22a439fdda5f81c56433f9c5"
+    agent-control-plane: "ghcr.io/nyameko/agent-control-plane@sha256:b1289eab095fae443979d10ca1d5a27e8111a7689ddb346cb76ea7217e945bc4"
+    model-serving-litellm: "ghcr.io/berriai/litellm-non_root@sha256:5bb1d45eefe9b8bdc8d1b34617b8112d03bfc78fc247bea62d7ebd89918c875c"
+    model-serving: "ghcr.io/saxs-14/scc26-model-server@sha256:1c05eb08dfc16bdb05e0eef5e3cef630259e9dadffe48ac1bcf93154145d394a"
+    student-platform-postgres: "docker.io/library/postgres@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826"
+    student-platform: "ghcr.io/saxs-14/scc26-student-platform@sha256:7c936d7ad7fe3c9e45f02f8c42e04ee3f94dba7ad0fc30355eb5c9d72dea35dd"
+    wazuh-dashboard: "docker.io/wazuh/wazuh-dashboard@sha256:e8e2340265feb6f61711d2ba460d04d2dea875ee46de26cd1832da2a3558a341"
+    wazuh-indexer: "docker.io/wazuh/wazuh-indexer@sha256:615465315b560d974100ea55bbe67efa72afc6490ef563d4d1bef127df0e98f6"
+scope:
+  sources:
+    - self-range-host
+  targets:
+    - edge-01
+    - api-lb-01
+    - k8s-cp-01
+    - student-platform
+time_sync:
+  checked_utc: "2026-11-16T10:07:11Z"
+  max_skew_seconds: 1
+baseline:
+  start_utc: "2026-11-16T10:08:41Z"
+  end_utc: "2026-11-16T10:19:18Z"
+  evidence: [E-base-net, E-base-host]
+window:
+  start_utc: "2026-11-16T10:21:07Z"
+  end_utc: "2026-11-16T10:23:04Z"
+expected_layers: [host, network]
+evidence:
+  - {id: E-base-net, layer: network, source: suricata-eve, path: "20261116T100522Z-w5-phase1-dryrun/baseline/suricata-eve.json", sha256: 13df51ddb9a1b662f84657b0341e0942cb7ebef5175f1e7854b1ad13f64aca31}
+  - {id: E-base-host, layer: host, source: wazuh-alerts, path: "20261116T100522Z-w5-phase1-dryrun/baseline/wazuh-alerts.json", sha256: 7de1f29ac9f374f17aacabd32567cd0dd9779ba653b54ee9c2a23119737115c0}
+  - {id: E-scn-net, layer: network, source: suricata-eve, path: "20261116T100522Z-w5-phase1-dryrun/scenario/suricata-eve.json", sha256: c143d7ca90239a6b84a298528c2df5e856d7a178c2f35a28984fdabef2f0b3ed}
+  - {id: E-scn-host, layer: host, source: wazuh-alerts, path: "20261116T100522Z-w5-phase1-dryrun/scenario/wazuh-alerts.json", sha256: c2facf7b93ce755c83d1364fc789cfcaa3e5a1040cdbbc9772ab91a63709a9b1}
+detections:
+  - {id: D1, utc: "2026-11-16T10:21:07Z", source: suricata, rule: "9000010", evidence_id: E-scn-net, analyst: self-range-host, note: "TCP SYN sweep across 60 ports -> api-lb-01"}
+  - {id: D2, utc: "2026-11-16T10:21:07Z", source: wazuh,    rule: "100110",  evidence_id: E-scn-host, analyst: captain, note: "break-glass rocky login on api-lb-01 (L12)"}
+  - {id: D3, utc: "2026-11-16T10:21:07Z", source: wazuh,    rule: "100100",  evidence_id: E-scn-host, analyst: captain, note: "SYN-scan network alert escalated into Wazuh on edge-01"}
+  - {id: D4, utc: "2026-11-16T10:21:15Z", source: suricata, rule: "9000011", evidence_id: E-scn-net, analyst: captain, note: "SSH connection burst (12 conns) -> api-lb-01:22"}
+  - {id: D5, utc: "2026-11-16T10:21:24Z", source: wazuh,    rule: "100112",  evidence_id: E-scn-host, analyst: captain, note: "8+ rejected logins correlated as brute force; rule 100111 fired on 11 of 12 attempts"}
+milestones:
+  first_detection_utc: "2026-11-16T10:21:07Z"
+  identified_utc: "2026-11-16T10:21:24Z"
+  contained_utc: ""
+  recovery_started_utc: ""
+  recovered_utc: ""
+acp: []
+findings:
+  false_positives:
+    - "54x ET INFO 'Server Responded with Vulnerable OpenSSH Version (CVE-2024-6409)' (Suricata sid 2054407 / Wazuh 86601), triggered by our own SSH handshakes exposing the sshd version banner. Informational, not malicious, but a real exposure to track and suppress/patch."
+    - "Baseline window carried 9 ambient ET TA_ABUSED_SERVICES DNS alerts (lovable.app/.dev, sid 2063040/2063041) from in-cluster name resolution. No team SID or host auth rule fired in the baseline, so the scenario signal is cleanly separable."
+  false_negatives:
+    - "Rule 100111 fired on 11 of 12 rejected-login attempts (one attempt was not individually decoded to sshd event 5722). The 100112 brute-force correlation still fired, so the attack was not missed overall."
+  gaps:
+    - "prom_export.sh failed: its query path exec's 'wget' inside a pod with no wget on PATH, so Prometheus operational context was not captured. Fix: use curl, or reach the in-cluster Prometheus without a pod exec."
+    - "HTTP application-layer SIDs (9000012 path traversal, 9000013/9000014 SQLi, 9000015 scanner user-agent) were not exercised in this dry-run; validate them against student-platform in a follow-up run."
+reset_replay: "docs/week5-runbook.md#reset-and-replay"

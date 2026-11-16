@@ -1,0 +1,26 @@
+{
+  "run_id": "20261116T100522Z-w5-phase1-dryrun",
+  "label": "baseline",
+  "start_utc": "2026-11-16T10:08:41Z",
+  "end_utc": "2026-11-16T10:19:18Z",
+  "suricata_event_types": {
+    "flow": 100,
+    "stats": 80,
+    "dns": 453,
+    "tls": 17,
+    "alert": 9
+  },
+  "suricata_alert_signatures": {
+    "2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup": 7,
+    "2063040 ET TA_ABUSED_SERVICES AI Service Domain (lovable .dev) in DNS Lookup": 2
+  },
+  "wazuh_rules": {
+    "86601 L3 Suricata: Alert - ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup": 7,
+    "86601 L3 Suricata: Alert - ET TA_ABUSED_SERVICES AI Service Domain (lovable .dev) in DNS Lookup": 2
+  },
+  "wazuh_alerts_by_agent": {
+    "edge-01.novalocal": 9
+  },
+  "timeline_rows": 9,
+  "note": "raw files stay on edge-01; addresses replaced in this summary and the timeline"
+}

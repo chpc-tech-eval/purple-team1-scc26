@@ -1,0 +1,10 @@
+utc,source,layer,evidence_id,summary
+2026-11-16T10:12:17Z,suricata,network,20261116T100522Z-w5-phase1-dryrun/baseline/suricata-eve.json#flow_id=302690123838956,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T10:12:17Z,suricata,network,20261116T100522Z-w5-phase1-dryrun/baseline/suricata-eve.json#flow_id=33137481837225,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T10:13:17Z,suricata,network,20261116T100522Z-w5-phase1-dryrun/baseline/suricata-eve.json#flow_id=876013057230636,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T10:17:17Z,suricata,network,20261116T100522Z-w5-phase1-dryrun/baseline/suricata-eve.json#flow_id=982503253137579,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T10:17:47Z,suricata,network,20261116T100522Z-w5-phase1-dryrun/baseline/suricata-eve.json#flow_id=1015569736955330,sid 2063040 ET TA_ABUSED_SERVICES AI Service Domain (lovable .dev) in DNS Lookup <addr>-><addr>:53
+2026-11-16T10:17:47Z,suricata,network,20261116T100522Z-w5-phase1-dryrun/baseline/suricata-eve.json#flow_id=1154221604884667,sid 2063040 ET TA_ABUSED_SERVICES AI Service Domain (lovable .dev) in DNS Lookup <addr>-><addr>:53
+2026-11-16T10:18:17Z,suricata,network,20261116T100522Z-w5-phase1-dryrun/baseline/suricata-eve.json#flow_id=534577172134803,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T10:18:17Z,suricata,network,20261116T100522Z-w5-phase1-dryrun/baseline/suricata-eve.json#flow_id=607703138146690,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T10:18:17Z,suricata,network,20261116T100522Z-w5-phase1-dryrun/baseline/suricata-eve.json#flow_id=607703138146690,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
