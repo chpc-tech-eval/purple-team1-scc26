@@ -1,0 +1,13 @@
+utc,source,layer,evidence_id,summary
+2026-11-16T11:28:17Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=763973330656711,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T11:28:17Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=763973330656711,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T11:33:17Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=1433206120477368,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T11:33:17Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=1433206120477368,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T11:33:17Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=1531996991211153,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T11:34:17Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=1445146415514374,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T11:34:17Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=1445146415514374,sid 2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup <addr>-><addr>:53
+2026-11-16T11:34:18Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=1445088825169408,sid 2049132 ET INFO Supabase Development Platform Related Domain in DNS Lookup <addr>-><addr>:53
+2026-11-16T11:34:18Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=1445088825169408,sid 2049132 ET INFO Supabase Development Platform Related Domain in DNS Lookup <addr>-><addr>:53
+2026-11-16T11:34:18Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=649521294783817,sid 2049132 ET INFO Supabase Development Platform Related Domain in DNS Lookup <addr>-><addr>:53
+2026-11-16T11:36:17Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=291323581714385,sid 2049132 ET INFO Supabase Development Platform Related Domain in DNS Lookup <addr>-><addr>:53
+2026-11-16T11:36:17Z,suricata,network,20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json#flow_id=291323581714385,sid 2049132 ET INFO Supabase Development Platform Related Domain in DNS Lookup <addr>-><addr>:53
