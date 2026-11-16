@@ -30,8 +30,12 @@ declare -A Q=(
 )
 pod=$(kubectl -n monitoring get pods -l app.kubernetes.io/name=prometheus -o jsonpath='{.items[0].metadata.name}')
 for name in "${!Q[@]}"; do
-  kubectl -n monitoring exec "$pod" -c prometheus -- wget -qO- \
-    "http://127.0.0.1:9090/api/v1/query_range?start=$start&end=$end&step=30s&query=$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))' "${Q[$name]}")" \
+  q=$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))' "${Q[$name]}")
+  # Query Prometheus through the API server's pod proxy. kubectl performs the HTTP
+  # itself, so nothing is needed inside the (distroless) Prometheus container and no
+  # port-forward is required -- the old path exec'd wget, which the image lacks.
+  kubectl -n monitoring get --raw \
+    "/api/v1/namespaces/monitoring/pods/${pod}:9090/proxy/api/v1/query_range?start=$start&end=$end&step=30s&query=$q" \
     > "$out/prom-$name.json"
   printf '%s %s\n' "$name" "$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d["status"], len(d["data"]["result"]), "series")' "$out/prom-$name.json")"
 done
