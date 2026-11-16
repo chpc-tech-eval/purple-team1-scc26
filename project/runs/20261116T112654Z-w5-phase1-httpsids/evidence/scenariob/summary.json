@@ -1,0 +1,34 @@
+{
+  "run_id": "20261116T112654Z-w5-phase1-httpsids",
+  "label": "scenariob",
+  "start_utc": "2026-11-16T11:44:43Z",
+  "end_utc": "2026-11-16T11:45:43Z",
+  "suricata_event_types": {
+    "dns": 6,
+    "stats": 8,
+    "flow": 43,
+    "alert": 10,
+    "http": 10,
+    "fileinfo": 10,
+    "tls": 11
+  },
+  "suricata_alert_signatures": {
+    "9000012 SCC26 W5 HTTP path traversal attempt": 4,
+    "9000013 SCC26 W5 SQL injection attempt (UNION SELECT)": 2,
+    "9000014 SCC26 W5 SQL injection attempt (tautology)": 2,
+    "9000015 SCC26 W5 web scanner user agent": 2
+  },
+  "wazuh_rules": {
+    "100100 L10 SCC26 W5 network detection: SCC26 W5 HTTP path traversal attempt": 3,
+    "100100 L10 SCC26 W5 network detection: SCC26 W5 SQL injection attempt (UNION SELECT)": 2,
+    "100100 L10 SCC26 W5 network detection: SCC26 W5 SQL injection attempt (tautology)": 2,
+    "100100 L10 SCC26 W5 network detection: SCC26 W5 web scanner user agent": 2,
+    "100101 L12 SCC26 W5: repeated network detections from one source (self-range-host)": 1,
+    "5502 L3 PAM: Login session closed.": 1
+  },
+  "wazuh_alerts_by_agent": {
+    "edge-01.novalocal": 11
+  },
+  "timeline_rows": 20,
+  "note": "raw files stay on edge-01; addresses replaced in this summary and the timeline"
+}
