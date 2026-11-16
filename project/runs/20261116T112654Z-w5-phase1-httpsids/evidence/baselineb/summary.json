@@ -1,0 +1,30 @@
+{
+  "run_id": "20261116T112654Z-w5-phase1-httpsids",
+  "label": "baselineb",
+  "start_utc": "2026-11-16T11:27:19Z",
+  "end_utc": "2026-11-16T11:37:30Z",
+  "suricata_event_types": {
+    "flow": 160,
+    "dns": 502,
+    "stats": 76,
+    "alert": 12,
+    "tls": 17
+  },
+  "suricata_alert_signatures": {
+    "2063041 ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup": 7,
+    "2049132 ET INFO Supabase Development Platform Related Domain in DNS Lookup": 5
+  },
+  "wazuh_rules": {
+    "86601 L3 Suricata: Alert - ET TA_ABUSED_SERVICES AI Service Domain (lovable .app) in DNS Lookup": 7,
+    "86601 L3 Suricata: Alert - ET INFO Supabase Development Platform Related Domain in DNS Lookup": 5,
+    "5502 L3 PAM: Login session closed.": 1,
+    "591 L3 Log file rotated.": 1
+  },
+  "wazuh_alerts_by_agent": {
+    "k8s-cp-01": 1,
+    "edge-01.novalocal": 12,
+    "k8s-worker-01": 1
+  },
+  "timeline_rows": 12,
+  "note": "raw files stay on edge-01; addresses replaced in this summary and the timeline"
+}

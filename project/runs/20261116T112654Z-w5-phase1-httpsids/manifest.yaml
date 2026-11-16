@@ -1,0 +1,66 @@
+---
+# Week-5 SELF-RANGE DRY-RUN manifest (HTTP application-layer SIDs 9000012-15).
+# Not the graded exercise. Authorisation: see SELF-RANGE-AUTH.md in this directory.
+# Public repository: logical names only, no addresses, no secret scenario text.
+schema: scc26-week5-run/1
+run_id: "20261116T112654Z-w5-phase1-httpsids"
+scenario_id: "self-range-dryrun-http"
+phase: 1
+team_role: "defender"
+authorisation:
+  roe_reference: "project/runs/20261116T112654Z-w5-phase1-httpsids/SELF-RANGE-AUTH.md"
+  acknowledged_utc: "2026-11-16T11:27:00Z"
+frozen:
+  git_sha: "bdb61ccfa71e6a8487bdbc0a2914b289acdabd67"
+  images:
+    agent-control-plane-postgres: "docker.io/library/postgres@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636"
+    agent-control-plane-hermes: "ghcr.io/nyameko/agent-control-plane-hermes@sha256:73fbc34301e9cd700e6fbb5cb6ba1f46018e1a9c22a439fdda5f81c56433f9c5"
+    agent-control-plane: "ghcr.io/nyameko/agent-control-plane@sha256:b1289eab095fae443979d10ca1d5a27e8111a7689ddb346cb76ea7217e945bc4"
+    model-serving-litellm: "ghcr.io/berriai/litellm-non_root@sha256:5bb1d45eefe9b8bdc8d1b34617b8112d03bfc78fc247bea62d7ebd89918c875c"
+    model-serving: "ghcr.io/saxs-14/scc26-model-server@sha256:1c05eb08dfc16bdb05e0eef5e3cef630259e9dadffe48ac1bcf93154145d394a"
+    student-platform-postgres: "docker.io/library/postgres@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826"
+    student-platform: "ghcr.io/saxs-14/scc26-student-platform@sha256:7c936d7ad7fe3c9e45f02f8c42e04ee3f94dba7ad0fc30355eb5c9d72dea35dd"
+    wazuh-dashboard: "docker.io/wazuh/wazuh-dashboard@sha256:e8e2340265feb6f61711d2ba460d04d2dea875ee46de26cd1832da2a3558a341"
+    wazuh-indexer: "docker.io/wazuh/wazuh-indexer@sha256:615465315b560d974100ea55bbe67efa72afc6490ef563d4d1bef127df0e98f6"
+scope:
+  sources:
+    - self-range-host
+  targets:
+    - k8s-worker-01
+    - student-platform
+time_sync:
+  checked_utc: "2026-11-16T11:27:01Z"
+  max_skew_seconds: 1
+baseline:
+  start_utc: "2026-11-16T11:27:19Z"
+  end_utc: "2026-11-16T11:37:30Z"
+  evidence: [E-base-net, E-base-host]
+window:
+  start_utc: "2026-11-16T11:44:43Z"
+  end_utc: "2026-11-16T11:45:43Z"
+expected_layers: [network, host]
+evidence:
+  - {id: E-base-net, layer: network, source: suricata-eve, path: "20261116T112654Z-w5-phase1-httpsids/baselineb/suricata-eve.json", sha256: 979daaa2120bea018fb4a4a84b4a07de85105702da693068525816dbf1614d00}
+  - {id: E-base-host, layer: host, source: wazuh-alerts, path: "20261116T112654Z-w5-phase1-httpsids/baselineb/wazuh-alerts.json", sha256: 3e55d828a9db5826bf977374004a2f03aa2e26388207d2e65efef7d184423ba0}
+  - {id: E-scn-net, layer: network, source: suricata-eve, path: "20261116T112654Z-w5-phase1-httpsids/scenariob/suricata-eve.json", sha256: 3e7e8a4674583d31225d83c560d648f446ff25e4b386c9aa2ea68f6df55815e9}
+  - {id: E-scn-host, layer: host, source: wazuh-alerts, path: "20261116T112654Z-w5-phase1-httpsids/scenariob/wazuh-alerts.json", sha256: 477dbbd4e0f2ec5a59a7b5c38485c23391a859eb8a21993c4d42cda0f2b9a49e}
+detections:
+  - {id: D1, utc: "2026-11-16T11:44:50Z", source: suricata, rule: "9000012", evidence_id: E-scn-net, analyst: self-range-host, note: "HTTP path traversal (../ and %2e%2e%2f)"}
+  - {id: D2, utc: "2026-11-16T11:44:51Z", source: suricata, rule: "9000013", evidence_id: E-scn-net, analyst: captain, note: "SQLi UNION SELECT in query string"}
+  - {id: D3, utc: "2026-11-16T11:44:52Z", source: suricata, rule: "9000014", evidence_id: E-scn-net, analyst: captain, note: "SQLi tautology (OR 1=1)"}
+  - {id: D4, utc: "2026-11-16T11:44:54Z", source: suricata, rule: "9000015", evidence_id: E-scn-net, analyst: captain, note: "web scanner User-Agent (sqlmap)"}
+  - {id: D5, utc: "2026-11-16T11:44:50Z", source: wazuh, rule: "100101", evidence_id: E-scn-host, analyst: captain, note: "repeated network detections from one source correlated (L12); 100100 escalated each SID"}
+milestones:
+  first_detection_utc: "2026-11-16T11:44:50Z"
+  identified_utc: "2026-11-16T11:44:50Z"
+  contained_utc: ""
+  recovery_started_utc: ""
+  recovered_utc: ""
+acp: []
+findings:
+  false_positives:
+    - "Clean baseline carried only ambient ET DNS alerts (lovable.app x7, Supabase dev-domain x5); no team SID or host rule fired in the baseline, so the scenario signal is cleanly separable."
+  false_negatives: []
+  gaps:
+    - "Measurement lesson: Suricata stamps alerts with the flow-start time (~2-3 s before the HTTP transaction). An initial un-padded attempt put the traversal alert in the baseline window and the UNION alert in the 2 s dead-zone between baseline.end and window.start, so two SIDs looked like misses. Re-running with a >=10 s pad after window.start (and no gap) captured all four. The runbook's window guidance should require this padding."
+reset_replay: "docs/week5-runbook.md#reset-and-replay"
