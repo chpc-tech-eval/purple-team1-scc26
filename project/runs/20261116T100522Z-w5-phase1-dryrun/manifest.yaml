@@ -48,10 +48,10 @@ evidence:
   - {id: E-scn-host, layer: host, source: wazuh-alerts, path: "20261116T100522Z-w5-phase1-dryrun/scenario/wazuh-alerts.json", sha256: c2facf7b93ce755c83d1364fc789cfcaa3e5a1040cdbbc9772ab91a63709a9b1}
 detections:
   - {id: D1, utc: "2026-11-16T10:21:07Z", source: suricata, rule: "9000010", evidence_id: E-scn-net, analyst: self-range-host, note: "TCP SYN sweep across 60 ports -> api-lb-01"}
-  - {id: D2, utc: "2026-11-16T10:21:07Z", source: wazuh,    rule: "100110",  evidence_id: E-scn-host, analyst: captain, note: "break-glass rocky login on api-lb-01 (L12)"}
-  - {id: D3, utc: "2026-11-16T10:21:07Z", source: wazuh,    rule: "100100",  evidence_id: E-scn-host, analyst: captain, note: "SYN-scan network alert escalated into Wazuh on edge-01"}
+  - {id: D2, utc: "2026-11-16T10:21:07Z", source: wazuh, rule: "100110", evidence_id: E-scn-host, analyst: captain, note: "break-glass rocky login on api-lb-01 (L12)"}
+  - {id: D3, utc: "2026-11-16T10:21:07Z", source: wazuh, rule: "100100", evidence_id: E-scn-host, analyst: captain, note: "SYN-scan network alert escalated into Wazuh on edge-01"}
   - {id: D4, utc: "2026-11-16T10:21:15Z", source: suricata, rule: "9000011", evidence_id: E-scn-net, analyst: captain, note: "SSH connection burst (12 conns) -> api-lb-01:22"}
-  - {id: D5, utc: "2026-11-16T10:21:24Z", source: wazuh,    rule: "100112",  evidence_id: E-scn-host, analyst: captain, note: "8+ rejected logins correlated as brute force; rule 100111 fired on 11 of 12 attempts"}
+  - {id: D5, utc: "2026-11-16T10:21:24Z", source: wazuh, rule: "100112", evidence_id: E-scn-host, analyst: captain, note: "8+ rejected logins correlated as brute force; rule 100111 fired on 11 of 12 attempts"}
 milestones:
   first_detection_utc: "2026-11-16T10:21:07Z"
   identified_utc: "2026-11-16T10:21:24Z"
