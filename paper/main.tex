@@ -76,8 +76,36 @@ explanation while holding no cluster-admin, cloud, or Internet access. The grade
 inter-team engagement that would stress these components adversarially was not yet
 scheduled at the time of writing and is identified as the primary next step.
 
+\section{Related Work}
+\textbf{Detection and cyber ranges.} Guidance on intrusion detection and prevention
+distinguishes host- and network-based sensors and the trade-off between missed
+detections and false alarms~\cite{scarfone2007idps}; we deploy both classes (Wazuh on
+the hosts, Suricata on the network~\cite{wazuh,suricata}) and structure the scenarios
+around documented adversary techniques from MITRE ATT\&CK~\cite{strom2018attack}. Cyber
+ranges and security testbeds are an established vehicle for such exercises, but surveys
+note that evaluation and reproducibility are the weakest-reported aspects of the
+literature~\cite{yamin2020cyberranges}. Our contribution is not a larger range but a
+small one in which every detection is tied to retained evidence.
+
+\textbf{Reproducibility and provenance.} Reproducible computational research depends on
+recording how each result was produced, versioning the code and inputs, and avoiding
+manual steps~\cite{sandve2013tenrules}. GitOps applies the same discipline to
+infrastructure: a declarative desired state, versioned in Git and continuously
+reconciled onto the cluster~\cite{opengitops,argocd}. We extend this provenance stance
+specifically to \emph{security evidence}, so that each reported detection and response
+metric regenerates from a validated, address-free run manifest.
+
+\textbf{Language models in security operations.} Recent surveys catalogue a rapid move
+to apply large language models across security-operations tasks, including incident
+response~\cite{habibzadeh2025llmsoc}, and purpose-built systems show that, without
+structured tool access and grounding, such models struggle with the reasoning that
+incident response requires~\cite{ircopilot2025}. Our agent control plane takes the
+conservative position implied by that finding: the model-backed analyst is bounded (no
+cluster, cloud, or Internet credentials) and explains incidents only from evidence a
+fixed diagnostic has already retained.
+
 \section{System Architecture and Context}
-The range is five hosts on a team-owned OpenStack project, provisioned entirely by
+The range is five hosts on a team-owned OpenStack~\cite{openstack} project, provisioned entirely by
 Terraform (Fig.~\ref{fig:architecture}). A single Internet-facing host, \texttt{edge-01},
 terminates a WireGuard administrative VPN and runs Pi-hole DNS, an nftables firewall,
 the Suricata network IDS and the Wazuh manager; it holds the project's only floating IP.
@@ -86,7 +114,7 @@ The other four hosts sit on a private Kubernetes network with no floating IP:
 with two workers form the cluster. Three layer-3 zones --- management, Kubernetes, and
 the VPN client subnet --- separate the tiers, and administrators never run
 \texttt{kubectl} from a workstation: they reach the control plane over the VPN and run
-it there. The cluster is Kubernetes~1.36.4 with Cilium~1.20.1 for pod networking and
+it there. The cluster is Kubernetes~1.36.4~\cite{kubernetes} with Cilium~1.20.1 for pod networking and
 Hubble flow logs, Cinder-backed persistent volumes, Argo~CD~v3.5.0 continuously
 reconciling the repository's desired state, and Traefik~v3.7.14 as the ingress on fixed
 NodePorts. Per the project's disclosure rule, all addresses are Terraform variables with
