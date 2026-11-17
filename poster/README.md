@@ -1,5 +1,10 @@
 # Technical Poster Proposal / Storyboard
 
+> **Draft:** `poster/main.tex` is a working A0-portrait scaffold built to this storyboard
+> (tikzposter; reuses the paper's figures). It compiles on Overleaf or a full TeX Live;
+> the architecture panel renders once `../paper/figures/architecture.pdf` is generated
+> from its `.mmd`. Content is honest-to-date and updates with the paper as the weeks run.
+
 ## Working title
 
 **Evidence-Driven Security Observability in an OpenStack–Kubernetes Student Cyber Range**

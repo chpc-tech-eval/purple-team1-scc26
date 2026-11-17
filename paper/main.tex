@@ -24,68 +24,145 @@ mentor@example.invalid}}
 \begin{abstract}
 % 100--150 words. State: problem/context; what you built/tested; method; one or two
 % evidence-backed findings; why the result matters. Do not put literature review here.
-This paper presents ...
+Security observability is hard to do honestly on a small, resource-constrained
+cluster: detections must be trustworthy, and every reported number must trace back to
+retained evidence. We describe a five-node OpenStack cyber range, provisioned by
+Terraform and operated as a GitOps-reconciled Kubernetes platform, on which we layer
+host-based (Wazuh) and network-based (Suricata) detection, Prometheus/Grafana
+telemetry, and a bounded large-language-model incident analyst that runs with no broad
+cluster or cloud credentials. Using a provenance contract in which each run is a
+validated, address-free manifest, we show on our own range that the deployed detection
+rules fire end-to-end and correlate host and network evidence on a single timeline,
+with sub-ten-second detection, documented false positives and evidence gaps, and a
+measurement lesson on intrusion-detection alert timestamping. The outcome is a
+reproducible, evidence-first detection pipeline rather than a set of unverifiable claims.
 \end{abstract}
 
 \begin{IEEEkeywords}
-OpenStack, Kubernetes, GitOps, reproducibility, % add 2--4 project-specific keywords
+OpenStack, Kubernetes, GitOps, reproducibility, security observability,
+intrusion detection, incident response, cyber range
 \end{IEEEkeywords}
 
 \section{Introduction}
-% ~0.5 page.
-% 1) What problem are you studying?
-% 2) Why does it matter?
-% 3) What gap/question does this student project address?
-% 4) End with 2--4 concrete contributions, not promises.
+Modern research-computing platforms are built and torn down continuously, yet the
+security telemetry meant to protect them is often added late, configured by hand, and
+evaluated with numbers that cannot be reproduced. In a student setting the risk is
+sharper: it is easy to report a detection that was never really tested, or a response
+time measured against traffic the defender generated and already understood. This
+project asks whether a small team can stand up a security-observable cluster in which
+detection, response, and even an automated incident explanation are driven by retained
+evidence, so that every claim in the final report traces back to a specific captured
+artifact.
+
+We study this on the five-node OpenStack/Kubernetes range built over the first four
+weeks of the programme and specialised, in week five, into a defender-role
+security-observability exercise. The question is concrete: can the deployed host- and
+network-layer rules be shown to fire end-to-end, correlated on one timeline, with the
+provenance and honesty needed to call the result reproducible --- and can a bounded
+language-model analyst explain an incident from that same evidence without being
+granted broad credentials?
+
+This paper makes four contributions. (1)~A GitOps-reconciled five-node range with
+layered Wazuh (host) and Suricata (network) detection that is \emph{address-free by
+construction}: every network value is a Terraform variable and never appears in the
+repository. (2)~A provenance contract and a small tool-chain --- a validated run
+manifest, a metrics-and-timeline computer, and a figure generator --- that make each
+reported security metric regenerate directly from retained evidence. (3)~A self-range
+validation showing that all deployed signatures fire with correlated host/network
+timelines, including two documented gaps that were subsequently closed and a
+measurement lesson on intrusion-detection timestamping. (4)~A bounded agent control
+plane whose language-model worker produces a human-reviewed, evidence-grounded incident
+explanation while holding no cluster-admin, cloud, or Internet access. The graded
+inter-team engagement that would stress these components adversarially was not yet
+scheduled at the time of writing and is identified as the primary next step.
 
 \section{System Architecture and Context}
-% ~0.5--0.7 page. Describe only the components needed to understand your experiment.
-% Include one readable architecture figure. Separate Sebowa OpenStack/Kubernetes from
-% externally allocated A100/H200 resources when applicable.
+The range is five hosts on a team-owned OpenStack project, provisioned entirely by
+Terraform (Fig.~\ref{fig:architecture}). A single Internet-facing host, \texttt{edge-01},
+terminates a WireGuard administrative VPN and runs Pi-hole DNS, an nftables firewall,
+the Suricata network IDS and the Wazuh manager; it holds the project's only floating IP.
+The other four hosts sit on a private Kubernetes network with no floating IP:
+\texttt{api-lb-01} runs HAProxy in front of the Kubernetes API, and \texttt{k8s-cp-01}
+with two workers form the cluster. Three layer-3 zones --- management, Kubernetes, and
+the VPN client subnet --- separate the tiers, and administrators never run
+\texttt{kubectl} from a workstation: they reach the control plane over the VPN and run
+it there. The cluster is Kubernetes~1.36.4 with Cilium~1.20.1 for pod networking and
+Hubble flow logs, Cinder-backed persistent volumes, Argo~CD~v3.5.0 continuously
+reconciling the repository's desired state, and Traefik~v3.7.14 as the ingress on fixed
+NodePorts. Per the project's disclosure rule, all addresses are Terraform variables with
+no defaults and appear nowhere in the repository or in this paper; only logical names
+are used.
+
+The system under test is the ``student platform'' (a web UI, an API, and a PostgreSQL
+database) together with an agent control plane (ACP). The ACP runs an API, a singleton
+Hermes worker, and its own retained PostgreSQL database inside a namespace with
+default-deny egress; the worker may read Prometheus read-only and reach exactly one
+approved remote GPU model endpoint, addressed by hostname, and nothing else --- not the
+Kubernetes API, cloud metadata, the platform database, or the Internet. Because the
+programme's externally allocated A100/H200 capacity was not yet wired in, a local
+model-serving stack stands in for it: LiteLLM fronts a \texttt{llama.cpp} server running
+\texttt{qwen2.5-0.5b-instruct} on CPU, with the model baked into a checksum-verified,
+non-root, read-only image. Every component is pinned by immutable digest (see
+Section~\ref{sec:methodology}). One boundary matters for the security results: the worker
+nodes' default route is the Neutron router rather than \texttt{edge-01}, so model egress
+never crosses Suricata; evidence for that path comes from Cilium/Hubble flow logs and the
+ACP event ledger, not the edge IDS.
 
 \begin{figure}[t]
   \centering
-  % \includegraphics[width=\columnwidth]{figures/architecture.pdf}
-  \fbox{\parbox[c][30mm][c]{0.92\columnwidth}{\centering Replace with architecture figure}}
-  \caption{System architecture and experimental boundary.}
+  \IfFileExists{figures/architecture.pdf}{%
+    \includegraphics[width=\columnwidth]{figures/architecture.pdf}%
+  }{%
+    \fbox{\parbox[c][30mm][c]{0.92\columnwidth}{\centering Architecture figure renders
+    from \texttt{figures/architecture.mmd} (address-free); see
+    \texttt{paper/figures/README.md}.}}%
+  }
+  \caption{Five-node range, GitOps platform, observability, and the agent control plane,
+  with the experimental boundary (addresses omitted by policy).}
   \label{fig:architecture}
 \end{figure}
 
 \section{Methodology}
-% ~0.7--1.0 page.
-% Define reproducible procedure, versions, resources, workload/scenario, variables,
-% controls, metrics and success/failure criteria. State what was held constant.
+\label{sec:methodology}
 
 \subsection{Platform and Software Baseline}
-% Git SHA(s), immutable image digest(s), Kubernetes/OpenStack resources, relevant versions.
+The integration baseline for this report is the \texttt{main} branch at commit
+\texttt{17d6520}; each run additionally pins its own commit in its manifest. Software is
+referenced by immutable digest, never a moving tag: the ACP API and Hermes worker images
+are built from a common upstream commit, the ACP database is \texttt{postgres:18.4},
+LiteLLM is pinned to \texttt{main-v1.83.14-stable}, and the \texttt{llama.cpp} image bakes
+in \texttt{qwen2.5-0.5b-instruct} (Q4\_K\_M, 4K context) and runs non-root with a
+read-only root filesystem. Platform versions are Kubernetes~1.36.4, Cilium~1.20.1,
+Argo~CD~v3.5.0 and Traefik~v3.7.14. For a security run the platform state is held
+constant: the frozen commit, Argo reporting \emph{Synced/Healthy}, and host clocks
+synchronised to within one second, checked before each run.
 
 \subsection{Experimental Procedure}
-% Exact experiment sequence and number of repeats where meaningful.
+A security run proceeds in fixed phases. A baseline window of ten to fifteen minutes
+captures ambient traffic only. A marked scenario then issues a small set of benign,
+pre-declared attacker actions from a range host against the team's own platform. Host
+evidence (Wazuh) and network evidence (Suricata) are exported for the window, merged into
+a single correlated timeline, and reduced to metrics. Each run carries its own
+authorisation and logical scope in a \texttt{SELF-RANGE-AUTH.md}; these are rehearsals on
+our own range, not attacks on any external system. Two runs are reported here --- one
+exercising network reconnaissance and host-authentication signatures, one exercising HTTP
+application-layer signatures --- and a documented reset/replay path returns the range to a
+clean state between runs.
 
 \subsection{Metrics and Evidence}
-% Name metrics/log sources and how timestamps/results were correlated.
-% Week-5 evidence pack: one directory per run under project/runs/<run-id>/ (layout in
-% project/runs/README.md). T_detect, T_identify, T_contain and T_recover are computed by
-% project/tools/w5run.py from the run manifest's milestones, measured from scenario start;
-% a milestone that was not reached is reported as such, never imputed.
+The response metrics $T_\text{detect}$, $T_\text{identify}$, $T_\text{contain}$ and
+$T_\text{recover}$ are computed by \texttt{w5run.py} from milestones in the run manifest,
+measured from scenario start; a milestone that was not reached is reported as such and
+never imputed. Evidence handling follows the project's provenance contract: raw captures
+stay on the hosts, and the repository holds only sanitised summaries --- logical host
+names, a SHA-256 digest of each raw file, the incident timeline, and the computed
+metrics --- validated against the \texttt{scc26-week5-run/1} manifest schema at both the
+plan and the final stage. Every table and figure regenerates from the committed run
+directories, so no reported number is hand-entered.
 
 \section{Results}
 % ~1--1.3 pages. Present measured observations before interpretation.
 % Use compact tables/plots. Do not report fake placeholders in the final paper.
-
-\begin{table}[t]
-\centering
-\caption{Example result structure (replace with real measurements).}
-\label{tab:results}
-\begin{tabular}{lll}
-\toprule
-Configuration & Metric & Measured value \\
-\midrule
-A & metric-1 & TBD \\
-B & metric-1 & TBD \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 % Week-5 detection/response results. Generated by project/tools/w5paper.sh from the
 % committed run directories into figures/week5/; do not edit those files by hand.
@@ -162,6 +239,11 @@ in-cluster DNS alerts present in the pre-scenario baseline. No team signature or
 authentication rule fired during either baseline window, so the injected attack signal
 is unambiguous.
 
+When the graded inter-team engagement is scheduled, it runs through this same
+manifest-driven pipeline and its run directory is added alongside these two; the metrics
+table (Table~\ref{tab:week5-metrics}), the phase chart, and the timelines then regenerate
+to include it with no change to the surrounding text.
+
 \begin{figure}[t]
   \centering
   \IfFileExists{figures/week5/timeline-20261116T100522Z-w5-phase1-dryrun.pdf}{%
@@ -211,8 +293,15 @@ committed run directories by \texttt{project/tools/w5paper.sh}, so the reported 
 trace directly to the manifests rather than to hand-edited values.
 
 \section{Conclusion and Future Work}
-% 1 short paragraph: answer the research question at the level supported by evidence.
-% Then name the most defensible next step(s), not a wishlist.
+On a small five-node range, a GitOps-managed platform with layered host and network
+detection, driven by an evidence-first provenance contract, is enough to validate
+end-to-end that the deployed signatures fire and correlate on a single timeline, and to
+let a credential-bounded language-model analyst explain an incident from retained
+evidence. These results are rehearsals on friendly infrastructure; the most defensible
+next step is the graded inter-team engagement, which would subject the same pipeline to
+unannounced adversarial traffic and populate the containment and recovery metrics this
+report leaves open. Wiring in the externally allocated A100/H200 model backend and
+extending the detection set as new scenarios demand follow from there.
 
 \section*{Acknowledgment}
 % Acknowledge CHPC/NICIS/CSIR, mentors, infrastructure providers and collaborators as appropriate.
