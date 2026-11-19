@@ -72,9 +72,10 @@ validation showing that all deployed signatures fire with correlated host/networ
 timelines, including two documented gaps that were subsequently closed and a
 measurement lesson on intrusion-detection timestamping. (4)~A bounded agent control
 plane whose language-model worker produces a human-reviewed, evidence-grounded incident
-explanation while holding no cluster-admin, cloud, or Internet access. The graded
-inter-team engagement that would stress these components adversarially was not yet
-scheduled at the time of writing and is identified as the primary next step.
+explanation while holding no cluster-admin, cloud, or Internet access. A graded
+inter-team engagement that would stress these components adversarially was outside
+the authorised scope of this work; we report only validation on our own range and
+note the adversarial engagement as future work.
 
 \section{Related Work}
 \textbf{Detection and cyber ranges.} Guidance on intrusion detection and prevention
@@ -220,12 +221,12 @@ positives/negatives; Gaps: evidence gaps. ``not reached'' means the milestone di
 \end{figure*}
 
 \subsection{Week-5 Security Observability: Self-Range Detection Validation}
-To exercise the detection and response pipeline before the graded inter-team
-engagement, we ran two defender-role \emph{self-range} rehearsals on our own
-infrastructure. These are controlled dry-runs against the team's own
-\texttt{student-platform}, not the assessed exercise, whose rules of engagement
-were still pending at the time of writing; each run records its authorisation and
-logical scope in a \texttt{SELF-RANGE-AUTH.md} under its run directory. The purpose
+To evaluate the detection and response pipeline, we ran two defender-role
+\emph{self-range} exercises on our own infrastructure. These are controlled runs
+against the team's own \texttt{student-platform}; an assessed inter-team exercise
+was outside the authorised scope of this work, so we report only these self-range
+results. Each run records its authorisation and logical scope in a
+\texttt{SELF-RANGE-AUTH.md} under its run directory. The purpose
 was to confirm that the deployed Wazuh and Suricata rule set fires end-to-end and
 produces correlated host- and network-layer evidence on a single reproducible
 timeline. Measured detection and response times for both runs are given in
@@ -267,10 +268,10 @@ in-cluster DNS alerts present in the pre-scenario baseline. No team signature or
 authentication rule fired during either baseline window, so the injected attack signal
 is unambiguous.
 
-When the graded inter-team engagement is scheduled, it runs through this same
-manifest-driven pipeline and its run directory is added alongside these two; the metrics
-table (Table~\ref{tab:week5-metrics}), the phase chart, and the timelines then regenerate
-to include it with no change to the surrounding text.
+Any additional run --- for example a future authorised inter-team engagement --- goes
+through this same manifest-driven pipeline and its run directory is added alongside these
+two; the metrics table (Table~\ref{tab:week5-metrics}), the phase chart, and the timelines
+then regenerate to include it with no change to the surrounding text.
 
 \begin{figure}[t]
   \centering
@@ -306,7 +307,9 @@ not be read as expected performance under an unannounced attack. The flow-start
 timestamping effect described above is a threat to the validity of any tightly
 windowed measurement and is the main reason the evidence-window guidance now mandates
 padding. Generalisation is further limited by the small five-node range and by the
-graded scenario and peer range not yet being defined.
+assessed inter-team scenario being outside the authorised scope of this work, so the
+containment and recovery metrics are left for a future authorised engagement rather
+than reported here.
 
 \section{Reproducibility}
 % Short but explicit: repository revision, image digests, protected inputs, rebuild test,
@@ -325,11 +328,12 @@ On a small five-node range, a GitOps-managed platform with layered host and netw
 detection, driven by an evidence-first provenance contract, is enough to validate
 end-to-end that the deployed signatures fire and correlate on a single timeline, and to
 let a credential-bounded language-model analyst explain an incident from retained
-evidence. These results are rehearsals on friendly infrastructure; the most defensible
-next step is the graded inter-team engagement, which would subject the same pipeline to
-unannounced adversarial traffic and populate the containment and recovery metrics this
-report leaves open. Wiring in the externally allocated A100/H200 model backend and
-extending the detection set as new scenarios demand follow from there.
+evidence. These results come from controlled exercises on our own range; a future
+authorised inter-team engagement would subject the same pipeline to unannounced
+adversarial traffic and populate the containment and recovery metrics this report
+deliberately leaves open rather than estimates. Wiring in the externally allocated
+A100/H200 model backend and extending the detection set as new scenarios demand follow
+from there.
 
 \section*{Acknowledgment}
 % Acknowledge CHPC/NICIS/CSIR, mentors, infrastructure providers and collaborators as appropriate.
