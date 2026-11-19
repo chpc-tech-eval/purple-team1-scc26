@@ -10,6 +10,9 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{amsmath}
+%% QR to the public repo on the reproducibility strip; optional (guarded so the
+%% poster still builds if qrcode.sty is absent on the compile host).
+\IfFileExists{qrcode.sty}{\usepackage{qrcode}}{}
 \graphicspath{{../paper/figures/}}
 
 \usetheme{Default}
@@ -152,6 +155,7 @@
 %% ---------------- FULL-WIDTH REPRODUCIBILITY STRIP ----------------
 \block{Reproducibility}{
   \begin{center}\small
+  \IfFileExists{qrcode.sty}{\qrcode[height=0.9in]{https://github.com/chpc-tech-eval/purple-team1-scc26}\\[3mm]}{}%
   Baseline \texttt{main@17d6520} \quad$\cdot$\quad
   images by digest: ACP \texttt{@b1289eab}, Hermes \texttt{@73fbc343},
   \texttt{llama.cpp sha-537c5c0de2f6} (\texttt{qwen2.5-0.5b-instruct}) \quad$\cdot$\quad
