@@ -1,0 +1,111 @@
+# Lateral-movement containment for the DEFENDED student-platform namespace
+# (Weeks 3-5). Mirrors the model-serving pattern (../model-serving/networkpolicy.yaml):
+# default-deny ingress+egress, then only the flows the platform actually needs --
+# Traefik -> app, Prometheus -> app metrics, app -> DNS, app -> PostgreSQL (same
+# namespace), app -> the Agent Control Plane API. Any pod an attacker lands in this
+# namespace can reach nothing else by default, and the app cannot call out anywhere
+# but those three destinations.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: student-platform-default-deny
+  namespace: student-platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# DNS egress for every pod (kube-dns), matching model-serving-dns.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: student-platform-dns
+  namespace: student-platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# Ingress to the platform app: only Traefik (the ingress path on :8080) and
+# Prometheus (the /metrics scrape). The browser reaches Traefik, never the pod.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: platform-ingress
+  namespace: student-platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  podSelector:
+    matchLabels:
+      app: platform
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Egress from the platform app: PostgreSQL (same namespace) and the Agent Control
+# Plane API only. DNS is covered by student-platform-dns above.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: platform-egress
+  namespace: student-platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  podSelector:
+    matchLabels:
+      app: platform
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: agent-control-plane
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: agent-control-plane
+              acp-role: api
+      ports:
+        - protocol: TCP
+          port: 8080

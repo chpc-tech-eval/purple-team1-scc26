@@ -19,6 +19,19 @@ spec:
     targetRevision: dev
     path: gitops/resources/student-platform
   syncPolicy:
+    # Pod Security on the defended namespace. enforce=baseline blocks the pods an
+    # attacker would want (privileged, hostNetwork/PID/IPC, hostPath, dangerous
+    # capabilities); warn/audit=restricted surface the gap to the stricter level,
+    # which both current workloads (platform, postgres) already meet, so enforce can
+    # be raised to restricted once a sync confirms it.
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: baseline
+        pod-security.kubernetes.io/enforce-version: latest
+        pod-security.kubernetes.io/warn: restricted
+        pod-security.kubernetes.io/warn-version: latest
+        pod-security.kubernetes.io/audit: restricted
+        pod-security.kubernetes.io/audit-version: latest
     automated:
       prune: true
       selfHeal: true

@@ -88,11 +88,13 @@ spec:
           requests:
             storage: 10Gi
 ---
-# Only pods in this namespace (the platform backend) may reach the database.
+# Only the platform backend pods (app: platform) may reach the database -- not any
+# pod that happens to land in this namespace. Tightened from a namespace-wide
+# podSelector:{} so a foothold pod here cannot reach PostgreSQL directly.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: postgres-from-namespace-only
+  name: postgres-from-platform-only
   namespace: student-platform
 spec:
   podSelector:
@@ -100,7 +102,8 @@ spec:
   policyTypes: [Ingress]
   ingress:
     - from:
-        - podSelector: {}
+        - podSelector:
+            matchLabels: {app: platform}
       ports:
         - protocol: TCP
           port: 5432
