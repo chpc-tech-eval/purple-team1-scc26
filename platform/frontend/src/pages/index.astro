@@ -2,33 +2,99 @@
 import Base from "../layouts/Base.astro";
 ---
 <Base title="Sign in">
-  <section class="hero">
-    <p class="eyebrow">// student project platform</p>
-    <h1 class="glow">Secure access<span class="cursor" aria-hidden="true">_</span></h1>
-    <p class="muted">Kubernetes · Cilium · Argo CD · PostgreSQL on Cinder · TLS from our own CA</p>
-  </section>
-  <section class="card narrow">
-    <h2><span class="dot ok" aria-hidden="true"></span>Sign in</h2>
-    <form id="login" autocomplete="on">
-      <label>Username <input name="username" autocomplete="username" required maxlength="64" spellcheck="false" /></label>
-      <label>Password <input name="password" type="password" autocomplete="current-password" required maxlength="256" /></label>
-      <button type="submit">Authenticate →</button>
-      <p id="error" class="error" role="alert" hidden></p>
-    </form>
-    <p class="hint">First time here? You'll be asked to choose your own password right after signing in.</p>
-  </section>
+  <div class="auth">
+    <section class="auth-left">
+      <div class="auth-head">
+        <a class="logo-mark" href="/" aria-label="3NCRYP+3D home">
+          <span class="lm-a">3ncryp</span><span class="lm-plus">+</span><span class="lm-b">3d</span>
+        </a>
+        <span class="tag">UMP / SCC26</span>
+      </div>
+
+      <div class="auth-hero">
+        <p class="eyebrow y kicker">Build. Observe. Understand.</p>
+        <h1>Your team.<br />Your range.<br />Evidence first.</h1>
+        <p class="lede">A focused workspace for the people building reproducible security systems.</p>
+      </div>
+
+      <div class="workflow">
+        <p class="eyebrow">One connected workflow</p>
+        <div class="wf-step">
+          <span class="wf-n">01</span>
+          <div><h3>Observe</h3><p>Read safe, current platform evidence.</p></div>
+        </div>
+        <div class="wf-step">
+          <span class="wf-n">02</span>
+          <div><h3>Explain</h3><p>Let Crypty interpret, not authorise.</p></div>
+        </div>
+        <div class="wf-step">
+          <span class="wf-n">03</span>
+          <div><h3>Reproduce</h3><p>Keep a durable history of every diagnostic.</p></div>
+        </div>
+      </div>
+
+      <p class="auth-foot">University of Mpumalanga · CHPC Student Cluster Competition 2026</p>
+    </section>
+
+    <section class="auth-right">
+      <p class="eyebrow portal">Student Project Platform</p>
+
+      <div class="auth-form-wrap">
+        <h2>Welcome back.</h2>
+        <p class="sub">Sign in to your team workspace.</p>
+
+        <form id="login" autocomplete="on">
+          <div class="field">
+            <label for="f-user">Username</label>
+            <input id="f-user" name="username" autocomplete="username" required maxlength="64"
+                   spellcheck="false" placeholder="Enter your username" />
+          </div>
+          <div class="field">
+            <label for="f-pass">Password</label>
+            <div class="wrap-input">
+              <input id="f-pass" name="password" type="password" autocomplete="current-password"
+                     required maxlength="256" placeholder="Enter your password" />
+              <button type="button" class="reveal" id="reveal" aria-label="Show password">◉</button>
+            </div>
+          </div>
+          <button type="submit">Sign in to workspace →</button>
+          <p id="error" class="error" role="alert" hidden></p>
+        </form>
+
+        <div class="info-panel">
+          <h4>First time signing in?</h4>
+          <p>Use your team-issued credentials. You'll choose your own password before entering the workspace.</p>
+        </div>
+      </div>
+
+      <div class="assurance">
+        <h4>Private by design</h4>
+        <p>Your session stays in the Student Platform. Infrastructure credentials never reach your browser.</p>
+      </div>
+    </section>
+  </div>
 </Base>
 
 <script>
   const form = document.getElementById("login") as HTMLFormElement;
   const error = document.getElementById("error") as HTMLParagraphElement;
+  const pass = document.getElementById("f-pass") as HTMLInputElement;
+  const reveal = document.getElementById("reveal") as HTMLButtonElement;
+
+  reveal.addEventListener("click", () => {
+    const show = pass.type === "password";
+    pass.type = show ? "text" : "password";
+    reveal.setAttribute("aria-label", show ? "Hide password" : "Show password");
+  });
+
   fetch("/api/me", { credentials: "same-origin" }).then(async (r) => {
     if (r.ok) location.replace((await r.json()).must_change_password ? "/password/" : "/home/");
   });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     error.hidden = true;
-    const button = form.querySelector("button") as HTMLButtonElement;
+    const button = form.querySelector('button[type="submit"]') as HTMLButtonElement;
     button.disabled = true;
     const r = await fetch("/api/login", {
       method: "POST",

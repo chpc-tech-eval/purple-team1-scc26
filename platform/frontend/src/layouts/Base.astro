@@ -1,5 +1,5 @@
 ---
-const { title, wide = false } = Astro.props;
+const { title } = Astro.props;
 ---
 <!doctype html>
 <html lang="en">
@@ -11,18 +11,6 @@ const { title, wide = false } = Astro.props;
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <header class="bar">
-      <a class="brand" href="/" aria-label="3NCRYP+3D home">
-        <span class="logo" aria-hidden="true">⟨/⟩</span>
-        <span class="brand-text">3NCRYP<span class="plus">+</span>3D</span>
-      </a>
-      <span class="tag">UMP · CHPC SCC26</span>
-    </header>
-    <main class={wide ? "wrap wide" : "wrap"}>
-      <slot />
-    </main>
-    <footer class="foot">
-      <span class="prompt">$</span> engineered by <strong>3NCRYP+3D</strong> · University of Mpumalanga (UMP) · CHPC Student Cluster Competition 2026
-    </footer>
+    <slot />
   </body>
 </html>

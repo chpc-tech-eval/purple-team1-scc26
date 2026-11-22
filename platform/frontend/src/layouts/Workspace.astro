@@ -1,0 +1,92 @@
+---
+import Base from "./Base.astro";
+const { title, active, crumb } = Astro.props;
+const REPO = "https://github.com/chpc-tech-eval/purple-team1-scc26";
+---
+<Base title={title}>
+  <div class="app">
+    <aside class="side">
+      <a class="logo-mark" href="/home/" aria-label="3NCRYP+3D home">
+        <span class="lm-a">3ncryp</span><span class="lm-plus">+</span><span class="lm-b">3d</span>
+      </a>
+      <p class="side-label">Student Platform</p>
+
+      <div class="team-card">
+        <div>
+          <div class="tc-name" id="wsTeam">Purple Team 1</div>
+          <div class="tc-sub">CHPC · SCC26</div>
+        </div>
+        <span class="tc-chev" aria-hidden="true">⌄</span>
+      </div>
+
+      <nav class="nav" aria-label="Workspace">
+        <a href="/home/" class={active === "overview" ? "active" : undefined}>
+          <span class="ico" aria-hidden="true">▦</span> Overview
+        </a>
+        <a href="/status/" class={active === "status" ? "active" : undefined}>
+          <span class="ico" aria-hidden="true">◉</span> Platform status
+        </a>
+        <a href="/crypty/" class={active === "crypty" ? "active" : undefined}>
+          <span class="ico" aria-hidden="true">⌘</span> Crypty diagnostics
+        </a>
+      </nav>
+
+      <div>
+        <p class="side-label">Project resources</p>
+        <div class="res">
+          <a href={REPO} target="_blank" rel="noopener noreferrer">Repository <span class="ext" aria-hidden="true">↗</span></a>
+          <a href={`${REPO}/tree/dev/docs`} target="_blank" rel="noopener noreferrer">Programme guide <span class="ext" aria-hidden="true">↗</span></a>
+          <a href="#" rel="noopener">Team Discord <span class="ext" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+
+      <div class="side-foot">
+        <div class="sf-title">Student workspace</div>
+        <div class="sf-org">University of Mpumalanga</div>
+        <div class="sf-links">
+          <a href="/password/">Change password</a>
+          <span aria-hidden="true">·</span>
+          <button id="signout" type="button">Sign out</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <nav class="crumbs" aria-label="Breadcrumb">Workspace / <span class="here">{crumb}</span></nav>
+        <div class="topbar-right">
+          <span>Sebowa environment</span>
+          <span class="chip"><span class="dot ok" aria-hidden="true"></span>Signed in</span>
+          <span>SCC26</span>
+        </div>
+      </header>
+      <main class="content">
+        <slot />
+      </main>
+    </div>
+  </div>
+</Base>
+
+<script>
+  // Auth guard shared by every workspace page: the browser only ever talks to this app.
+  async function guard() {
+    try {
+      const r = await fetch("/api/me", { credentials: "same-origin" });
+      if (!r.ok) return location.replace("/");
+      const me = await r.json();
+      if (me.must_change_password) return location.replace("/password/");
+      const team = document.getElementById("wsTeam");
+      if (team && me.team) team.textContent = me.team;
+    } catch {
+      location.replace("/");
+    }
+  }
+  const out = document.getElementById("signout");
+  if (out) {
+    out.addEventListener("click", async () => {
+      await fetch("/api/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+      location.replace("/");
+    });
+  }
+  guard();
+</script>

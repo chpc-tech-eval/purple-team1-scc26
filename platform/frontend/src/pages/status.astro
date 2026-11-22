@@ -1,0 +1,141 @@
+---
+import Workspace from "../layouts/Workspace.astro";
+---
+<Workspace title="Platform status" active="status" crumb="Platform status">
+  <div class="page-title">
+    <div>
+      <h1>Know what's actually running.</h1>
+      <p class="pt-sub">Application status, persistent state and deployment identity.</p>
+    </div>
+  </div>
+
+  <section class="status-bar" id="statusBar">
+    <span class="dot ok" id="sbDot" aria-hidden="true"></span>
+    <div class="sb-body">
+      <div class="sb-head" id="sbHead">Checking the backend…</div>
+      <div class="sb-sub" id="sbSub">Requesting a live snapshot from the application.</div>
+    </div>
+    <button class="sb-act" id="refresh" type="button">Refresh status ↻</button>
+  </section>
+
+  <div class="panels even">
+    <section class="panel">
+      <div class="panel-head">
+        <h3>Application &amp; database</h3>
+        <span class="ph-note">Backend-reported</span>
+      </div>
+      <div class="srow">
+        <div><div class="sr-name">Student Platform API</div><div class="sr-sub">/api/status</div></div>
+        <div class="sr-val s-ok" id="rApi">—</div>
+      </div>
+      <div class="srow">
+        <div><div class="sr-name">PostgreSQL</div><div class="sr-sub" id="rDbSub">Application database</div></div>
+        <div class="sr-val s-ok" id="rDb">—</div>
+      </div>
+      <div class="srow">
+        <div><div class="sr-name">Application uptime</div><div class="sr-sub">Process uptime, not service availability</div></div>
+        <div class="sr-val" id="rUptime">—</div>
+      </div>
+      <div class="srow">
+        <div><div class="sr-name">Persisted records</div><div class="sr-sub" id="rLast">Latest sign-in · —</div></div>
+        <div class="sr-val" id="rRecords">—</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>Deployment identity</h3>
+      <p class="panel-sub">Safe metadata only. No environment dumps or secrets.</p>
+      <div class="meta-row"><span class="mr-k">Project</span><span class="mr-v">purple-team1-scc26</span></div>
+      <div class="meta-row"><span class="mr-k">Repository branch</span><span class="mr-v">dev</span></div>
+      <div class="meta-row"><span class="mr-k">Git revision</span><span class="mr-v" id="mGit">—</span></div>
+      <div class="meta-row"><span class="mr-k">Application started</span><span class="mr-v" id="mStarted">—</span></div>
+      <div class="meta-row"><span class="mr-k">Database storage</span><span class="mr-v">Cinder-backed persistent volume</span></div>
+      <div class="caveat"><b aria-hidden="true">!</b><span>Reachability does not prove persistence after a restart.</span></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h3>Different signals. Different questions.</h3>
+      <span class="ph-note">Observability is not inferred from pod status</span>
+    </div>
+    <div class="telemetry">
+      <div class="tele c">
+        <div class="t-name">Prometheus / Grafana</div>
+        <div class="t-role">Platform behaviour</div>
+        <div class="t-desc">CPU, memory and current scrape targets.</div>
+      </div>
+      <div class="tele">
+        <div class="t-name">Wazuh</div>
+        <div class="t-role">Host security</div>
+        <div class="t-desc">Host events and file integrity signals.</div>
+      </div>
+      <div class="tele y">
+        <div class="t-name">Suricata</div>
+        <div class="t-role">Network security</div>
+        <div class="t-desc">Network IDS events and EVE evidence.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot-note">
+    <b>Read-only view</b>
+    <span>Cluster administration stays on k8s-cp-01. Permanent changes go through Git and Argo CD.</span>
+  </div>
+</Workspace>
+
+<script>
+  const $ = (id: string) => document.getElementById(id)!;
+  const fmt = (iso: string) => {
+    try {
+      return new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC",
+      }).format(new Date(iso)).replace(",", "") + " UTC";
+    } catch { return iso; }
+  };
+  const nowUtc = () => {
+    try {
+      return new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: "UTC",
+      }).format(new Date()).replace(",", "") + " UTC";
+    } catch { return new Date().toISOString(); }
+  };
+
+  function setBar(state: "ok" | "bad", head: string, sub: string) {
+    const bar = $("statusBar");
+    bar.className = state === "ok" ? "status-bar" : "status-bar bad";
+    $("sbDot").className = state === "ok" ? "dot ok" : "dot bad";
+    $("sbHead").textContent = head;
+    $("sbSub").textContent = sub;
+  }
+
+  async function load() {
+    setBar("ok", "Checking the backend…", "Requesting a live snapshot from the application.");
+    try {
+      const r = await fetch("/api/status", { credentials: "same-origin" });
+      if (!r.ok) throw new Error(String(r.status));
+      const s = await r.json();
+      setBar("ok", "Backend responded · Database reachable", `Live snapshot · ${nowUtc()} · Refresh to request current backend data`);
+      $("rApi").textContent = "Responding";
+      const ver = String(s.database.server_version).split(" ")[0];
+      $("rDb").textContent = "Reachable";
+      $("rDbSub").textContent = `${ver} · Application database`;
+      $("rUptime").textContent = `${Math.round(s.uptime_seconds / 60)} minutes`;
+      $("rRecords").textContent = `${s.database.users} users / ${s.database.logins} sign-ins`;
+      $("rLast").textContent = `Latest sign-in · ${s.database.last_login ? fmt(s.database.last_login) : "—"}`;
+      $("mGit").textContent = s.git_sha || "unknown";
+      $("mStarted").textContent = s.started_at ? fmt(s.started_at) : "—";
+    } catch {
+      setBar("bad", "Backend did not respond", "The application status endpoint could not be reached. Try refreshing.");
+      $("rApi").textContent = "Unreachable";
+      $("rApi").className = "sr-val s-bad";
+      $("rDb").textContent = "Unknown";
+      $("rDb").className = "sr-val s-bad";
+    }
+  }
+
+  $("refresh").addEventListener("click", load);
+  load();
+</script>
