@@ -1,0 +1,213 @@
+---
+import Workspace from "../../layouts/Workspace.astro";
+---
+<Workspace title="Diagnostic detail" active="crypty" crumb="Crypty / Diagnostic detail">
+  <a class="btn link" href="/crypty/">← All diagnostics</a>
+
+  <p id="err" class="notice" role="alert" hidden></p>
+
+  <div id="detail" hidden>
+    <div class="page-title">
+      <div>
+        <h1>Platform health diagnostic</h1>
+        <p class="pt-sub mono" id="dTask">—</p>
+      </div>
+      <div class="btn-row">
+        <span class="dr-status" id="dStatus">—</span>
+        <span class="muted mono" id="dDuration"></span>
+      </div>
+    </div>
+
+    <section class="panel">
+      <div class="steps">
+        <div class="step"><span class="st-n">01</span><span class="st-name">Task accepted</span><span class="st-check" id="st1" aria-hidden="true">✓</span></div>
+        <div class="step"><span class="st-n">02</span><span class="st-name">Evidence saved</span><span class="st-check" id="st2" aria-hidden="true">✓</span></div>
+        <div class="step"><span class="st-n">03</span><span class="st-name">Explanation saved</span><span class="st-check" id="st3" aria-hidden="true">✓</span></div>
+      </div>
+    </section>
+
+    <div class="panels split">
+      <div class="col">
+        <section class="panel">
+          <div class="panel-head">
+            <h3>Retained evidence</h3>
+            <span class="ph-note">Stored before inference</span>
+          </div>
+          <p class="panel-sub" id="evObserved">Prometheus · observed —</p>
+          <div class="ev-stats" id="evStats"></div>
+          <div class="query-box"><span class="qb-k">Query</span><span class="qb-q" id="evQuery">—</span></div>
+          <p class="panel-sub" id="evScope"></p>
+        </section>
+
+        <section class="panel">
+          <div class="explain-head">
+            <span class="orb sm" aria-hidden="true"></span>
+            <span class="eh-n">02</span>
+            <h3>Crypty's explanation</h3>
+            <span class="eh-tag">Interpretation, not evidence</span>
+          </div>
+          <p class="explain-lead" id="exLead">—</p>
+          <p class="explain-body" id="exBody"></p>
+          <div class="caveat" id="exCaveat" hidden><b aria-hidden="true">!</b><span>Review the affected target and collection path before drawing conclusions. This diagnostic did not include Wazuh or Suricata evidence.</span></div>
+        </section>
+      </div>
+
+      <div class="col">
+        <section class="panel">
+          <h3>Run provenance</h3>
+          <div class="meta-row"><span class="mr-k">Diagnostic</span><span class="mr-v" id="pDiag">—</span></div>
+          <div class="meta-row"><span class="mr-k">Recorded model</span><span class="mr-v" id="pModel">—</span></div>
+          <div class="meta-row"><span class="mr-k">Runtime revision</span><span class="mr-v" id="pRev">—</span></div>
+          <div class="meta-row"><span class="mr-k">Started</span><span class="mr-v" id="pStart">—</span></div>
+          <div class="meta-row"><span class="mr-k">Finished</span><span class="mr-v" id="pFinish">—</span></div>
+          <p class="panel-sub pad-t">Provenance is recorded in the ACP ledger.</p>
+        </section>
+
+        <section class="panel">
+          <h3>Persisted events</h3>
+          <div class="timeline pad-t" id="events"></div>
+        </section>
+      </div>
+    </div>
+
+    <div class="foot-note">
+      <b>Keep the distinction</b>
+      <span>Succeeded means the diagnostic workflow completed. It does not mean every target is healthy.</span>
+    </div>
+  </div>
+</Workspace>
+
+<script>
+  const $ = (id: string) => document.getElementById(id)!;
+  const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+  const humanize = (s: string) => cap(String(s).replace(/[_-]+/g, " "));
+  const fmt = (iso: string) => {
+    try {
+      return new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: "UTC",
+      }).format(new Date(iso)).replace(",", "") + " UTC";
+    } catch { return iso; }
+  };
+  const hms = (iso: string) => {
+    try {
+      return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: "UTC" }).format(new Date(iso));
+    } catch { return iso; }
+  };
+
+  function fail(msg: string) {
+    const el = $("err");
+    el.textContent = msg;
+    el.hidden = false;
+  }
+
+  function evStat(label: string, value: unknown) {
+    const key = label.toLowerCase();
+    const cls = key.includes("up") ? "ev-stat up" : key.includes("down") ? "ev-stat down" : "ev-stat";
+    const wrap = document.createElement("div");
+    wrap.className = cls;
+    const v = document.createElement("div");
+    v.className = "es-v";
+    v.textContent = String(value).length < 2 ? String(value).padStart(2, "0") : String(value);
+    const l = document.createElement("div");
+    l.className = "es-l";
+    l.textContent = humanize(label);
+    wrap.append(v, l);
+    return wrap;
+  }
+
+  function render(t: any) {
+    $("detail").hidden = false;
+    $("dTask").textContent = `Task ${t.task_id} · ${t.created_at ? fmt(t.created_at) : "—"}`;
+    const st = $("dStatus");
+    st.className = `dr-status s-${t.status}`;
+    st.textContent = `● ${cap(t.status)}`;
+    if (t.started_at && t.finished_at) {
+      const secs = Math.max(0, Math.round((Date.parse(t.finished_at) - Date.parse(t.started_at)) / 1000));
+      $("dDuration").textContent = `${secs} second${secs === 1 ? "" : "s"}`;
+    }
+
+    // execution steps
+    $("st1").textContent = t.created_at ? "✓" : "—";
+    $("st2").textContent = t.evidence ? "✓" : "—";
+    $("st3").textContent = t.summary ? "✓" : "—";
+    for (const [id, done] of [["st1", !!t.created_at], ["st2", !!t.evidence], ["st3", !!t.summary]] as const) {
+      ($(id) as HTMLElement).className = done ? "st-check" : "st-check muted";
+    }
+
+    // retained evidence
+    const ev = t.evidence || {};
+    $("evObserved").textContent = ev.observed_at ? `Prometheus · observed ${fmt(ev.observed_at)}` : "Prometheus evidence";
+    const stats = $("evStats");
+    stats.replaceChildren();
+    const counts = ev.counts;
+    if (counts && typeof counts === "object") {
+      for (const [k, v] of Object.entries(counts).slice(0, 3)) stats.append(evStat(k, v));
+    }
+    $("evQuery").textContent = ev.query || "—";
+    $("evScope").textContent = ev.limitation || "Scope: scrape-target availability at one point in time. This is not a full security assessment.";
+
+    // explanation
+    if (t.summary) {
+      const m = String(t.summary).match(/^(.*?[.!?])(\s+|$)([\s\S]*)$/);
+      if (m) { $("exLead").textContent = m[1].trim(); $("exBody").textContent = m[3].trim(); }
+      else { $("exLead").textContent = String(t.summary).trim(); $("exBody").textContent = ""; }
+      $("exCaveat").hidden = false;
+    } else if (t.status === "failed") {
+      $("exLead").textContent = "No explanation was generated.";
+      $("exBody").textContent = "The run failed; nothing here is reported as healthy.";
+    } else {
+      $("exLead").textContent = "Waiting for the worker…";
+      $("exBody").textContent = "";
+    }
+
+    // provenance
+    $("pDiag").textContent = t.diagnostic || "Fixed platform health";
+    $("pModel").textContent = t.model || (t.status === "failed" ? "Not returned" : "—");
+    $("pRev").textContent = t.runtime_revision || "—";
+    $("pStart").textContent = t.started_at ? hms(t.started_at) + " UTC" : "—";
+    $("pFinish").textContent = t.finished_at ? hms(t.finished_at) + " UTC" : "—";
+
+    // events
+    const box = $("events");
+    box.replaceChildren();
+    const events = t.events || [];
+    if (!events.length) {
+      box.append(Object.assign(document.createElement("p"), { className: "empty", textContent: "No events recorded." }));
+    }
+    for (const x of events) {
+      const item = document.createElement("div");
+      item.className = "tl-item";
+      const time = document.createElement("div");
+      time.className = "tl-t";
+      time.textContent = x.occurred_at ? hms(x.occurred_at) : "";
+      const body = document.createElement("div");
+      const k = document.createElement("div");
+      k.className = "tl-k";
+      k.textContent = humanize(x.kind);
+      body.append(k);
+      if (x.data && typeof x.data === "object" && Object.keys(x.data).length) {
+        const d = document.createElement("div");
+        d.className = "tl-d";
+        d.textContent = Object.entries(x.data).map(([kk, vv]) => `${kk}: ${vv}`).join(" · ");
+        body.append(d);
+      }
+      item.append(time, body);
+      box.append(item);
+    }
+  }
+
+  async function load() {
+    const id = new URLSearchParams(location.search).get("id");
+    if (!id) return fail("No diagnostic selected. Open one from the history on the Crypty page.");
+    try {
+      const r = await fetch(`/api/crypty/tasks/${encodeURIComponent(id)}`, { credentials: "same-origin" });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) return fail(body.error || "Could not load this diagnostic.");
+      render(body);
+    } catch {
+      fail("Could not load this diagnostic.");
+    }
+  }
+  load();
+</script>
